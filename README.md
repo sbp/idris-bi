@@ -7,7 +7,7 @@ main : IO ()
 main = do printLn (show (modNatNZ 1501857320 (S 86399) SIsNotZ))
 ```
 
-This file takes so long to type check or to compile that the duration would have to be extrapolated from smaller examples. Instead, we can use `%freeze` to lift the slow terms to the top level:
+This file takes so long to type check or to compile that the duration would have to be extrapolated from smaller examples. Instead, we can use `%freeze` after lifting the slow terms to the top level:
 
 ```haskell
 n1501857320 : Nat
@@ -41,17 +41,15 @@ This is somewhat related to Issue [#3516](https://github.com/idris-lang/Idris-de
 
 To see what performance gains may be made, this is a small but usable port of a subset of ZArith to Idris, called `Bi`.
 
-The code is based on [Coq.NArith.BinPos](https://www.cs.princeton.edu/courses/archive/fall07/cos595/stdlib/html/Coq.NArith.BinPos.html) and [ZArith.Zdiv](https://github.com/maximedenes/native-coq/blob/master/theories/ZArith/Zdiv.v#L598). The [tutorial](https://www.cs.princeton.edu/~appel/vfa/Trie.html) in VFA explains why such arithmetic is necessary and how it is constructed for anybody missing the background. The main types are as follows:
+The code is based on [Coq.Numbers.BinNums](https://coq.inria.fr/library/Coq.Numbers.BinNums.html), [Coq.PArith.BinPosDef](https://coq.inria.fr/library/Coq.PArith.BinPosDef.html), [Coq.NArith.BinNatDef](https://coq.inria.fr/library/Coq.NArith.BinNatDef.html), and [Coq.ZArith.Zdiv](https://coq.inria.fr/library/Coq.ZArith.Zdiv.html). The [tutorial](https://www.cs.princeton.edu/~appel/vfa/Trie.html) in VFA explains why such arithmetic is necessary and how it is constructed for anybody missing the background. The main types are as follows:
 
 ```haskell
 data Bip = U | O Bip | I Bip
-data Bin = BZero | BPos Bip
-data Bi = BNat Bin | BNeg Bip
+data Bin = BinZ | BinP Bip
+data Biz = BizZ | BizP Bip | BizM Bip
 ```
 
-This is slightly different from Coq, which has a single `Z` case covering negative, zero, and positive numbers instead of both `Bin` and `Bi`. The extended three-level tower is probably more useful.
-
-We can now rewrite the poorly-performing example above as:
+These correspond to the Coq types `positive` for PArith, `N` for NArith, and `Z` for ZArith. We can now rewrite the poorly-performing example above as:
 
 ```haskell
 import Bi
