@@ -52,7 +52,7 @@ data Biz = BizZ | BizP Bip | BizM Bip
 These correspond to the Coq types `positive` for PArith, `N` for NArith, and `Z` for ZArith. We can now rewrite the poorly-performing example above as:
 
 ```haskell
-import Bi
+import Bin
 
 main : IO ()
 main = do printLn (show (the Integer (cast (binMod 1501857320 86400))))

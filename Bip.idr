@@ -56,9 +56,9 @@ bipPred (I a') = O a'
 data Bim =
    ||| Zero
    BimZ |
-   ||| Plus sign
+   ||| Plus signed number
    BimP Bip |
-   ||| Minus sign
+   ||| Minus signed number
    BimM
 
 %name Bim k,j,l,m,n
