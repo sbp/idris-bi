@@ -24,7 +24,7 @@ data Bip =
 ||| Natural binary number
 data Bin =
   ||| Zero
-  BinZ |
+  BinO |
   ||| Plus signed number
   BinP Bip
 
@@ -35,7 +35,7 @@ data Bin =
 ||| Binary integer
 data Biz =
   ||| Zero
-  BizZ |
+  BizO |
   ||| Plus signed number
   BizP Bip |
   ||| Minus signed number

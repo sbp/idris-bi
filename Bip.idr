@@ -55,7 +55,7 @@ bipPred (I a') = O a'
 ||| Auxiliary type for subtraction
 data Bim =
    ||| Zero
-   BimZ |
+   BimO |
    ||| Plus signed number
    BimP Bip |
    ||| Minus signed number
@@ -65,19 +65,19 @@ data Bim =
 
 ||| Operation x -> 2*x+1
 bimDPO : (a: Bim) -> Bim
-bimDPO BimZ = BimP U
+bimDPO BimO = BimP U
 bimDPO (BimP a') = BimP (I a')
 bimDPO BimM = BimM
 
 ||| Operation x -> 2*x
 bimD : (a: Bim) -> Bim
-bimD BimZ = BimZ
+bimD BimO = BimO
 bimD (BimP a') = BimP (O a')
 bimD BimM = BimM
 
 ||| Operation x -> 2*x-2
 bimDMT : (a: Bip) -> Bim
-bimDMT U = BimZ
+bimDMT U = BimO
 bimDMT (O a') = BimP (O (bipDMO a'))
 bimDMT (I a') = BimP (O (O a'))
 
@@ -86,7 +86,7 @@ bimDMT (I a') = BimP (O (O a'))
 
 ||| Subtraction, result as a mask
 bimMinus : (a: Bip) -> (b: Bip) -> Bim
-bimMinus U U = BimZ
+bimMinus U U = BimO
 bimMinus U _ = BimM
 bimMinus (O a') U = BimP (bipDMO a')
 bimMinus (O a') (O b') = bimD (bimMinus a' b')

@@ -13,12 +13,12 @@ import public Bip
 
 ||| Operation x -> 2*x
 binD : (a: Bin) -> Bin
-binD BinZ = BinZ
+binD BinO = BinO
 binD (BinP a') = BinP (O a')
 
 ||| Successor
 binSucc : (a: Bin) -> Bin
-binSucc BinZ = BinP U
+binSucc BinO = BinP U
 binSucc (BinP a') = BinP (bipSucc a')
 
 -- Predecessor
@@ -26,32 +26,32 @@ binSucc (BinP a') = BinP (bipSucc a')
 
 ||| Addition
 binPlus : (a: Bin) -> (b: Bin) -> Bin
-binPlus BinZ BinZ = BinZ
-binPlus BinZ (BinP b') = BinP b'
-binPlus (BinP a') BinZ = BinP a'
+binPlus BinO BinO = BinO
+binPlus BinO (BinP b') = BinP b'
+binPlus (BinP a') BinO = BinP a'
 binPlus (BinP a') (BinP b') = BinP (bipPlus a' b')
 
 ||| Subtraction
 binMinus : (a: Bin) -> (b: Bin) -> Bin
-binMinus BinZ BinZ = BinZ
-binMinus BinZ (BinP b') = BinZ
-binMinus (BinP a') BinZ = BinP a'
+binMinus BinO BinO = BinO
+binMinus BinO (BinP b') = BinO
+binMinus (BinP a') BinO = BinP a'
 binMinus (BinP a') (BinP b') = if a' > b'
                                  then BinP (bipMinus a' b')
-                                 else BinZ
+                                 else BinO
 
 ||| Multiplication
 binMult : (a: Bin) -> (b: Bin) -> Bin
-binMult BinZ BinZ = BinZ
-binMult BinZ (BinP b') = BinZ
-binMult (BinP a') BinZ = BinZ
+binMult BinO BinO = BinO
+binMult BinO (BinP b') = BinO
+binMult (BinP a') BinO = BinO
 binMult (BinP a') (BinP b') = BinP (bipMult a' b')
 
 ||| Order
 binCompare : (a: Bin) -> (b: Bin) -> Ordering
-binCompare BinZ BinZ = EQ
-binCompare BinZ (BinP b) = LT
-binCompare (BinP a) BinZ = GT
+binCompare BinO BinO = EQ
+binCompare BinO (BinP b) = LT
+binCompare (BinP a) BinO = GT
 binCompare (BinP a) (BinP b) = bipCompare a b EQ
 
 -- Boolean equality and comparison
@@ -73,7 +73,7 @@ binCompare (BinP a) (BinP b) = bipCompare a b EQ
 -- Translation from Bin to Nat
 
 toNatBin : (a: Bin) -> Nat
-toNatBin BinZ = 0
+toNatBin BinO = 0
 toNatBin (BinP a') = toNatBip a'
 
 -- Nat to Bin
@@ -84,16 +84,16 @@ toNatBin (BinP a') = toNatBip a'
 -- Idris specific
 
 fromIntegerBin : Integer -> Bin
-fromIntegerBin 0 = BinZ
+fromIntegerBin 0 = BinO
 fromIntegerBin n =
   if (n > 1)
     then BinP (fromIntegerBip n)
     else BinP U
 
 Eq Bin where
-  BinZ == BinZ = True
-  BinZ == (BinP b) = False
-  (BinP a) == BinZ = False
+  BinO == BinO = True
+  BinO == (BinP b) = False
+  (BinP a) == BinO = False
   (BinP a) == (BinP b) = (a == b)
 
 Cast Bin Nat where
@@ -115,7 +115,7 @@ Num Bin where
 binMod : (a: Bip) -> (b: Bip) -> Bin
 binMod U b = if (O U) <= b
                then BinP U
-               else BinZ
+               else BinO
 binMod (O a') b = let r = binMod a' b in
                   let r' = binD r in
                     if r' < (BinP b)
