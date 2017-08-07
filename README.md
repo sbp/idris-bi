@@ -45,8 +45,8 @@ The code is based on [Coq.Numbers.BinNums](https://coq.inria.fr/library/Coq.Numb
 
 ```haskell
 data Bip = U | O Bip | I Bip
-data Bin = BinZ | BinP Bip
-data Biz = BizZ | BizP Bip | BizM Bip
+data Bin = BinO | BinP Bip
+data Biz = BizO | BizP Bip | BizM Bip
 ```
 
 These correspond to the Coq types `positive` for PArith, `N` for NArith, and `Z` for ZArith. We can now rewrite the poorly-performing example above as:
