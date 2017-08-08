@@ -1,0 +1,6 @@
+package Bi
+
+sourcedir = .
+modules = Bi
+
+opts = "-p pruviloj"

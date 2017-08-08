@@ -1,2 +1,2 @@
 check: ;
-	idris --nobanner -p pruviloj -X ElabReflection --check BipProofs.idr
+	idris --nobanner -p pruviloj --check BipProofs.idr
