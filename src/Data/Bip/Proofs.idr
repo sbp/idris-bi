@@ -344,6 +344,7 @@ mulXIR (I a) q = rewrite addComm a (q + O (a * q)) in
 
 -- mul_comm
 ||| Commutativity of multiplication
+covering
 mulComm : (p,q : Bip) -> p * q = q * p
 mulComm p U = mul1R p
 mulComm p (O a) = rewrite mulComm a p in mulXOR p a
