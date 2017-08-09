@@ -1,2 +1,2 @@
 check: ;
-	idris --nobanner -p pruviloj --check BipProofs.idr
+	idris --nobanner --check src/Data/Bip/Proofs.idr

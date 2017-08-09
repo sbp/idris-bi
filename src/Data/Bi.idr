@@ -1,4 +1,4 @@
-module Bi
+module Data.Bi
 
 %default total
 %access public export
