@@ -1,6 +1,10 @@
 package Bi
 
-sourcedir = .
-modules = Bi
+sourcedir = src
+modules = Data.Bi
+        , Data.Bip
+        , Data.Bip.Proofs
+        , Data.Bip.ProofsPruv
+        , Data.Bin
 
 opts = "-p pruviloj"

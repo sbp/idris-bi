@@ -1,9 +1,26 @@
-module Bip
+module Data.Bip
 
-import public Bi
+import public Data.Bi
 
 %default total
 %access public export
+
+-- basic properties of constructors
+
+Uninhabited (U = O n) where
+  uninhabited Refl impossible
+
+Uninhabited (U = I n) where
+  uninhabited Refl impossible
+
+Uninhabited (I n = O m) where
+  uninhabited Refl impossible
+
+OInj : O p = O q -> p = q
+OInj Refl = Refl
+
+IInj : Bi.I p = Bi.I q -> p = q
+IInj Refl = Refl  
 
 -- Following Coq.PArith.BinPosDef
 
@@ -13,29 +30,30 @@ bipSucc U = O U
 bipSucc (O a') = I a'
 bipSucc (I a') = O (bipSucc a')
 
-||| Addition
--- TODO: bipAdd?
-bipPlus : (a: Bip) -> (b: Bip) -> Bip
-bipPlus U U = O U
-bipPlus U (O b') = I b'
-bipPlus U (I b') = O (bipSucc b')
-bipPlus (O a') U = I a'
-bipPlus (O a') (O b') = O (bipPlus a' b')
-bipPlus (O a') (I b') = I (bipPlus a' b')
-bipPlus (I a') U = O (bipSucc a')
-bipPlus (I a') (O b') = I (bipPlus a' b')
-bipPlus (I a') (I b') = O (carry a' b')
-  where
-    carry : (a: Bip) -> (b: Bip) -> Bip
-    carry U U = I U
-    carry U (O b') = O (bipSucc b')
-    carry U (I b') = I (bipSucc b')
-    carry (O a') U = O (bipSucc a')
-    carry (O a') (O b') = I (bipPlus a' b')
-    carry (O a') (I b') = O (carry a' b')
-    carry (I a') U = I (bipSucc a')
-    carry (I a') (O b') = O (carry a' b')
-    carry (I a') (I b') = I (carry a' b')
+mutual 
+  ||| Addition
+  -- TODO: bipAdd?
+  bipPlus : (a: Bip) -> (b: Bip) -> Bip
+  bipPlus U U = O U
+  bipPlus U (O b') = I b'
+  bipPlus U (I b') = O (bipSucc b')
+  bipPlus (O a') U = I a'
+  bipPlus (O a') (O b') = O (bipPlus a' b')
+  bipPlus (O a') (I b') = I (bipPlus a' b')
+  bipPlus (I a') U = O (bipSucc a')
+  bipPlus (I a') (O b') = I (bipPlus a' b')
+  bipPlus (I a') (I b') = O (bipCarry a' b')
+  
+  bipCarry : (a: Bip) -> (b: Bip) -> Bip
+  bipCarry U U = I U
+  bipCarry U (O b') = O (bipSucc b')
+  bipCarry U (I b') = I (bipSucc b')
+  bipCarry (O a') U = O (bipSucc a')
+  bipCarry (O a') (O b') = I (bipPlus a' b')
+  bipCarry (O a') (I b') = O (bipCarry a' b')
+  bipCarry (I a') U = I (bipSucc a')
+  bipCarry (I a') (O b') = O (bipCarry a' b')
+  bipCarry (I a') (I b') = I (bipCarry a' b')
 
 ||| Operation x -> 2*x-1
 bipDMO : (a: Bip) -> Bip
@@ -50,7 +68,10 @@ bipPred (O a') = bipDMO a'
 bipPred (I a') = O a'
 
 -- Predecessor seen as Bin
--- TODO: bipPredN?
+bipPredN : (a: Bip) -> Bin
+bipPredN U = BinO
+bipPredN (O a') = BinP (bipDMO a')
+bipPredN (I a') = BinP (O a')
 
 ||| Auxiliary type for subtraction
 data Bim =

@@ -1,10 +1,15 @@
-module Bin
+module Data.Bin
 
-import public Bi
-import public Bip
+import public Data.Bi
+import public Data.Bip
 
 %default total
 %access public export
+
+-- basic properties of constructors
+
+binPInj : BinP p = BinP q -> p = q
+binPInj Refl = Refl
 
 -- Following Coq.NArith.BinNatDef
 
