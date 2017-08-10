@@ -29,7 +29,7 @@ OInj : O p = O q -> p = q
 OInj Refl = Refl
 
 IInj : Bi.I p = Bi.I q -> p = q
-IInj Refl = Refl  
+IInj Refl = Refl
 
 -- Following Coq.PArith.BinPosDef
 
@@ -39,7 +39,7 @@ bipSucc  U     = O U
 bipSucc (O a') = I a'
 bipSucc (I a') = O (bipSucc a')
 
-mutual 
+mutual
   ||| Addition
   -- TODO: bipAdd?
   bipPlus : (a, b: Bip) -> Bip
@@ -52,7 +52,7 @@ mutual
   bipPlus (I a')  U     = O (bipSucc a')
   bipPlus (I a') (O b') = I (bipPlus a' b')
   bipPlus (I a') (I b') = O (bipCarry a' b')
-  
+
   bipCarry : (a, b: Bip) -> Bip
   bipCarry  U      U     = I U
   bipCarry  U     (O b') = O (bipSucc b')
@@ -192,26 +192,26 @@ bipDigits (I a') = bipSucc (bipDigits a')
 
 ||| Comparison on binary positive numbers
 bipCompare : (a, b: Bip) -> (c: Ordering) -> Ordering
-bipCompare  U      U c     = c
+bipCompare  U      U     c = c
 bipCompare  U     (O a') _ = LT
 bipCompare  U     (I a') _ = LT
-bipCompare (O a')  U _     = GT
+bipCompare (O a')  U     _ = GT
 bipCompare (O a') (O b') c = bipCompare a' b' c
 bipCompare (O a') (I b') c = bipCompare a' b' LT
-bipCompare (I a')  U c     = GT
+bipCompare (I a')  U     c = GT
 bipCompare (I a') (O b') c = bipCompare a' b' GT
 bipCompare (I a') (I b') c = bipCompare a' b' c
 
 ||| Min
 bipMin : (a, b: Bip) -> Bip
-bipMin a b = 
+bipMin a b =
   case bipCompare a b EQ of
     GT => b
     _  => a
 
 ||| Max
 bipMax : (a, b: Bip) -> Bip
-bipMax a b = 
+bipMax a b =
   case bipCompare a b EQ of
     GT => a
     _  => b
@@ -221,9 +221,9 @@ bipMax a b =
 
 -- Square root helper function
 bipSqrtRemStep : (f, g: Bip -> Bip) -> (Bip, Bim) -> (Bip, Bim)
-bipSqrtRemStep f g (s, BimP r) = 
+bipSqrtRemStep f g (s, BimP r) =
   let s' = I (O s)
-      r' = g (f r) 
+      r' = g (f r)
   in
     case bipCompare s' r' EQ of
       LT => (I s, bimMinus r' s')
@@ -251,7 +251,7 @@ bipSqrt = fst . bipSqrtRem
 ||| GCD, with Nat of total combined digits
 bipGCDN : (n: Nat) -> (a, b: Bip) -> Bip
 bipGCDN  Z     _ _ = U
-bipGCDN (S n') a b = 
+bipGCDN (S n') a b =
   case (a, b) of
     (U   , _   ) => U
     (_   , U   ) => U
@@ -271,31 +271,29 @@ bipGCD a b = bipGCDN ((bipDigitsNat a) + (bipDigitsNat b)) a b
 ||| Generalised GCD, with Nat of total combined digits
 bipGGCDN : (n: Nat) -> (a, b: Bip) -> (Bip, (Bip, Bip))
 bipGGCDN  Z     a b = (U, (a, b))
-bipGGCDN (S n') a b = 
+bipGGCDN (S n') a b =
   case (a, b) of
     (U   , _   ) => (U, (U, b))
     (_   , U   ) => (U, (a, U))
     (O a', O b') =>
-      let (g, p) = bipGGCDN n' a' b' 
-      in  (O g, p)
+      let (g, p) = bipGGCDN n' a' b' in
+                    (O g, p)
     (_   , O b') =>
-      let (g, (aa, bb)) = bipGGCDN n' a b' 
-      in  (g, (aa, O bb))
+      let (g, (aa, bb)) = bipGGCDN n' a b' in
+                    (g, (aa, O bb))
     (O a', _   ) =>
-      let (g, (aa, bb)) = bipGGCDN n' a' b 
-      in  (g, (O aa, bb))
+      let (g, (aa, bb)) = bipGGCDN n' a' b in
+                    (g, (O aa, bb))
     (I a', I b') =>
       case bipCompare a' b' EQ of
         EQ => (a, (U, U))
         LT =>
           let a'' = bipMinus b' a'
-              (g, (ba, aa)) = bipGGCDN n' a'' a 
-          in
+              (g, (ba, aa)) = bipGGCDN n' a'' a in
               (g, (aa, bipPlus aa (O ba)))
         GT =>
           let a'' = bipMinus a' b'
-              (g, (ab, bb)) = bipGGCDN n' a'' b 
-          in
+              (g, (ab, bb)) = bipGGCDN n' a'' b in
               (g, (bipPlus bb (O ab), bb))
 
 ||| Generalised GCD
@@ -428,8 +426,7 @@ fromIntegerBip n =
     -- quotient is n / 2, hence quotient and quotient' are < n
     -- this is true because n / 2 floors
     then let quotient = (assert_total (prim__sdivBigInt n 2))
-             quotient' = (assert_smaller n quotient) 
-         in
+             quotient' = (assert_smaller n quotient) in
              case integerParity n of
                Even => O (fromIntegerBip quotient')
                Odd => I (fromIntegerBip quotient')
