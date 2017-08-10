@@ -107,7 +107,6 @@ add1R : (p: Bip) -> p + U = bipSucc p
 add1R  U    = Refl
 add1R (O _) = Refl
 add1R (I _) = Refl
-
 -- add_1_l
 
 add1L : (p: Bip) -> U + p = bipSucc p
@@ -310,8 +309,24 @@ addDiag (I a) = rewrite addCarrySpec a a in
                 rewrite addDiag a in
                 Refl
 
--- TODO Peano
---
+-- peano_rect
+
+-- TODO how useful is this? we can't do custom induction
+
+mutual
+  peanoRect : (P : Bip -> Type) -> (a : P U) ->
+              (f: (p : Bip) -> P p -> P (bipSucc p)) ->
+              (p: Bip) -> P p
+  peanoRect P a _  U    = a
+  peanoRect P a f (O q) = peanoAux P a f q
+  peanoRect P a f (I q) = f _ (peanoAux P a f q)
+
+  peanoAux : (P : Bip -> Type) -> (a : P U) ->
+             (f: (p : Bip) -> P p -> P (bipSucc p)) ->
+             (p: Bip) -> P (O p)
+  peanoAux P a f = peanoRect (P . O) (f _ a) (\_ => f _ . f _)
+
+-- TODO rest of Peano?
 
 -- mul_1_l
 
@@ -351,19 +366,20 @@ mulComm p (I b) = rewrite mulXIR p b in cong {f=bipPlus p . O} $ mulComm p b
 
 -- mul_add_distr_l
 
+addShuffle : (p,q,r,s : Bip) -> (p+q)+(r+s) = (p+r)+(q+s)
+addShuffle p q r s = rewrite addAssoc (p+q) r s in
+                     rewrite sym $ addAssoc p q r in
+                     rewrite addComm q r in
+                     rewrite addAssoc p r q in
+                     rewrite sym $ addAssoc (p+r) q s in Refl
+
 mulAddDistrL : (p,q,r : Bip) -> p * (q + r) = p * q + p * r
 mulAddDistrL  U    _ _ = Refl
 mulAddDistrL (O a) q r = cong $ mulAddDistrL a q r
 mulAddDistrL (I a) q r = rewrite mulAddDistrL a q r in
                          rewrite sym $ addShuffle q (O (a*q)) r (O (a*r)) in
                          Refl
-  where
-  addShuffle : (p,q,r,s : Bip) -> (p+q)+(r+s) = (p+r)+(q+s)
-  addShuffle p q r s = rewrite addAssoc (p+q) r s in
-                       rewrite sym $ addAssoc p q r in
-                       rewrite addComm q r in
-                       rewrite addAssoc p r q in
-                       rewrite sym $ addAssoc (p+r) q s in Refl
+
 
 -- mul_add_distr_r
 
@@ -480,3 +496,37 @@ squareXI p = rewrite mulXIR p p in
              rewrite addAssoc p p (O(p*p)) in
              rewrite addDiag p in
              cong {f=I . O} $ addComm p (p*p)
+
+-- iter_swap_gen
+
+iterSwapGen : {f : a -> b} -> {g : a -> a} -> {h : b -> b} ->
+              ((x : a) -> f (g x) = h (f x)) ->
+              (x : a) -> (p : Bip) -> (f (bipIter g x p)) = (bipIter h (f x) p)
+iterSwapGen             fx x  U     = fx x
+iterSwapGen {f} {g} {h} fx x (O b)  =
+  rewrite sym $ iterSwapGen {f} {g} {h} fx x b in
+  rewrite iterSwapGen {f} {g} {h} fx (bipIter g x b) b in
+  Refl
+iterSwapGen {f} {g} {h} fx x (I b) =
+  rewrite sym $ iterSwapGen {f} {g} {h} fx x b in
+  rewrite fx (bipIter g (bipIter g x b) b) in
+  rewrite iterSwapGen {f} {g} {h} fx (bipIter g x b) b in
+  Refl
+
+-- iter_swap
+
+iterSwap : (f: a -> a) -> (x : a) -> (p : Bip) ->
+           bipIter f (f x) p = f (bipIter f x p)
+iterSwap f x p = sym $ iterSwapGen {f} {g=f} {h=f} (\_ => Refl) x p
+
+-- iter_succ
+
+iterSucc : (f: a -> a) -> (x : a) -> (p : Bip) ->
+           bipIter f x (bipSucc p) = f (bipIter f x p)
+iterSucc _ _  U    = Refl
+iterSucc _ _ (O _) = Refl
+iterSucc f x (I a) =
+  rewrite iterSucc f x a in
+  rewrite iterSwap f (bipIter f x a) (bipSucc a) in
+  rewrite iterSucc f (bipIter f x a) a in
+  Refl
