@@ -142,7 +142,7 @@ bipMult (O a') b = O (bipMult a' b)
 bipMult (I a') b = bipPlus b (O (bipMult a' b))
 
 ||| Iteration over a positive number
-bipIter : (f: Bip -> Bip) -> (a: Bip) -> (b: Bip) -> Bip
+bipIter : {ty: Type} -> (f: ty -> ty) -> (a: ty) -> (b: Bip) -> ty
 bipIter f a U = f a
 bipIter f a (O b') = bipIter f (bipIter f a b') b'
 bipIter f a (I b') = f (bipIter f (bipIter f a b') b')

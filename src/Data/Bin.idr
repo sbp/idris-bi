@@ -1,20 +1,21 @@
 module Data.Bin
 
-import public Data.Bi
 import public Data.Bip
 
 %default total
 %access public export
 
--- basic properties of constructors
+-- Basic properties of constructors
 
 binPInj : BinP p = BinP q -> p = q
 binPInj Refl = Refl
 
 -- Following Coq.NArith.BinNatDef
 
--- Operation x -> 2*x+1
--- TODO
+||| Operation x -> 2*x+1
+binDPO : (a: Bin) -> Bin
+binDPO BinO = BinP U
+binDPO (BinP a') = BinP (I a')
 
 ||| Operation x -> 2*x
 binD : (a: Bin) -> Bin
@@ -26,8 +27,15 @@ binSucc : (a: Bin) -> Bin
 binSucc BinO = BinP U
 binSucc (BinP a') = BinP (bipSucc a')
 
--- Predecessor
--- The successor of Bin seen as a Bip
+||| Predecessor
+binPred : (a: Bin) -> Bin
+binPred BinO = BinO
+binPred (BinP a') = bipPredBin a'
+
+||| The successor of Bin seen as a Bip
+binSuccBip : (a: Bin) -> Bip
+binSuccBip BinO = U
+binSuccBip (BinP a') = bipSucc a'
 
 ||| Addition
 binPlus : (a: Bin) -> (b: Bin) -> Bin
@@ -60,31 +68,186 @@ binCompare (BinP a) BinO = GT
 binCompare (BinP a) (BinP b) = bipCompare a b EQ
 
 -- Boolean equality and comparison
--- Min and max
--- Dividing by 2
--- Parity
--- Power
--- Square
--- Base-2 logarithm
--- Digits in number
--- Euclidean division
--- GCD
--- Square root
--- or, and, diff, xor, shifts
--- Checking whether a bit is set
--- Same but with index in Bin
--- TODO
+-- Implemented below in Ord
 
--- Translation from Bin to Nat
+||| Min
+binMin : (a: Bin) -> (b: Bin) -> Bin
+binMin a b = case binCompare a b of
+               LT => a
+               EQ => a
+               GT => b
 
+||| Max
+binMax : (a: Bin) -> (b: Bin) -> Bin
+binMax a b = case binCompare a b of
+               LT => b
+               EQ => b
+               GT => a
+
+||| Dividing by 2
+binDivTwo : (a: Bin) -> Bin
+binDivTwo BinO = BinO
+binDivTwo (BinP U) = BinO
+binDivTwo (BinP (O a')) = BinP a'
+binDivTwo (BinP (I a')) = BinP a'
+
+||| Even parity
+binEven : (a: Bin) -> Bool
+binEven BinO = True
+binEven (BinP (O _)) = True
+binEven _ = False
+
+||| Odd parity
+binOdd : (a: Bin) -> Bool
+binOdd = not . binEven
+
+||| Power
+binPow : (a: Bin) -> (b: Bin) -> Bin
+binPow BinO _ = BinP U
+binPow _ BinO = BinO
+binPow (BinP a') (BinP b') = BinP (bipPow a' b')
+
+||| Square
+binSquare : (a: Bin) -> Bin
+binSquare BinO = BinO
+binSquare (BinP a') = BinP (bipSquare a')
+
+||| Base-2 logarithm
+binLogTwo : (a: Bin) -> Bin
+binLogTwo BinO = BinO
+binLogTwo (BinP U) = BinO
+binLogTwo (BinP (O a')) = BinP (bipDigits a')
+binLogTwo (BinP (I a')) = BinP (bipDigits a')
+
+||| Digits in number
+binDigits : (a: Bin) -> Bin
+binDigits BinO = BinO
+binDigits (BinP a') = BinP (bipDigits a')
+
+||| Digits in number, as Nat
+binDigitsNat : (a: Bin) -> Nat
+binDigitsNat BinO = Z
+binDigitsNat (BinP a') = bipDigitsNat a'
+
+||| Euclidean division on Bip and Bin
+bipDivEuclid : (a: Bip) -> (b: Bin) -> (Bin, Bin)
+bipDivEuclid U b =
+  case b of
+    (BinP U) => (BinP U, BinO)
+    _ => (BinO, BinP U)
+bipDivEuclid (O a') b =
+  let (q, r) = bipDivEuclid a' b
+      r' = binD r in
+      case binCompare b r' of
+        LT => (binDPO q, binMinus r' b)
+        EQ => (binDPO q, binMinus r' b)
+        GT => (binD q, r')
+bipDivEuclid (I a') b =
+  let (q, r) = bipDivEuclid a' b
+      r' = binDPO r in
+      case binCompare b r' of
+        LT => (binDPO q, binMinus r' b)
+        EQ => (binDPO q, binMinus r' b)
+        GT => (binD q, r')
+
+||| Euclidean division into remainder and modulo
+binDivEuclid : (a: Bin) -> (b: Bin) -> (Bin, Bin)
+binDivEuclid BinO _ = (BinO, BinO)
+binDivEuclid a BinO = (BinO, a)
+binDivEuclid (BinP a') b = bipDivEuclid a' b
+
+||| Euclidean division
+binDiv : (a: Bin) -> (b: Bin) -> Bin
+binDiv a b = fst (binDivEuclid a b)
+
+||| Euclidean modulo
+binModulo : (a: Bin) -> (b: Bin) -> Bin
+binModulo a b = snd (binDivEuclid a b)
+
+||| GCD
+binGCD : (a: Bin) -> (b: Bin) -> Bin
+binGCD BinO b = b
+binGCD a BinO = a
+binGCD (BinP a') (BinP b') = BinP (bipGCD a' b')
+
+||| Generalised GCD
+binGGCD : (a: Bin) -> (b: Bin) -> (Bin, (Bin, Bin))
+binGGCD BinO b = (b, (BinO, BinP U))
+binGGCD a BinO = (a, (BinP U, BinO))
+binGGCD (BinP a') (BinP b') = let (g, (aa, bb)) = bipGGCD a' b' in
+                                  (BinP g, (BinP aa, BinP bb))
+
+||| Square root with remainder
+binSqrtRem : (a: Bin) -> (Bin, Bin)
+binSqrtRem BinO = (BinO, BinO)
+binSqrtRem (BinP a') = case bipSqrtRem a' of
+                         (s, BimP r) => (BinP s, BinP r)
+                         (s, _) => (BinP s, BinO)
+
+||| Square root
+binSqrt : (a: Bin) -> Bin
+binSqrt BinO = BinO
+binSqrt (BinP a') = BinP (bipSqrt a')
+
+||| Logical OR
+binOr : (a: Bin) -> (b: Bin) -> Bin
+binOr BinO b = b
+binOr a BinO = a
+binOr (BinP a') (BinP b') = BinP (bipOr a' b')
+
+||| Logical AND
+binAnd : (a: Bin) -> (b: Bin) -> Bin
+binAnd BinO b = BinO
+binAnd a BinO = BinO
+binAnd (BinP a') (BinP b') = bipAnd a' b'
+
+||| Logical DIFF
+binDiff : (a: Bin) -> (b: Bin) -> Bin
+binDiff BinO b = BinO
+binDiff a BinO = a
+binDiff (BinP a') (BinP b') = bipDiff a' b'
+
+||| Logical XOR
+binXor : (a: Bin) -> (b: Bin) -> Bin
+binXor BinO b = b
+binXor a BinO = a
+binXor (BinP a') (BinP b') = bipXor a' b'
+
+||| Shift left
+binShiftL : (a: Bin) -> (b: Bin) -> Bin
+binShiftL BinO b = BinO
+binShiftL (BinP a') b = BinP (bipShiftL a' b)
+
+||| Shift right
+binShiftR : (a: Bin) -> (b: Bin) -> Bin
+binShiftR _ BinO = BinO
+binShiftR a (BinP b') = bipIter binDivTwo a b'
+
+||| Checking whether a bit is set
+binTestBitNat : (a: Bin) -> (b: Nat) -> Bool
+binTestBitNat BinO _ = False
+binTestBitNat (BinP a') b = bipTestBitNat a' b
+
+||| Checking whether a bit is set, with index in Bin
+binTestBit : (a: Bin) -> (b: Bin) -> Bool
+binTestBit BinO _ = False
+binTestBit (BinP a') b = bipTestBit a' b
+
+||| Translation from Bin to Nat
 toNatBin : (a: Bin) -> Nat
-toNatBin BinO = 0
+toNatBin BinO = Z
 toNatBin (BinP a') = toNatBip a'
 
--- Nat to Bin
--- TODO
+||| Nat to Bin
+toBinNat : (a: Nat) -> Bin
+toBinNat Z = BinO
+toBinNat (S a') = BinP (toBipNat a')
 
--- Iteration of a function
+-- Seems to be reversed from bipIter for no reason
+||| Iteration of a function
+binIter : {ty: Type} -> (f: ty -> ty) -> (a: Bin) -> (b: ty) -> ty
+binIter f BinO b = b
+binIter f (BinP a') b = bipIter f b a'
 
 -- Idris specific
 
