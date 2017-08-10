@@ -346,5 +346,137 @@ mulXIR (I a) q = rewrite addComm a (q + O (a * q)) in
 ||| Commutativity of multiplication
 mulComm : (p,q : Bip) -> p * q = q * p
 mulComm p  U    = mul1R p
-mulComm p (O a) = rewrite mulXOR p a in cong $ mulComm p a
-mulComm p (I a) = rewrite mulXIR p a in cong {f=bipPlus p . O} $ mulComm p a
+mulComm p (O b) = rewrite mulXOR p b in cong $ mulComm p b
+mulComm p (I b) = rewrite mulXIR p b in cong {f=bipPlus p . O} $ mulComm p b
+
+-- mul_add_distr_l
+
+mulAddDistrL : (p,q,r : Bip) -> p * (q + r) = p * q + p * r
+mulAddDistrL  U    _ _ = Refl
+mulAddDistrL (O a) q r = cong $ mulAddDistrL a q r
+mulAddDistrL (I a) q r = rewrite mulAddDistrL a q r in
+                         rewrite sym $ addShuffle q (O (a*q)) r (O (a*r)) in
+                         Refl
+  where
+  addShuffle : (p,q,r,s : Bip) -> (p+q)+(r+s) = (p+r)+(q+s)
+  addShuffle p q r s = rewrite addAssoc (p+q) r s in
+                       rewrite sym $ addAssoc p q r in
+                       rewrite addComm q r in
+                       rewrite addAssoc p r q in
+                       rewrite sym $ addAssoc (p+r) q s in Refl
+
+-- mul_add_distr_r
+
+mulAddDistrR : (p,q,r : Bip) -> (p + q) * r = p * r + q * r
+mulAddDistrR p q r = rewrite mulComm (p+q) r in
+                     rewrite mulComm p r in
+                     rewrite mulComm q r in
+                     mulAddDistrL r p q
+
+-- mul_assoc
+||| Associativity of multiplication
+mulAssoc : (p,q,r : Bip) -> p * (q * r) = p * q * r
+mulAssoc  U    _ _ = Refl
+mulAssoc (O a) q r = cong $ mulAssoc a q r
+mulAssoc (I a) q r = rewrite mulAddDistrR q (O (a*q)) r in
+                     cong {f=bipPlus (q*r) . O} $ mulAssoc a q r
+
+-- mul_succ_l
+
+mulSuccL : (p,q : Bip) -> (bipSucc p) * q = q + p * q
+mulSuccL  U    q = sym $ addDiag q
+mulSuccL (O _) _ = Refl
+mulSuccL (I a) q = rewrite mulSuccL a q in
+                   rewrite addAssoc q q (O (a*q)) in
+                   rewrite addDiag q in
+                   Refl
+
+-- mul_succ_r
+
+mulSuccR : (p,q : Bip) -> p * (bipSucc q) = p + p * q
+mulSuccR p q = rewrite mulComm p (bipSucc q) in
+               rewrite mulComm p q in
+               mulSuccL q p
+
+-- mul_xI_mul_xO_discr
+
+addXONotXO : (p,q,r : Bip) -> Not (r+(O (p*r)) = O (q*r))
+addXONotXO _ _  U    = uninhabited
+addXONotXO p q (O c) = rewrite mulXOR p c in
+                       rewrite mulXOR q c in
+                       addXONotXO p q c . OInj
+addXONotXO _ _ (I _) = uninhabited
+
+-- TODO the one above seems more useful
+
+mulXIMulXODiscr : (p,q,r : Bip) -> Not ((I p) * r = (O q) * r)
+mulXIMulXODiscr p q  U    = rewrite mul1R (I p) in
+                            rewrite mul1R (O q) in
+                            uninhabited
+mulXIMulXODiscr p q (O c) = rewrite mulXOR p c in
+                            rewrite mulXOR q c in
+                            addXONotXO p q c . OInj
+mulXIMulXODiscr _ _ (I _) = uninhabited
+
+-- mul_xO_discr
+
+mulXODiscr : (p,q : Bip) -> Not (O p * q = q)
+mulXODiscr _  U    = uninhabited
+mulXODiscr p (O b) = rewrite mulComm p (O b) in
+                     rewrite mulComm b p in
+                     mulXODiscr p b . OInj
+mulXODiscr _ (I _) = uninhabited
+
+-- mul_reg_r
+
+mulOneNeutral : (p,q : Bip) -> p*q = q -> p = U
+mulOneNeutral  p     U    = rewrite mul1R p in id
+mulOneNeutral  U     _    = const Refl
+mulOneNeutral (O a) (O b) = absurd . mulXODiscr a (O b)
+mulOneNeutral (O _) (I _) = absurd
+mulOneNeutral (I a) (O b) = rewrite addComm b (a*(O b)) in
+                            absurd . addNoNeutral b (a*(O b)) . OInj
+mulOneNeutral (I a) (I b) = rewrite addComm b (a*(I b)) in
+                            absurd . addNoNeutral b (a*(I b)) . IInj
+
+mulRegR : (p,q,r : Bip) -> p * r = q * r -> p = q
+mulRegR  p     U     r = mulOneNeutral p r
+mulRegR  U     q     r = sym . mulOneNeutral q r . sym
+mulRegR (O a) (O b)  r = cong . mulRegR a b r . OInj
+mulRegR (I a) (I b)  r = cong . mulRegR a b r . OInj . addRegL r (O (a*r)) (O (b*r))
+mulRegR (I a) (O b)  r = absurd . addXONotXO a b r
+mulRegR (O a) (I b)  r = absurd . addXONotXO b a r . sym
+
+-- mul_reg_l
+
+mulRegL : (p,q,r : Bip) -> r * p = r * q -> p = q
+mulRegL p q r = rewrite mulComm r p in
+                rewrite mulComm r q in
+                mulRegR p q r
+
+-- mul_eq_1_l
+
+mulEq1L : (p,q : Bip) -> p * q = U -> p = U
+mulEq1L  U     _    Refl = Refl
+mulEq1L (O _)  _    Refl impossible
+mulEq1L (I _)  U    Refl impossible
+mulEq1L (I _) (O _) Refl impossible
+mulEq1L (I _) (I _) Refl impossible
+
+-- mul_eq_1_r
+
+mulEq1R : (p,q : Bip) -> p * q = U -> q = U
+mulEq1R p q = rewrite mulComm p q in mulEq1L q p
+
+-- square_xO
+
+squareXO : (p: Bip) -> (O p) * (O p) = O (O (p*p))
+squareXO p = cong $ mulXOR p p
+
+-- square_xI
+
+squareXI : (p: Bip) -> (I p) * (I p) = I (O (p*p + p))
+squareXI p = rewrite mulXIR p p in
+             rewrite addAssoc p p (O(p*p)) in
+             rewrite addDiag p in
+             cong {f=I . O} $ addComm p (p*p)
