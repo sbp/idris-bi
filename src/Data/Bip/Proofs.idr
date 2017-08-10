@@ -96,10 +96,10 @@ succInj (I a) (I b) prf = cong $ succInj a b (OInj prf)
 
 -- pred_N_succ
 
-predNSucc : (p: Bip) -> bipPredN (bipSucc p) = BinP p
-predNSucc U = Refl
-predNSucc (O _) = Refl
-predNSucc (I a) = cong $ predDoubleSucc a
+predBinSucc : (p: Bip) -> bipPredBin (bipSucc p) = BinP p
+predBinSucc U = Refl
+predBinSucc (O _) = Refl
+predBinSucc (I a) = cong $ predDoubleSucc a
 
 -- add_1_r
 

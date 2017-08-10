@@ -5,7 +5,7 @@ import public Data.Bi
 %default total
 %access public export
 
--- basic properties of constructors
+-- Basic properties of constructors
 
 Uninhabited (U = O n) where
   uninhabited Refl impossible
@@ -67,11 +67,11 @@ bipPred U = U
 bipPred (O a') = bipDMO a'
 bipPred (I a') = O a'
 
--- Predecessor seen as Bin
-bipPredN : (a: Bip) -> Bin
-bipPredN U = BinO
-bipPredN (O a') = BinP (bipDMO a')
-bipPredN (I a') = BinP (O a')
+||| Predecessor seen as Bin
+bipPredBin : (a: Bip) -> Bin
+bipPredBin U = BinO
+bipPredBin (O a') = BinP (bipDMO a')
+bipPredBin (I a') = BinP (O a')
 
 ||| Auxiliary type for subtraction
 data Bim =
@@ -102,8 +102,12 @@ bimDMT U = BimO
 bimDMT (O a') = BimP (O (bipDMO a'))
 bimDMT (I a') = BimP (O (O a'))
 
--- Predecessor with mask
--- TODO
+||| Predecessor with mask
+bimPred : (p: Bim) -> Bim
+bimPred (BimP U) = BimO
+bimPred (BimP a) = BimP (bipPred a)
+bimPred BimO = BimM
+bimPred BimM = BimM
 
 ||| Subtraction, result as a mask
 bimMinus : (a: Bip) -> (b: Bip) -> Bim
@@ -137,12 +141,45 @@ bipMult U b = b
 bipMult (O a') b = O (bipMult a' b)
 bipMult (I a') b = bipPlus b (O (bipMult a' b))
 
--- Iteration over a positive number
--- Power
--- Square
--- Division by 2 rounded below but for 1
--- Number of digits in a positive number
--- TODO
+||| Iteration over a positive number
+bipIter : (f: Bip -> Bip) -> (a: Bip) -> (b: Bip) -> Bip
+bipIter f a U = f a
+bipIter f a (O b') = bipIter f (bipIter f a b') b'
+bipIter f a (I b') = f (bipIter f (bipIter f a b') b')
+
+||| Power
+bipPow : (a: Bip) -> (b: Bip) -> Bip
+bipPow a = bipIter (bipMult a) U
+
+||| Square
+bipSquare : (a: Bip) -> Bip
+bipSquare U = U
+bipSquare (O a') = O (O (bipSquare a'))
+bipSquare (I a') = I (O (bipPlus (bipSquare a') a'))
+
+||| Division by 2 rounded below but for 1
+bipDivTwo : (a: Bip) -> Bip
+bipDivTwo U = U
+bipDivTwo (O a') = a'
+bipDivTwo (I a') = a'
+
+||| Division by 2 rounded up
+bipDivTwoCeil : (a: Bip) -> Bip
+bipDivTwoCeil U = U
+bipDivTwoCeil (O a') = a'
+bipDivTwoCeil (I a') = bipSucc a'
+
+||| Number of digits in Bip, into Nat
+bipDigitsNat : (a: Bip) -> Nat
+bipDigitsNat U = S Z
+bipDigitsNat (O a') = S (bipDigitsNat a')
+bipDigitsNat (I a') = S (bipDigitsNat a')
+
+||| Number of digits in a positive number
+bipDigits : (a: Bip) -> Bip
+bipDigits U = U
+bipDigits (O a') = bipSucc (bipDigits a')
+bipDigits (I a') = bipSucc (bipDigits a')
 
 ||| Comparison on binary positive numbers
 bipCompare : (a: Bip) -> (b: Bip) -> (c: Ordering) -> Ordering
@@ -156,19 +193,185 @@ bipCompare (I a') U c = GT
 bipCompare (I a') (O b') c = bipCompare a' b' GT
 bipCompare (I a') (I b') c = bipCompare a' b' c
 
--- Min max
--- TODO
+||| Min
+bipMin : (a: Bip) -> (b: Bip) -> Bip
+bipMin a b = case bipCompare a b EQ of
+               LT => a
+               EQ => a
+               GT => b
+
+||| Max
+bipMax : (a: Bip) -> (b: Bip) -> Bip
+bipMax a b = case bipCompare a b EQ of
+               LT => b
+               EQ => b
+               GT => a
 
 -- Boolean equality and comparisons
--- ABOVE
+-- Defined in Ord below
 
--- Square root for positive numbers
--- GCD
--- or, and, diff, xor, shifts
--- Checking whether a bit is set
--- Same, but with index in Bin (move to Bin?)
+-- Square root helper function
+bipSqrtRemStep : (f: Bip -> Bip) -> (g: Bip -> Bip) -> (Bip, Bim) -> (Bip, Bim)
+bipSqrtRemStep f g (s, BimP r) = let s' = I (O (s))
+                                     r' = g (f r) in
+                                     case bipCompare s' r' EQ of
+                                       LT => (I s, bimMinus r' s')
+                                       EQ => (I s, bimMinus r' s')
+                                       _ => (O s, BimP r')
+bipSqrtRemStep f g (s, _) = (O s, bimMinus (g (f U)) (O (O U)))
+
+||| Square root with remainder
+bipSqrtRem : (a: Bip) -> (Bip, Bim)
+bipSqrtRem U = (U, BimO)
+bipSqrtRem (O U) = (U, BimP U)
+bipSqrtRem (I U) = (U, BimP (O U))
+bipSqrtRem (O (O a')) = bipSqrtRemStep O O (bipSqrtRem a')
+bipSqrtRem (I (O a')) = bipSqrtRemStep O I (bipSqrtRem a')
+bipSqrtRem (O (I a')) = bipSqrtRemStep I O (bipSqrtRem a')
+bipSqrtRem (I (I a')) = bipSqrtRemStep I I (bipSqrtRem a')
+
+||| Square root
+bipSqrt : (a: Bip) -> Bip
+bipSqrt = fst . bipSqrtRem
+
+-- Divide
 -- TODO
 
+||| GCD, with Nat of total combined digits
+bipGCDN : (n: Nat) -> (a: Bip) -> (b: Bip) -> Bip
+bipGCDN Z _ _ = U
+bipGCDN (S n') a b = case (a, b) of
+                       (U, _) => U
+                       (_, U) => U
+                       ((O a'), (O b')) => O (bipGCDN n' a' b')
+                       (_, (O b')) => bipGCDN n' a b'
+                       ((O a'), _) => bipGCDN n' a' b
+                       ((I a'), (I b')) =>
+                         case bipCompare a' b' EQ of
+                           EQ => a
+                           LT => bipGCDN n' (bipMinus b' a') a
+                           GT => bipGCDN n' (bipMinus a' b') b
+
+||| GCD, using the Stein binary algorithm
+bipGCD : (a: Bip) -> (b: Bip) -> Bip
+bipGCD a b = bipGCDN ((bipDigitsNat a) + (bipDigitsNat b)) a b
+
+||| Generalised GCD, with Nat of total combined digits
+bipGGCDN : (n: Nat) -> (a: Bip) -> (b: Bip) -> (Bip, (Bip, Bip))
+bipGGCDN Z a b = (U, (a, b))
+bipGGCDN (S n') a b = case (a, b) of
+                        (U, _) => (U, (U, b))
+                        (_, U) => (U, (a, U))
+                        ((O a'), (O b')) =>
+                          let (g, p) = bipGGCDN n' a' b' in
+                              (O g, p)
+                        (_, (O b')) =>
+                          let (g, (aa, bb)) = bipGGCDN n' a b' in
+                              (g, (aa, O bb))
+                        ((O a'), _) =>
+                          let (g, (aa, bb)) = bipGGCDN n' a' b in
+                              (g, (O aa, bb))
+                        ((I a'), (I b')) =>
+                          case bipCompare a' b' EQ of
+                            EQ => (a, (U, U))
+                            LT =>
+                              let a'' = bipMinus b' a'
+                                  (g, (ba, aa)) = bipGGCDN n' a'' a in
+                                  (g, (aa, bipPlus aa (O ba)))
+                            GT =>
+                              let a'' = bipMinus a' b'
+                                  (g, (ab, bb)) = bipGGCDN n' a'' b in
+                                  (g, (bipPlus bb (O ab), bb))
+
+||| Generalised GCD
+bipGGCD : (a: Bip) -> (b: Bip) -> (Bip, (Bip, Bip))
+bipGGCD a b = bipGGCDN ((bipDigitsNat a) + (bipDigitsNat b)) a b
+
+||| Logical OR
+bipOr : (a: Bip) -> (b: Bip) -> Bip
+bipOr U (O b') = I b'
+bipOr U b = b
+bipOr (O a') U = I a'
+bipOr a U = a
+bipOr (O a') (O b') = O (bipOr a' b')
+bipOr (O a') (I b') = I (bipOr a' b')
+bipOr (I a') (O b') = I (bipOr a' b')
+bipOr (I a') (I b') = I (bipOr a' b')
+
+binDoubleSucc : (a: Bin) -> Bin
+binDoubleSucc BinO = BinP U
+binDoubleSucc (BinP a') = BinP (I a')
+
+binDouble : (a: Bin) -> Bin
+binDouble BinO = BinO
+binDouble (BinP a') = BinP (O a')
+
+||| Logical AND
+bipAnd : (a: Bip) -> (b: Bip) -> Bin
+bipAnd U (O _) = BinO
+bipAnd U _ = BinP U
+bipAnd (O a') U = BinO
+bipAnd a U = BinP U
+bipAnd (O a') (O b') = binDouble (bipAnd a' b')
+bipAnd (O a') (I b') = binDouble (bipAnd a' b')
+bipAnd (I a') (O b') = binDouble (bipAnd a' b')
+bipAnd (I a') (I b') = binDoubleSucc (bipAnd a' b')
+
+||| Logical DIFF
+bipDiff : (a: Bip) -> (b: Bip) -> Bin
+bipDiff U (O _) = BinP U
+bipDiff U _ = BinO
+bipDiff (O a') U = BinP (O a')
+bipDiff (I a') U = BinP (O a')
+bipDiff (O a') (O b') = binDouble (bipDiff a' b')
+bipDiff (O a') (I b') = binDouble (bipDiff a' b')
+bipDiff (I a') (O b') = binDouble (bipDiff a' b')
+bipDiff (I a') (I b') = binDoubleSucc (bipDiff a' b')
+
+||| Logical XOR
+bipXor : (a: Bip) -> (b: Bip) -> Bin
+bipXor U U = BinO
+bipXor U (O b') = BinP (I b')
+bipXor U (I b') = BinP (O b')
+bipXor (O a') U = BinP (O a')
+bipXor (O a') (O b') = binDouble (bipXor a' b')
+bipXor (O a') (I b') = binDoubleSucc (bipXor a' b')
+bipXor (I a') U = BinP (O a')
+bipXor (I a') (O b') = binDoubleSucc (bipXor a' b')
+bipXor (I a') (I b') = binDouble (bipXor a' b')
+
+-- ShiftL and ShiftR into Nat
+-- TODO
+
+||| Shift left
+bipShiftL : (a: Bip) -> (b: Bin) -> Bip
+bipShiftL a BinO = a
+bipShiftL a (BinP b') = bipIter O a b'
+
+||| Shift right
+bipShiftR : (a: Bip) -> (b: Bin) -> Bip
+bipShiftR a BinO = a
+bipShiftR a (BinP b') = bipIter bipDivTwo a b'
+
+||| Checking whether a bit is set, with Nat
+bipTestBitNat : (a: Bip) -> (n: Nat) -> Bool
+bipTestBitNat U Z = True
+bipTestBitNat U (S _) = False
+bipTestBitNat (O a') Z = False
+bipTestBitNat (O a') (S n') = bipTestBitNat a' n'
+bipTestBitNat (I a') Z = True
+bipTestBitNat (I a') (S n') = bipTestBitNat a' n'
+
+||| Checking whether a bit is set, with Bin
+bipTestBit : (a: Bip) -> (b: Bin) -> Bool
+bipTestBit (O a') BinO = False
+bipTestBit _ BinO = True
+bipTestBit U _ = False
+bipTestBit (O a') (BinP b') = bipTestBit a' (bipPredBin b')
+bipTestBit (I a') (BinP b') = bipTestBit a' (bipPredBin b')
+
+-- Defined in a different way in Coq.PArith.BinPosDef
+-- iter_op and to_nat
 ||| From Bip to Nat
 toNatBip : (a: Bip) -> Nat
 toNatBip a = bipMultNat a 1
@@ -178,8 +381,16 @@ toNatBip a = bipMultNat a 1
     bipMultNat (O a') pow2 = bipMultNat a' (pow2 + pow2)
     bipMultNat (I a') pow2 = pow2 + (bipMultNat a' (pow2 + pow2))
 
--- From Nat to Bip
--- TODO
+||| From Nat to Bip, with Z mapping to O
+toBipNat : (n: Nat) -> Bip
+toBipNat Z = U
+toBipNat (S Z) = U
+toBipNat (S n') = bipSucc (toBipNat n')
+
+||| From successor of Nat to Bip
+toBipNatSucc : (n: Nat) -> Bip
+toBipNatSucc Z = U
+toBipNatSucc (S n') = bipSucc (toBipNatSucc n')
 
 -- Idris specific
 
