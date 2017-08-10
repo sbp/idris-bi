@@ -91,7 +91,7 @@ succInj (O _) U prf = absurd prf
 succInj (O a) (O a) Refl = cong {f=O} Refl
 succInj (O _) (I _) prf = absurd prf
 succInj (I a) U prf = absurd $ succNotU a (OInj prf)
-succInj (I _) (O _) prf = absurd $ sym prf
+succInj (I _) (O _) prf = absurd prf
 succInj (I a) (I b) prf = cong $ succInj a b (OInj prf)
 
 -- pred_N_succ
@@ -167,12 +167,12 @@ addSuccL p q = rewrite addComm (bipSucc p) q in
 ||| No neutral elements for addition
 addNoNeutral : (p,q : Bip) -> Not (q + p = p)
 addNoNeutral p U = rewrite add1L p in succDiscr p . sym
-addNoNeutral U (O _) = uninhabited . sym
+addNoNeutral U (O _) = uninhabited
 addNoNeutral (O a) (O b) = addNoNeutral a b . OInj
 addNoNeutral (I a) (O b) = addNoNeutral a b . IInj
-addNoNeutral U (I _) = uninhabited . sym
+addNoNeutral U (I _) = uninhabited
 addNoNeutral (O _) (I _) = uninhabited
-addNoNeutral (I _) (I _) = uninhabited . sym
+addNoNeutral (I _) (I _) = uninhabited
 
 --- add_carry_add
 
@@ -189,22 +189,22 @@ addRegR  p     q     U    = rewrite add1R p in
                             rewrite add1R q in
                             succInj p q
 
-addRegR (O _)  U    (O _) = absurd . sym
+addRegR (O _)  U    (O _) = absurd
 addRegR (O _)  U    (I _) = absurd
 addRegR (I a)  U    (O c) = absurd . addNoNeutral c a . IInj
 addRegR (I a)  U    (I c) = rewrite addCarrySpec a c in
                             absurd . addNoNeutral c a . succInj (a+c) c . OInj
 
 addRegR  U    (O _) (O _) = absurd
-addRegR  U    (O _) (I _) = absurd . sym
+addRegR  U    (O _) (I _) = absurd
 addRegR  U    (I b) (O c) = absurd . addNoNeutral c b . sym . IInj
 addRegR  U    (I b) (I c) = rewrite addCarrySpec b c in
                             absurd . addNoNeutral c b . sym . succInj c (b+c) . OInj
 
-addRegR (O _) (I _) (O _) = absurd . sym
+addRegR (O _) (I _) (O _) = absurd
 addRegR (O _) (I _) (I _) = absurd
 addRegR (I _) (O _) (O _) = absurd
-addRegR (I _) (O _) (I _) = absurd . sym
+addRegR (I _) (O _) (I _) = absurd
 
 addRegR  U     U    _     = const Refl
 addRegR (O a) (O b) (O c) = cong . addRegR a b c . OInj
