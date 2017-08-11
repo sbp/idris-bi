@@ -393,7 +393,6 @@ mulAddDistrL (I a) q r =
   rewrite sym $ addShuffle q (O (a*q)) r (O (a*r)) in
   Refl
 
-
 -- mul_add_distr_r
 
 mulAddDistrR : (p,q,r : Bip) -> (p + q) * r = p * r + q * r
@@ -515,40 +514,6 @@ squareXI p =
   rewrite addAssoc p p (O(p*p)) in
   rewrite addDiag p in
   cong {f=I . O} $ addComm p (p*p)
-
--- iter_swap_gen
-
-iterSwapGen : {f : a -> b} -> {g : a -> a} -> {h : b -> b} ->
-              ((x : a) -> f (g x) = h (f x)) ->
-              (x : a) -> (p : Bip) -> (f (bipIter g x p)) = (bipIter h (f x) p)
-iterSwapGen             fx x  U     = fx x
-iterSwapGen {f} {g} {h} fx x (O b)  =
-  rewrite sym $ iterSwapGen {f} {g} {h} fx x b in
-  rewrite iterSwapGen {f} {g} {h} fx (bipIter g x b) b in
-  Refl
-iterSwapGen {f} {g} {h} fx x (I b) =
-  rewrite sym $ iterSwapGen {f} {g} {h} fx x b in
-  rewrite fx (bipIter g (bipIter g x b) b) in
-  rewrite iterSwapGen {f} {g} {h} fx (bipIter g x b) b in
-  Refl
-
--- iter_swap
-
-iterSwap : (f: a -> a) -> (x : a) -> (p : Bip) ->
-           bipIter f (f x) p = f (bipIter f x p)
-iterSwap f x p = sym $ iterSwapGen {f} {g=f} {h=f} (\_ => Refl) x p
-
--- iter_succ
-
-iterSucc : (f: a -> a) -> (x : a) -> (p : Bip) ->
-           bipIter f x (bipSucc p) = f (bipIter f x p)
-iterSucc _ _  U    = Refl
-iterSucc _ _ (O _) = Refl
-iterSucc f x (I a) =
-  rewrite iterSucc f x a in
-  rewrite iterSwap f (bipIter f x a) (bipSucc a) in
-  rewrite iterSucc f (bipIter f x a) a in
-  Refl
 
 -- iter_swap_gen
 
