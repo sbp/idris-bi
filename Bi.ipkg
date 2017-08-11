@@ -6,6 +6,6 @@ modules = Data.Bi
         , Data.Bip.Proofs
         , Data.Bip.ProofsPruv
         , Data.Bin
-        -- , Data.Biz
+        , Data.Biz
 
 opts = "-p pruviloj"
