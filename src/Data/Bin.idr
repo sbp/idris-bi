@@ -262,9 +262,9 @@ fromIntegerBin n =
     else BinP U
 
 Eq Bin where
-  BinO == BinO = True
-  BinO == (BinP b) = False
-  (BinP a) == BinO = False
+  BinO     ==  BinO    = True
+  BinO     == (BinP b) = False
+  (BinP a) ==  BinO    = False
   (BinP a) == (BinP b) = (a == b)
 
 Cast Bin Nat where
@@ -277,8 +277,8 @@ Ord Bin where
   compare = binCompare
 
 Num Bin where
-  (+) = binPlus
-  (*) = binMult
+  (+)         = binPlus
+  (*)         = binMult
   fromInteger = fromIntegerBin
 
 -- TODO: Where does this come from?
