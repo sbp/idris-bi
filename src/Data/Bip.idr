@@ -91,6 +91,29 @@ data Bim =
    ||| Minus signed number
    BimM
 
+-- Basic properties of constructors
+
+Uninhabited (BimO = BimP _) where
+  uninhabited Refl impossible
+
+Uninhabited (BimP _ = BimO) where
+  uninhabited Refl impossible
+
+Uninhabited (BimO = BimM) where
+  uninhabited Refl impossible
+
+Uninhabited (BimM = BimO) where
+  uninhabited Refl impossible
+
+Uninhabited (BimP _ = BimM) where
+  uninhabited Refl impossible
+
+Uninhabited (BimM = BimP _) where
+  uninhabited Refl impossible
+
+BimPInj : BimP p = BimP q -> p = q
+BimPInj Refl = Refl  
+
 %name Bim k,j,l,m,n
 
 ||| Operation x -> 2*x+1

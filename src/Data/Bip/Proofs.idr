@@ -625,3 +625,158 @@ subMaskSuccR (I (O _))  U    = Refl
 subMaskSuccR (I (I _))  U    = Refl
 subMaskSuccR (I _)     (O _) = Refl
 subMaskSuccR (I a)     (I b) = cong $ subMaskSuccR a b
+
+-- sub_mask_carry_spec
+
+doublePredDpo : (p : Bim) -> bimD p = bimPred (bimDPO p)
+doublePredDpo  BimO    = Refl
+doublePredDpo (BimP _) = Refl
+doublePredDpo  BimM    = Refl
+
+dpoPredDouble : (p : Bim) -> bimDPO (bimPred p) = bimPred (bimD p)
+dpoPredDouble  BimO        = Refl
+dpoPredDouble (BimP  U   ) = Refl
+dpoPredDouble (BimP (O _)) = Refl
+dpoPredDouble (BimP (I _)) = Refl
+dpoPredDouble  BimM        = Refl
+
+subMaskCarrySpec : (p,q : Bip) -> bimMinusCarry p q = bimPred (bimMinus p q)
+subMaskCarrySpec  U         U    = Refl
+subMaskCarrySpec  U        (O _) = Refl
+subMaskCarrySpec  U        (I _) = Refl
+subMaskCarrySpec (O U)      U    = Refl
+subMaskCarrySpec (O (O _))  U    = Refl
+subMaskCarrySpec (O (I _))  U    = Refl
+subMaskCarrySpec (O a)     (O b) = rewrite subMaskCarrySpec a b in
+                                   dpoPredDouble (bimMinus a b)
+subMaskCarrySpec (O a)     (I b) =
+    rewrite subMaskCarrySpec a b in
+    rewrite doublePredDpo (bimPred (bimMinus a b)) in
+    Refl
+subMaskCarrySpec (I _)      U    = Refl
+subMaskCarrySpec (I a)     (O b) = doublePredDpo (bimMinus a b)
+subMaskCarrySpec (I a)     (I b) = rewrite subMaskCarrySpec a b in
+                                   dpoPredDouble (bimMinus a b)
+
+-- TODO seems we can't match on arbitrary terms in data, hence this workaround
+-- with additional parameter
+
+data BimMinusSpec : (p, q : Bip) -> (m : Bim) -> Type where
+  SubIsNul :     p = q -> (m= BimO   ) -> BimMinusSpec p q m
+  SubIsPos : q + r = p -> (m=(BimP r)) -> BimMinusSpec p q m
+  SubIsNeg : p + r = q -> (m= BimM   ) -> BimMinusSpec p q m
+
+-- sub_mask_spec
+
+subMaskSpec : (p, q : Bip) -> BimMinusSpec p q (bimMinus p q)
+subMaskSpec  U     U    = SubIsNul Refl Refl
+subMaskSpec  U    (O b) = SubIsNeg {r=bipDMO b}
+                           (rewrite add1L (bipDMO b) in succPredDouble b)
+                            Refl
+subMaskSpec  U    (I b) = SubIsNeg {r=O b} Refl Refl
+subMaskSpec (O a)  U    = SubIsPos {r=bipDMO a}
+                           (rewrite add1L (bipDMO a) in succPredDouble a)
+                            Refl
+subMaskSpec (O a) (O b) =
+  case subMaskSpec a b of
+    SubIsNul     Refl mo => rewrite mo in SubIsNul Refl Refl
+    SubIsPos {r} Refl mp => rewrite mp in SubIsPos {r=O r} Refl Refl
+    SubIsNeg {r} Refl mm => rewrite mm in SubIsNeg {r=O r} Refl Refl
+subMaskSpec (O a) (I b) =
+  rewrite subMaskCarrySpec a b in
+    case subMaskSpec a b of
+      SubIsNul     Refl mo => rewrite mo in SubIsNeg {r=U} Refl Refl
+      SubIsPos {r} Refl mp => rewrite mp in
+                              SubIsPos {r=bipDMO r}
+                                (sym $ addXIPredDouble b r)
+                                (rewrite dpoPredDouble (BimP r) in Refl)
+      SubIsNeg {r} Refl mm => rewrite mm in SubIsNeg {r=I r} Refl Refl
+subMaskSpec (I a)  U    = SubIsPos {r=O a} Refl Refl
+subMaskSpec (I a) (O b) =
+  case subMaskSpec a b of
+    SubIsNul     Refl mo => rewrite mo in SubIsPos {r=U} Refl Refl
+    SubIsPos {r} Refl mp => rewrite mp in SubIsPos {r=I r} Refl Refl
+    SubIsNeg {r} Refl mm => rewrite mm in
+                            SubIsNeg {r=bipDMO r}
+                              (sym $ addXIPredDouble a r)
+                              Refl
+subMaskSpec (I a) (I b) =
+  case subMaskSpec a b of
+    SubIsNul     Refl mo => rewrite mo in SubIsNul Refl Refl
+    SubIsPos {r} Refl mp => rewrite mp in SubIsPos {r=O r} Refl Refl
+    SubIsNeg {r} Refl mm => rewrite mm in SubIsNeg {r=O r} Refl Refl
+
+-- sub_mask_diag
+
+subMaskDiag : (p : Bip) -> bimMinus p p = BimO
+subMaskDiag  U    = Refl
+subMaskDiag (O a) = rewrite subMaskDiag a in Refl
+subMaskDiag (I a) = rewrite subMaskDiag a in Refl
+
+-- sub_mask_nul_iff
+
+-- TODO split into `to` and `fro`
+
+subMaskNulTo : (p, q : Bip) -> bimMinus p q = BimO -> p = q
+subMaskNulTo p q =
+  case subMaskSpec p q of
+    SubIsNul Refl _  => const Refl
+    SubIsPos Refl mp => rewrite mp in absurd
+    SubIsNeg Refl mm => rewrite mm in absurd
+
+subMaskNulFro : (p, q : Bip) -> p = q -> bimMinus p q = BimO
+subMaskNulFro p p Refl = subMaskDiag p
+
+-- sub_mask_add
+
+subMaskAdd : (p, q, r : Bip) -> bimMinus p q = BimP r -> q + r = p
+subMaskAdd p q r =
+  case subMaskSpec p q of
+    SubIsNul Refl mo => rewrite mo in absurd
+    SubIsPos Refl mp => rewrite mp in cong {f=bipPlus q} . sym . BimPInj
+    SubIsNeg Refl mm => rewrite mm in absurd
+
+-- sub_mask_add_diag_l
+
+subMaskAddDiagL : (p, q : Bip) -> bimMinus (p+q) p = BimP q
+subMaskAddDiagL p q =
+  case subMaskSpec (p+q) p of
+    SubIsNul     prf _  =>
+      let prf1 = replace {P=\x=>x=p} (addComm p q) prf in
+        absurd $ addNoNeutral p q prf1
+    SubIsPos {r} prf mp =>
+      let reqq = addRegL p r q prf in
+        replace {P=\x=>bimMinus (bipPlus p q) p = BimP x} reqq mp
+    SubIsNeg {r} prf _  =>
+      let prf1 = replace {P=\x=>x=p} (sym $ addAssoc p q r) prf
+          prf2 = replace {P=\x=>x=p} (addComm p (q+r)) prf1 in
+        absurd $ addNoNeutral p (q+r) prf2
+
+-- sub_mask_add_diag_r
+
+subMaskAddDiagR : (p, q : Bip) -> bimMinus p (p+q) = BimM
+subMaskAddDiagR p q =
+  case subMaskSpec p (p+q) of
+    SubIsNul     prf _ =>
+      let prf1 = replace {P=\x=>x=p} (addComm p q) (sym prf) in
+        absurd $ addNoNeutral p q prf1
+    SubIsPos {r} prf _ =>
+      let prf1 = replace {P=\x=>x=p} (sym $ addAssoc p q r) prf
+          prf2 = replace {P=\x=>x=p} (addComm p (q+r)) prf1 in
+        absurd $ addNoNeutral p (q+r) prf2
+    SubIsNeg {r} _  mm => mm
+
+-- sub_mask_neg_iff
+
+-- TODO split into `to` and `fro`
+
+subMaskNegTo : (p, q : Bip) -> bimMinus p q = BimM -> (r ** p + r = q)
+subMaskNegTo p q prf =
+  case subMaskSpec p q of
+    SubIsNul     Refl mo => absurd $ replace {P=\x=>x=BimM} mo prf
+    SubIsPos     Refl mp => absurd $ replace {P=\x=>x=BimM} mp prf
+    SubIsNeg {r} Refl mm => (r ** Refl)
+
+subMaskNegFro : (p, q : Bip) -> (r ** p + r = q) -> bimMinus p q = BimM
+subMaskNegFro p _ (r ** prf) = rewrite sym prf in
+                               subMaskAddDiagR p r
