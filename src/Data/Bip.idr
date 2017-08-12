@@ -91,6 +91,29 @@ data Bim =
    ||| Minus signed number
    BimM
 
+-- Basic properties of constructors
+
+Uninhabited (BimO = BimP _) where
+  uninhabited Refl impossible
+
+Uninhabited (BimP _ = BimO) where
+  uninhabited Refl impossible
+
+Uninhabited (BimO = BimM) where
+  uninhabited Refl impossible
+
+Uninhabited (BimM = BimO) where
+  uninhabited Refl impossible
+
+Uninhabited (BimP _ = BimM) where
+  uninhabited Refl impossible
+
+Uninhabited (BimM = BimP _) where
+  uninhabited Refl impossible
+
+BimPInj : BimP p = BimP q -> p = q
+BimPInj Refl = Refl  
+
 %name Bim k,j,l,m,n
 
 ||| Operation x -> 2*x+1
@@ -118,25 +141,26 @@ bimPred (BimP a) = BimP (bipPred a)
 bimPred  BimO    = BimM
 bimPred  BimM    = BimM
 
-||| Subtraction, result as a mask
-bimMinus : (a, b: Bip) -> Bim
-bimMinus  U      U     = BimO
-bimMinus  U      _     = BimM
-bimMinus (O a')  U     = BimP (bipDMO a')
-bimMinus (O a') (O b') = bimD (bimMinus a' b')
-bimMinus (O a') (I b') = bimDPO (carry a' b')
-  where
-    carry : (a, b: Bip) -> Bim
-    carry  U      _     = BimM
-    carry (O a')  U     = bimDMT a'
-    carry (O a') (O b') = bimDPO (carry a' b')
-    carry (O a') (I b') = bimD (carry a' b')
-    carry (I a')  U     = BimP (bipDMO a')
-    carry (I a') (O b') = bimD (bimMinus a' b')
-    carry (I a') (I b') = bimDPO (carry a' b')
-bimMinus (I a')  U     = BimP (O a')
-bimMinus (I a') (O b') = bimDPO (bimMinus a' b')
-bimMinus (I a') (I b') = bimD (bimMinus a' b')
+mutual
+  ||| Subtraction, result as a mask
+  bimMinus : (a, b: Bip) -> Bim
+  bimMinus  U      U     = BimO
+  bimMinus  U      _     = BimM
+  bimMinus (O a')  U     = BimP (bipDMO a')
+  bimMinus (O a') (O b') = bimD (bimMinus a' b')
+  bimMinus (O a') (I b') = bimDPO (bimMinusCarry a' b')
+  bimMinus (I a')  U     = BimP (O a')
+  bimMinus (I a') (O b') = bimDPO (bimMinus a' b')
+  bimMinus (I a') (I b') = bimD (bimMinus a' b')
+  
+  bimMinusCarry : (a, b: Bip) -> Bim
+  bimMinusCarry  U      _     = BimM
+  bimMinusCarry (O a')  U     = bimDMT a'
+  bimMinusCarry (O a') (O b') = bimDPO (bimMinusCarry a' b')
+  bimMinusCarry (O a') (I b') = bimD (bimMinusCarry a' b')
+  bimMinusCarry (I a')  U     = BimP (bipDMO a')
+  bimMinusCarry (I a') (O b') = bimD (bimMinus a' b')
+  bimMinusCarry (I a') (I b') = bimDPO (bimMinusCarry a' b')
 
 ||| Subtraction, result as a Bip, and 1 if a <= b
 bipMinus : (a, b: Bip) -> Bip

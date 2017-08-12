@@ -15,9 +15,9 @@ iSuccO _ = Refl
 -- succ_discr
 
 succDiscr : (p: Bip) -> Not (p = bipSucc p)
-succDiscr  U    prf = absurd prf
-succDiscr (O _) prf = absurd prf
-succDiscr (I _) prf = absurd prf
+succDiscr  U    = absurd
+succDiscr (O _) = absurd
+succDiscr (I _) = absurd
 
 -- pred_double_spec
 
@@ -107,6 +107,7 @@ add1R : (p: Bip) -> p + U = bipSucc p
 add1R  U    = Refl
 add1R (O _) = Refl
 add1R (I _) = Refl
+
 -- add_1_l
 
 add1L : (p: Bip) -> U + p = bipSucc p
@@ -158,9 +159,10 @@ addSuccR (I a) (I b) = rewrite addCarrySpec a b in
 -- add_succ_l
 
 addSuccL : (p,q : Bip) -> bipSucc p + q = bipSucc (p + q)
-addSuccL p q = rewrite addComm (bipSucc p) q in
-               rewrite addComm p q in
-               addSuccR q p
+addSuccL p q =
+  rewrite addComm (bipSucc p) q in
+  rewrite addComm p q in
+  addSuccR q p
 
 -- add_no_neutral
 ||| No neutral elements for addition
@@ -191,14 +193,16 @@ addRegR  p     q     U    = rewrite add1R p in
 addRegR (O _)  U    (O _) = absurd
 addRegR (O _)  U    (I _) = absurd
 addRegR (I a)  U    (O c) = absurd . addNoNeutral c a . IInj
-addRegR (I a)  U    (I c) = rewrite addCarrySpec a c in
-                            absurd . addNoNeutral c a . succInj (a+c) c . OInj
+addRegR (I a)  U    (I c) =
+  rewrite addCarrySpec a c in
+  absurd . addNoNeutral c a . succInj (a+c) c . OInj
 
 addRegR  U    (O _) (O _) = absurd
 addRegR  U    (O _) (I _) = absurd
 addRegR  U    (I b) (O c) = absurd . addNoNeutral c b . sym . IInj
-addRegR  U    (I b) (I c) = rewrite addCarrySpec b c in
-                            absurd . addNoNeutral c b . sym . succInj c (b+c) . OInj
+addRegR  U    (I b) (I c) =
+  rewrite addCarrySpec b c in
+  absurd . addNoNeutral c b . sym . succInj c (b+c) . OInj
 
 addRegR (O _) (I _) (O _) = absurd
 addRegR (O _) (I _) (I _) = absurd
@@ -209,9 +213,10 @@ addRegR  U     U    _     = const Refl
 addRegR (O a) (O b) (O c) = cong . addRegR a b c . OInj
 addRegR (O a) (O b) (I c) = cong . addRegR a b c . IInj
 addRegR (I a) (I b) (O c) = cong . addRegR a b c . IInj
-addRegR (I a) (I b) (I c) = rewrite addCarrySpec a c in
-                            rewrite addCarrySpec b c in
-                            cong . addRegR a b c . succInj (a+c) (b+c) . OInj
+addRegR (I a) (I b) (I c) =
+  rewrite addCarrySpec a c in
+  rewrite addCarrySpec b c in
+  cong . addRegR a b c . succInj (a+c) (b+c) . OInj
 
 -- add_reg_l
 
@@ -275,11 +280,11 @@ addXO _ _ = Refl
 
 -- add_xI_pred_double
 
-
 addXIPredDouble : (p,q : Bip) -> O (p+q) = I p + bipDMO q
-addXIPredDouble p q = rewrite aux p (bipDMO q) in
-                      rewrite succPredDouble q in
-                      Refl
+addXIPredDouble p q =
+  rewrite aux p (bipDMO q) in
+  rewrite succPredDouble q in
+  Refl
   where
   aux : (p,q : Bip) -> I p + q = O p + bipSucc q
   aux p  U    = cong $ sym $ add1R p
@@ -290,7 +295,8 @@ addXIPredDouble p q = rewrite aux p (bipDMO q) in
 -- add_xO_pred_double
 
 addXOPredDouble : (p,q : Bip) -> bipDMO (p+q) = O p + bipDMO q
-addXOPredDouble  p     U    = rewrite add1R p in predDoubleSucc p
+addXOPredDouble  p     U    = rewrite add1R p in
+                              predDoubleSucc p
 addXOPredDouble  U    (O b) = rewrite add1L (bipDMO b) in
                               cong $ sym $ succPredDouble b
 addXOPredDouble (O a) (O b) = cong $ addXOPredDouble a b
@@ -305,9 +311,10 @@ addXOPredDouble (I a) (I b) = rewrite addCarrySpec a b in
 addDiag : (p: Bip) -> p + p = O p
 addDiag  U    = Refl
 addDiag (O a) = cong $ addDiag a
-addDiag (I a) = rewrite addCarrySpec a a in
-                rewrite addDiag a in
-                Refl
+addDiag (I a) =
+  rewrite addCarrySpec a a in
+  rewrite addDiag a in
+  Refl
 
 -- peano_rect
 
@@ -352,42 +359,48 @@ mulXOR (I a) q = cong {f=O . bipPlus q} $ mulXOR a q
 mulXIR : (p,q : Bip) -> p * I q = p + O (p * q)
 mulXIR  U    _ = Refl
 mulXIR (O a) q = cong $ mulXIR a q
-mulXIR (I a) q = rewrite addComm a (q + O (a * q)) in
-                 rewrite sym $ addAssoc q (O (a * q)) a in
-                 rewrite addComm (O (a * q)) a in
-                 cong {f=I . bipPlus q} $ mulXIR a q
+mulXIR (I a) q =
+  rewrite addComm a (q + O (a * q)) in
+  rewrite sym $ addAssoc q (O (a * q)) a in
+  rewrite addComm (O (a * q)) a in
+  cong {f=I . bipPlus q} $ mulXIR a q
 
 -- mul_comm
 ||| Commutativity of multiplication
 mulComm : (p,q : Bip) -> p * q = q * p
 mulComm p  U    = mul1R p
-mulComm p (O b) = rewrite mulXOR p b in cong $ mulComm p b
-mulComm p (I b) = rewrite mulXIR p b in cong {f=bipPlus p . O} $ mulComm p b
+mulComm p (O b) = rewrite mulXOR p b in
+                  cong $ mulComm p b
+mulComm p (I b) = rewrite mulXIR p b in
+                  cong {f=bipPlus p . O} $ mulComm p b
 
 -- mul_add_distr_l
 
 addShuffle : (p,q,r,s : Bip) -> (p+q)+(r+s) = (p+r)+(q+s)
-addShuffle p q r s = rewrite addAssoc (p+q) r s in
-                     rewrite sym $ addAssoc p q r in
-                     rewrite addComm q r in
-                     rewrite addAssoc p r q in
-                     rewrite sym $ addAssoc (p+r) q s in Refl
+addShuffle p q r s =
+  rewrite addAssoc (p+q) r s in
+  rewrite sym $ addAssoc p q r in
+  rewrite addComm q r in
+  rewrite addAssoc p r q in
+  rewrite sym $ addAssoc (p+r) q s in
+  Refl
 
 mulAddDistrL : (p,q,r : Bip) -> p * (q + r) = p * q + p * r
 mulAddDistrL  U    _ _ = Refl
 mulAddDistrL (O a) q r = cong $ mulAddDistrL a q r
-mulAddDistrL (I a) q r = rewrite mulAddDistrL a q r in
-                         rewrite sym $ addShuffle q (O (a*q)) r (O (a*r)) in
-                         Refl
-
+mulAddDistrL (I a) q r =
+  rewrite mulAddDistrL a q r in
+  rewrite sym $ addShuffle q (O (a*q)) r (O (a*r)) in
+  Refl
 
 -- mul_add_distr_r
 
 mulAddDistrR : (p,q,r : Bip) -> (p + q) * r = p * r + q * r
-mulAddDistrR p q r = rewrite mulComm (p+q) r in
-                     rewrite mulComm p r in
-                     rewrite mulComm q r in
-                     mulAddDistrL r p q
+mulAddDistrR p q r =
+  rewrite mulComm (p+q) r in
+  rewrite mulComm p r in
+  rewrite mulComm q r in
+  mulAddDistrL r p q
 
 -- mul_assoc
 ||| Associativity of multiplication
@@ -402,17 +415,19 @@ mulAssoc (I a) q r = rewrite mulAddDistrR q (O (a*q)) r in
 mulSuccL : (p,q : Bip) -> (bipSucc p) * q = q + p * q
 mulSuccL  U    q = sym $ addDiag q
 mulSuccL (O _) _ = Refl
-mulSuccL (I a) q = rewrite mulSuccL a q in
-                   rewrite addAssoc q q (O (a*q)) in
-                   rewrite addDiag q in
-                   Refl
+mulSuccL (I a) q =
+  rewrite mulSuccL a q in
+  rewrite addAssoc q q (O (a*q)) in
+  rewrite addDiag q in
+  Refl
 
 -- mul_succ_r
 
 mulSuccR : (p,q : Bip) -> p * (bipSucc q) = p + p * q
-mulSuccR p q = rewrite mulComm p (bipSucc q) in
-               rewrite mulComm p q in
-               mulSuccL q p
+mulSuccR p q =
+  rewrite mulComm p (bipSucc q) in
+  rewrite mulComm p q in
+  mulSuccL q p
 
 -- mul_xI_mul_xO_discr
 
@@ -459,16 +474,18 @@ mulRegR : (p,q,r : Bip) -> p * r = q * r -> p = q
 mulRegR  p     U     r = mulOneNeutral p r
 mulRegR  U     q     r = sym . mulOneNeutral q r . sym
 mulRegR (O a) (O b)  r = cong . mulRegR a b r . OInj
-mulRegR (I a) (I b)  r = cong . mulRegR a b r . OInj . addRegL r (O (a*r)) (O (b*r))
+mulRegR (I a) (I b)  r =
+  cong . mulRegR a b r . OInj . addRegL r (O (a*r)) (O (b*r))
 mulRegR (I a) (O b)  r = absurd . addXONotXO a b r
 mulRegR (O a) (I b)  r = absurd . addXONotXO b a r . sym
 
 -- mul_reg_l
 
 mulRegL : (p,q,r : Bip) -> r * p = r * q -> p = q
-mulRegL p q r = rewrite mulComm r p in
-                rewrite mulComm r q in
-                mulRegR p q r
+mulRegL p q r =
+  rewrite mulComm r p in
+  rewrite mulComm r q in
+  mulRegR p q r
 
 -- mul_eq_1_l
 
@@ -492,10 +509,11 @@ squareXO p = cong $ mulXOR p p
 -- square_xI
 
 squareXI : (p: Bip) -> (I p) * (I p) = I (O (p*p + p))
-squareXI p = rewrite mulXIR p p in
-             rewrite addAssoc p p (O(p*p)) in
-             rewrite addDiag p in
-             cong {f=I . O} $ addComm p (p*p)
+squareXI p =
+  rewrite mulXIR p p in
+  rewrite addAssoc p p (O(p*p)) in
+  rewrite addDiag p in
+  cong {f=I . O} $ addComm p (p*p)
 
 -- iter_swap_gen
 
@@ -530,3 +548,235 @@ iterSucc f x (I a) =
   rewrite iterSwap f (bipIter f x a) (bipSucc a) in
   rewrite iterSucc f (bipIter f x a) a in
   Refl
+
+-- iter_add
+
+iterAdd : (f: a -> a) -> (x: a) -> (p,q : Bip) ->
+           bipIter f x (p+q) = bipIter f (bipIter f x q) p
+iterAdd f x  U    q = rewrite add1L q in
+                      iterSucc f x q
+iterAdd f x (O a) q =
+  rewrite sym $ iterAdd f x a q in
+  rewrite sym $ iterAdd f x a (a+q) in
+  rewrite addAssoc a a q in
+  rewrite addDiag a in
+  Refl
+iterAdd f x (I a) q =
+  rewrite sym $ iterAdd f x a q in
+  rewrite sym $ iterAdd f x a (a+q) in
+  rewrite sym $ iterSucc f x (a+(a+q)) in
+  rewrite addAssoc a a q in
+  rewrite addDiag a in
+  rewrite sym $ addSuccL (O a) q in
+  Refl
+
+-- iter_invariant
+
+iterInvariant : (f: a -> a) -> (Inv : a -> Type) -> (p : Bip) ->
+                ((x:a) -> Inv x -> Inv (f x)) ->
+                (x:a) -> Inv x -> Inv (bipIter f x p)
+iterInvariant f Inv  U    g x ix = g x ix
+iterInvariant f Inv (O b) g x ix =
+  let ih = iterInvariant f Inv b g x ix in
+    iterInvariant f Inv b g (bipIter f x b) ih
+iterInvariant f Inv (I b) g x ix =
+  let ih = iterInvariant f Inv b g x ix
+      ih2 = iterInvariant f Inv b g (bipIter f x b) ih in
+    g (bipIter f (bipIter f x b) b) ih2
+
+-- pow_1_r
+
+pow1R : (p : Bip) -> bipPow p U = p
+pow1R  U    = Refl
+pow1R (O a) = rewrite mul1R a in Refl
+pow1R (I a) = rewrite mul1R a in Refl
+
+-- pow_succ_r
+
+powSuccR : (p,q : Bip) -> bipPow p (bipSucc q) = p * (bipPow p q)
+powSuccR p q = iterSucc (bipMult p) U q
+
+-- square_spec
+
+squareSpec : (p : Bip) -> bipSquare p = p * p
+squareSpec  U    = Refl
+squareSpec (O a) = rewrite mulComm a (O a) in
+                   cong {f=O . O} $ squareSpec a
+squareSpec (I a) =
+  rewrite mulXIR a a in
+  rewrite addAssoc a a (O (a*a)) in
+  rewrite addDiag a in
+  rewrite addComm (bipSquare a) a in
+  cong {f=I . O . bipPlus a} $ squareSpec a
+
+-- sub_mask_succ_r
+
+subMaskSuccR : (p,q : Bip) -> bimMinus p (bipSucc q) = bimMinusCarry p q
+subMaskSuccR  U         U    = Refl
+subMaskSuccR  U        (O _) = Refl
+subMaskSuccR  U        (I _) = Refl
+subMaskSuccR (O U)      U    = Refl
+subMaskSuccR (O (O _))  U    = Refl
+subMaskSuccR (O (I _))  U    = Refl
+subMaskSuccR (O _)     (O _) = Refl
+subMaskSuccR (O a)     (I b) = cong $ subMaskSuccR a b
+subMaskSuccR (I U)      U    = Refl
+subMaskSuccR (I (O _))  U    = Refl
+subMaskSuccR (I (I _))  U    = Refl
+subMaskSuccR (I _)     (O _) = Refl
+subMaskSuccR (I a)     (I b) = cong $ subMaskSuccR a b
+
+-- sub_mask_carry_spec
+
+doublePredDpo : (p : Bim) -> bimD p = bimPred (bimDPO p)
+doublePredDpo  BimO    = Refl
+doublePredDpo (BimP _) = Refl
+doublePredDpo  BimM    = Refl
+
+dpoPredDouble : (p : Bim) -> bimDPO (bimPred p) = bimPred (bimD p)
+dpoPredDouble  BimO        = Refl
+dpoPredDouble (BimP  U   ) = Refl
+dpoPredDouble (BimP (O _)) = Refl
+dpoPredDouble (BimP (I _)) = Refl
+dpoPredDouble  BimM        = Refl
+
+subMaskCarrySpec : (p,q : Bip) -> bimMinusCarry p q = bimPred (bimMinus p q)
+subMaskCarrySpec  U         U    = Refl
+subMaskCarrySpec  U        (O _) = Refl
+subMaskCarrySpec  U        (I _) = Refl
+subMaskCarrySpec (O U)      U    = Refl
+subMaskCarrySpec (O (O _))  U    = Refl
+subMaskCarrySpec (O (I _))  U    = Refl
+subMaskCarrySpec (O a)     (O b) = rewrite subMaskCarrySpec a b in
+                                   dpoPredDouble (bimMinus a b)
+subMaskCarrySpec (O a)     (I b) =
+    rewrite subMaskCarrySpec a b in
+    rewrite doublePredDpo (bimPred (bimMinus a b)) in
+    Refl
+subMaskCarrySpec (I _)      U    = Refl
+subMaskCarrySpec (I a)     (O b) = doublePredDpo (bimMinus a b)
+subMaskCarrySpec (I a)     (I b) = rewrite subMaskCarrySpec a b in
+                                   dpoPredDouble (bimMinus a b)
+
+-- TODO seems we can't match on arbitrary terms in data, hence this workaround
+-- with additional parameter
+
+data BimMinusSpec : (p, q : Bip) -> (m : Bim) -> Type where
+  SubIsNul :     p = q -> (m= BimO   ) -> BimMinusSpec p q m
+  SubIsPos : q + r = p -> (m=(BimP r)) -> BimMinusSpec p q m
+  SubIsNeg : p + r = q -> (m= BimM   ) -> BimMinusSpec p q m
+
+-- sub_mask_spec
+
+subMaskSpec : (p, q : Bip) -> BimMinusSpec p q (bimMinus p q)
+subMaskSpec  U     U    = SubIsNul Refl Refl
+subMaskSpec  U    (O b) = SubIsNeg {r=bipDMO b}
+                           (rewrite add1L (bipDMO b) in succPredDouble b)
+                            Refl
+subMaskSpec  U    (I b) = SubIsNeg {r=O b} Refl Refl
+subMaskSpec (O a)  U    = SubIsPos {r=bipDMO a}
+                           (rewrite add1L (bipDMO a) in succPredDouble a)
+                            Refl
+subMaskSpec (O a) (O b) =
+  case subMaskSpec a b of
+    SubIsNul     Refl mo => rewrite mo in SubIsNul Refl Refl
+    SubIsPos {r} Refl mp => rewrite mp in SubIsPos {r=O r} Refl Refl
+    SubIsNeg {r} Refl mm => rewrite mm in SubIsNeg {r=O r} Refl Refl
+subMaskSpec (O a) (I b) =
+  rewrite subMaskCarrySpec a b in
+    case subMaskSpec a b of
+      SubIsNul     Refl mo => rewrite mo in SubIsNeg {r=U} Refl Refl
+      SubIsPos {r} Refl mp => rewrite mp in
+                              SubIsPos {r=bipDMO r}
+                                (sym $ addXIPredDouble b r)
+                                (rewrite dpoPredDouble (BimP r) in Refl)
+      SubIsNeg {r} Refl mm => rewrite mm in SubIsNeg {r=I r} Refl Refl
+subMaskSpec (I a)  U    = SubIsPos {r=O a} Refl Refl
+subMaskSpec (I a) (O b) =
+  case subMaskSpec a b of
+    SubIsNul     Refl mo => rewrite mo in SubIsPos {r=U} Refl Refl
+    SubIsPos {r} Refl mp => rewrite mp in SubIsPos {r=I r} Refl Refl
+    SubIsNeg {r} Refl mm => rewrite mm in
+                            SubIsNeg {r=bipDMO r}
+                              (sym $ addXIPredDouble a r)
+                              Refl
+subMaskSpec (I a) (I b) =
+  case subMaskSpec a b of
+    SubIsNul     Refl mo => rewrite mo in SubIsNul Refl Refl
+    SubIsPos {r} Refl mp => rewrite mp in SubIsPos {r=O r} Refl Refl
+    SubIsNeg {r} Refl mm => rewrite mm in SubIsNeg {r=O r} Refl Refl
+
+-- sub_mask_diag
+
+subMaskDiag : (p : Bip) -> bimMinus p p = BimO
+subMaskDiag  U    = Refl
+subMaskDiag (O a) = rewrite subMaskDiag a in Refl
+subMaskDiag (I a) = rewrite subMaskDiag a in Refl
+
+-- sub_mask_nul_iff
+
+-- TODO split into `to` and `fro`
+
+subMaskNulTo : (p, q : Bip) -> bimMinus p q = BimO -> p = q
+subMaskNulTo p q =
+  case subMaskSpec p q of
+    SubIsNul Refl _  => const Refl
+    SubIsPos Refl mp => rewrite mp in absurd
+    SubIsNeg Refl mm => rewrite mm in absurd
+
+subMaskNulFro : (p, q : Bip) -> p = q -> bimMinus p q = BimO
+subMaskNulFro p p Refl = subMaskDiag p
+
+-- sub_mask_add
+
+subMaskAdd : (p, q, r : Bip) -> bimMinus p q = BimP r -> q + r = p
+subMaskAdd p q r =
+  case subMaskSpec p q of
+    SubIsNul Refl mo => rewrite mo in absurd
+    SubIsPos Refl mp => rewrite mp in cong {f=bipPlus q} . sym . BimPInj
+    SubIsNeg Refl mm => rewrite mm in absurd
+
+-- sub_mask_add_diag_l
+
+subMaskAddDiagL : (p, q : Bip) -> bimMinus (p+q) p = BimP q
+subMaskAddDiagL p q =
+  case subMaskSpec (p+q) p of
+    SubIsNul     prf _  =>
+      let prf1 = replace {P=\x=>x=p} (addComm p q) prf in
+        absurd $ addNoNeutral p q prf1
+    SubIsPos {r} prf mp =>
+      let reqq = addRegL p r q prf in
+        replace {P=\x=>bimMinus (bipPlus p q) p = BimP x} reqq mp
+    SubIsNeg {r} prf _  =>
+      let prf1 = replace {P=\x=>x=p} (sym $ addAssoc p q r) prf
+          prf2 = replace {P=\x=>x=p} (addComm p (q+r)) prf1 in
+        absurd $ addNoNeutral p (q+r) prf2
+
+-- sub_mask_add_diag_r
+
+subMaskAddDiagR : (p, q : Bip) -> bimMinus p (p+q) = BimM
+subMaskAddDiagR p q =
+  case subMaskSpec p (p+q) of
+    SubIsNul     prf _ =>
+      let prf1 = replace {P=\x=>x=p} (addComm p q) (sym prf) in
+        absurd $ addNoNeutral p q prf1
+    SubIsPos {r} prf _ =>
+      let prf1 = replace {P=\x=>x=p} (sym $ addAssoc p q r) prf
+          prf2 = replace {P=\x=>x=p} (addComm p (q+r)) prf1 in
+        absurd $ addNoNeutral p (q+r) prf2
+    SubIsNeg {r} _  mm => mm
+
+-- sub_mask_neg_iff
+
+-- TODO split into `to` and `fro`
+
+subMaskNegTo : (p, q : Bip) -> bimMinus p q = BimM -> (r ** p + r = q)
+subMaskNegTo p q prf =
+  case subMaskSpec p q of
+    SubIsNul     Refl mo => absurd $ replace {P=\x=>x=BimM} mo prf
+    SubIsPos     Refl mp => absurd $ replace {P=\x=>x=BimM} mp prf
+    SubIsNeg {r} Refl mm => (r ** Refl)
+
+subMaskNegFro : (p, q : Bip) -> (r ** p + r = q) -> bimMinus p q = BimM
+subMaskNegFro p _ (r ** prf) = rewrite sym prf in
+                               subMaskAddDiagR p r
