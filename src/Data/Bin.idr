@@ -7,6 +7,12 @@ import public Data.Bip
 
 -- Basic properties of constructors
 
+Uninhabited (BinO = BinP _) where
+  uninhabited Refl impossible
+
+Uninhabited (BinP _ = BinO) where
+ uninhabited Refl impossible
+
 binPInj : BinP p = BinP q -> p = q
 binPInj Refl = Refl
 
@@ -50,9 +56,9 @@ binMinus  BinO      BinO     = BinO
 binMinus  BinO     (BinP b') = BinO
 binMinus (BinP a')  BinO     = BinP a'
 binMinus (BinP a') (BinP b') =
-  if a' > b'
-    then BinP (bipMinus a' b')
-    else BinO
+  case bimMinus a' b' of
+    BimP c => BinP c
+    _ => BinO
 
 ||| Multiplication
 binMult : (a: Bin) -> (b: Bin) -> Bin
