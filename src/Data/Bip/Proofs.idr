@@ -10,10 +10,7 @@ import Data.Bip
 
 -- Following PArith/BinPos.v
 
--- xI_succ_xO
-
-iSuccO : (p: Bip) -> I p = bipSucc (O p)
-iSuccO _ = Refl
+-- xI_succ_xO is trivial
 
 -- succ_discr
 
@@ -22,10 +19,7 @@ succDiscr  U    = absurd
 succDiscr (O _) = absurd
 succDiscr (I _) = absurd
 
--- pred_double_spec
-
-predDoubleSpec : (p: Bip) -> bipDMO p = bipPred (O p)
-predDoubleSpec _ = Refl
+-- pred_double_spec is trivial
 
 -- succ_pred_double
 
@@ -41,10 +35,7 @@ predDoubleSucc  U    = Refl
 predDoubleSucc (O _) = Refl
 predDoubleSucc (I a) = rewrite predDoubleSucc a in Refl
 
--- double_succ
-
-doubleSucc : (p: Bip) -> (O (bipSucc p)) = (bipSucc (bipSucc (O p)))
-doubleSucc _ = Refl
+-- double_succ is trivial
 
 -- pred_double_x0_discr
 
@@ -276,10 +267,7 @@ addAssoc (I a) (I b) (I c) = rewrite addCarrySpec a b in
                              rewrite addSuccL (a+b) c in
                              cong {f=I . bipSucc} $ addAssoc a b c
 
--- add_xO
-
-addXO : (p,q : Bip) -> O (p+q) = O p + O q
-addXO _ _ = Refl
+-- add_xO is trivial
 
 -- add_xI_pred_double
 
@@ -338,10 +326,7 @@ mutual
 
 -- TODO rest of Peano?
 
--- mul_1_l
-
-mul1L : (p: Bip) -> U * p = p
-mul1L _ = Refl
+-- mul_1_l is trivial
 
 -- mul_1_r
 
@@ -792,12 +777,12 @@ eqbEqTo  U     U    Refl = Refl
 eqbEqTo  U    (O _) Refl impossible
 eqbEqTo  U    (I _) Refl impossible
 eqbEqTo (O _)  U    Refl impossible
-eqbEqTo (O a) (O b) prf  = rewrite eqbEqTo a b prf in 
+eqbEqTo (O a) (O b) prf  = rewrite eqbEqTo a b prf in
                            Refl
 eqbEqTo (O _) (I _) Refl impossible
 eqbEqTo (I _)  U    Refl impossible
 eqbEqTo (I _) (O _) Refl impossible
-eqbEqTo (I a) (I b) prf  = rewrite eqbEqTo a b prf in 
+eqbEqTo (I a) (I b) prf  = rewrite eqbEqTo a b prf in
                            Refl
 
 eqbEqFro : (p, q: Bip) -> p=q -> (p == q = True)
@@ -823,7 +808,7 @@ Le x y = Not (x `compare` y = GT)
 Ge : (x, y : Bip) -> Type
 Ge x y = Not (x `compare` y = LT)
 
--- ltb_lt 
+-- ltb_lt
 -- TODO split into `to` and `fro`
 
 ltbLtTo : (p, q: Bip) -> (p < q = True) -> p `Lt` q
@@ -842,7 +827,7 @@ Uninhabited (LT = EQ) where
 
 Uninhabited (EQ = LT) where
   uninhabited Refl impossible
-  
+
 Uninhabited (LT = GT) where
   uninhabited Refl impossible
 
@@ -855,7 +840,7 @@ Uninhabited (GT = EQ) where
 Uninhabited (EQ = GT) where
   uninhabited Refl impossible
 
-  -- leb_le 
+-- leb_le
 -- TODO split into `to` and `fro`
 
 lebLeTo : (p, q: Bip) -> (p > q = False) -> p `Le` q
@@ -864,13 +849,13 @@ lebLeTo p q prf pq with (p `compare` q)
   | EQ = absurd pq
   | GT = absurd prf
 
-lebLeFro : (p, q: Bip) -> p `Le` q -> (p > q = False) 
+lebLeFro : (p, q: Bip) -> p `Le` q -> (p > q = False)
 lebLeFro p q pleq with (p `compare` q)
   | LT = Refl
   | EQ = Refl
   | GT = absurd $ pleq Refl
 
--- switch_Eq 
+-- switch_Eq
 
 switchEq : (c,c' : Ordering) -> Ordering
 switchEq _ LT = LT
@@ -879,7 +864,7 @@ switchEq _ GT = GT
 
 -- compare_cont_spec
 mutual
-  compLtNotEq : (p,q : Bip) -> Not (bipCompare p q LT = EQ) 
+  compLtNotEq : (p,q : Bip) -> Not (bipCompare p q LT = EQ)
   compLtNotEq  U     U    = uninhabited
   compLtNotEq  U    (O _) = uninhabited
   compLtNotEq  U    (I _) = uninhabited
@@ -889,15 +874,15 @@ mutual
   compLtNotEq (I _)  U    = uninhabited
   compLtNotEq (I a) (O b) = compGtNotEq a b
   compLtNotEq (I a) (I b) = compLtNotEq a b
-  
-  compGtNotEq : (p,q : Bip) -> Not (bipCompare p q GT = EQ) 
+
+  compGtNotEq : (p,q : Bip) -> Not (bipCompare p q GT = EQ)
   compGtNotEq  U     U    = uninhabited
   compGtNotEq  U    (O _) = uninhabited
   compGtNotEq  U    (I _) = uninhabited
   compGtNotEq (O _)  U    = uninhabited
   compGtNotEq (O a) (O b) = compGtNotEq a b
   compGtNotEq (O a) (I b) = compLtNotEq a b
-  compGtNotEq (I _)  U    = uninhabited 
+  compGtNotEq (I _)  U    = uninhabited
   compGtNotEq (I a) (O b) = compGtNotEq a b
   compGtNotEq (I a) (I b) = compGtNotEq a b
 
@@ -925,14 +910,14 @@ compareContEq p q LT prf = absurd $ compLtNotEq p q prf
 compareContEq _ _ EQ _   = Refl
 compareContEq p q GT prf = absurd $ compGtNotEq p q prf
 
--- compare_cont_Lt_Gt 
+-- compare_cont_Lt_Gt
 -- TODO split into `to` and `fro`
 
 compareContLtGtTo : (p, q: Bip) -> bipCompare p q LT = GT -> p `Gt` q
-compareContLtGtTo p q prf = let 
-    prf2 = replace {P=\x=>x=GT} (compareContSpec p q LT) prf
-  in aux prf2
-  where 
+compareContLtGtTo p q prf =
+  let prf2 = replace {P=\x=>x=GT} (compareContSpec p q LT) prf in
+    aux prf2
+  where
   aux : switchEq LT (p `compare` q) = GT -> p `compare` q = GT
   aux prf with (p `compare` q)
     | LT = absurd prf
@@ -940,22 +925,21 @@ compareContLtGtTo p q prf = let
     | GT = Refl
 
 compareContLtGtFro : (p, q: Bip) -> p `Gt` q -> bipCompare p q LT = GT
-compareContLtGtFro p q x = rewrite compareContSpec p q LT in 
-                           rewrite x in 
+compareContLtGtFro p q x = rewrite compareContSpec p q LT in
+                           rewrite x in
                            Refl
 
--- compare_cont_Lt_Lt 
+-- compare_cont_Lt_Lt
 -- TODO split into `to` and `fro`
 
-compareContLtLtTo : (p, q: Bip) -> bipCompare p q LT = LT -> p `Le` q 
-compareContLtLtTo p q prf pgtq = 
-  let 
-    prf2 = replace {P=\x=> bipCompare p q LT = switchEq LT x} pgtq (compareContSpec p q LT)
-    contra = replace {P=\x=>x=GT} prf prf2
-  in uninhabited contra
+compareContLtLtTo : (p, q: Bip) -> bipCompare p q LT = LT -> p `Le` q
+compareContLtLtTo p q prf pgtq =
+  let prf2 = replace {P=\x=> bipCompare p q LT = switchEq LT x} pgtq (compareContSpec p q LT)
+      contra = replace {P=\x=>x=GT} prf prf2 in
+    uninhabited contra
 
 compareContLtLtFro : (p, q: Bip) -> p `Le` q -> bipCompare p q LT = LT
-compareContLtLtFro p q prf = rewrite compareContSpec p q LT in 
+compareContLtLtFro p q prf = rewrite compareContSpec p q LT in
                              aux
   where
   aux : switchEq LT (p `compare` q) = LT
@@ -964,14 +948,14 @@ compareContLtLtFro p q prf = rewrite compareContSpec p q LT in
     | EQ = Refl
     | GT = absurd $ prf Refl
 
--- compare_cont_Gt_Lt     
+-- compare_cont_Gt_Lt
 -- TODO split into `to` and `fro`
 
-compareContGtLtTo : (p, q: Bip) -> bipCompare p q GT = LT -> p `Lt` q 
-compareContGtLtTo p q prf = let 
-    prf2 = replace {P=\x=>x=LT} (compareContSpec p q GT) prf
-  in aux prf2
-  where 
+compareContGtLtTo : (p, q: Bip) -> bipCompare p q GT = LT -> p `Lt` q
+compareContGtLtTo p q prf =
+  let prf2 = replace {P=\x=>x=LT} (compareContSpec p q GT) prf in
+    aux prf2
+  where
   aux : switchEq GT (p `compare` q) = LT -> p `compare` q = LT
   aux prf with (p `compare` q)
     | LT = Refl
@@ -979,22 +963,21 @@ compareContGtLtTo p q prf = let
     | GT = absurd prf
 
 compareContGtLtFro : (p, q: Bip) -> p `Lt` q -> bipCompare p q GT = LT
-compareContGtLtFro p q x = rewrite compareContSpec p q GT in 
-                           rewrite x in 
+compareContGtLtFro p q x = rewrite compareContSpec p q GT in
+                           rewrite x in
                            Refl
 
--- compare_cont_Gt_Gt 
+-- compare_cont_Gt_Gt
 -- TODO split into `to` and `fro`
 
-compareContGtGtTo : (p, q: Bip) -> bipCompare p q GT = GT -> p `Ge` q 
-compareContGtGtTo p q prf pltq = 
-  let 
-    prf2 = replace {P=\x=> bipCompare p q GT = switchEq GT x} pltq (compareContSpec p q GT)
-    contra = replace {P=\x=>x=LT} prf prf2
-  in uninhabited contra
+compareContGtGtTo : (p, q: Bip) -> bipCompare p q GT = GT -> p `Ge` q
+compareContGtGtTo p q prf pltq =
+  let prf2 = replace {P=\x=> bipCompare p q GT = switchEq GT x} pltq (compareContSpec p q GT)
+      contra = replace {P=\x=>x=LT} prf prf2 in
+    uninhabited contra
 
 compareContGtGtFro : (p, q: Bip) -> p `Ge` q -> bipCompare p q GT = GT
-compareContGtGtFro p q prf = rewrite compareContSpec p q GT in 
+compareContGtGtFro p q prf = rewrite compareContSpec p q GT in
                              aux
   where
   aux : switchEq GT (p `compare` q) = GT
@@ -1002,3 +985,104 @@ compareContGtGtFro p q prf = rewrite compareContSpec p q GT in
     | LT = absurd $ prf Refl
     | EQ = Refl
     | GT = Refl
+
+-- compare_xO_xO is trivial
+-- compare_xI_xI is trivial
+
+-- compare_xI_xO
+
+compareXIXO : (p, q: Bip) -> (I p `compare` O q) = switchEq GT (p `compare` q)
+compareXIXO p q = compareContSpec p q GT
+
+-- compare_xO_xI
+
+compareXOXI : (p, q: Bip) -> (O p `compare` I q) = switchEq LT (p `compare` q)
+compareXOXI p q = compareContSpec p q LT
+
+-- mask2cmp
+
+mask2cmp : (p : Bim) -> Ordering
+mask2cmp  BimO    = EQ
+mask2cmp (BimP _) = GT
+mask2cmp  BimM    = LT
+
+-- compare_sub_mask
+
+bimDCmp : (p : Bim) -> mask2cmp (bimD p) = mask2cmp p
+bimDCmp  BimO    = Refl
+bimDCmp (BimP _) = Refl
+bimDCmp  BimM    = Refl
+
+compareSubMask : (p, q: Bip) -> (p `compare` q) = mask2cmp (bimMinus p q)
+compareSubMask U      U    = Refl
+compareSubMask U     (O _) = Refl
+compareSubMask U     (I _) = Refl
+compareSubMask (O _)  U    = Refl
+compareSubMask (O a) (O b) = rewrite bimDCmp (bimMinus a b) in
+                             compareSubMask a b
+compareSubMask (O a) (I b) = rewrite subMaskCarrySpec a b in
+                             rewrite compareContSpec a b LT in
+                             rewrite compareSubMask a b in
+                             aux
+  where
+  aux : switchEq LT (mask2cmp (bimMinus a b)) = mask2cmp (bimDPO (bimPred (bimMinus a b)))
+  aux with (bimMinus a b)
+    | BimO   = Refl
+    | BimP c = rewrite dpoPredDouble (BimP c) in Refl
+    | BimM   = Refl
+compareSubMask (I _)  U    = Refl
+compareSubMask (I a) (O b) = rewrite compareContSpec a b GT in
+                             rewrite compareSubMask a b in
+                             aux
+  where
+  aux : switchEq GT (mask2cmp (bimMinus a b)) = mask2cmp (bimDPO (bimMinus a b))
+  aux with (bimMinus a b)
+    | BimO   = Refl
+    | BimP _ = Refl
+    | BimM   = Refl
+compareSubMask (I a) (I b) = rewrite bimDCmp (bimMinus a b) in
+                             compareSubMask a b
+
+-- lt_iff_add
+-- TODO split into `to` and `fro`
+
+ltIffAddTo : (p, q: Bip) -> p `Lt` q -> (r ** p + r = q)
+ltIffAddTo p q = rewrite compareSubMask p q in
+                 aux
+  where
+  aux : mask2cmp (bimMinus p q) = LT -> (r : Bip ** bipPlus p r = q)
+  aux prf with (bimMinus p q) proof pq
+    | BimO   = absurd prf
+    | BimP _ = absurd prf
+    | BimM   = subMaskNegTo p q (sym pq)
+
+ltIffAddFro : (p, q: Bip) -> (r ** p + r = q) -> p `Lt` q
+ltIffAddFro p q rprf = rewrite compareSubMask p q in
+                       rewrite subMaskNegFro p q rprf in
+                       Refl
+
+-- gt_iff_add
+-- TODO split into `to` and `fro`
+
+gtIffAddTo : (p, q: Bip) -> p `Gt` q -> (r ** q + r = p)
+gtIffAddTo p q = rewrite compareSubMask p q in
+                 aux
+  where
+  aux : mask2cmp (bimMinus p q) = GT -> (r : Bip ** q+r = p)
+  aux prf with (bimMinus p q) proof pq
+    | BimO   = absurd prf
+    | BimP r = (r ** subMaskAdd p q r (sym pq))
+    | BimM   = absurd prf
+
+gtIffAddFro : (p, q: Bip) -> (r ** q + r = p) -> p `Gt` q
+gtIffAddFro p q (r**qrp) = rewrite compareSubMask p q in
+                           rewrite sym qrp in
+                           rewrite subMaskAddDiagL q r in
+                           Refl
+
+-- compare_cont_refl
+
+compareContRefl : (p : Bip) -> (c : Ordering) -> bipCompare p p c = c
+compareContRefl  U    c = Refl
+compareContRefl (O a) c = compareContRefl a c
+compareContRefl (I a) c = compareContRefl a c
