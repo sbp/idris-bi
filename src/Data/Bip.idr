@@ -166,7 +166,7 @@ mutual
 bipMinus : (a, b: Bip) -> Bip
 bipMinus a b = case bimMinus a b of
                  BimP c => c
-                 _ => U
+                 _      => U
 
 ||| Multiplication
 bipMult : (a, b: Bip) -> Bip
@@ -217,13 +217,13 @@ bipDigits (I a') = bipSucc (bipDigits a')
 ||| Comparison on binary positive numbers
 bipCompare : (a, b: Bip) -> (c: Ordering) -> Ordering
 bipCompare  U      U     c = c
-bipCompare  U     (O a') _ = LT
-bipCompare  U     (I a') _ = LT
-bipCompare (O a')  U     _ = GT
+bipCompare  U     (O _)  _ = LT
+bipCompare  U     (I _)  _ = LT
+bipCompare (O _)   U     _ = GT
 bipCompare (O a') (O b') c = bipCompare a' b' c
-bipCompare (O a') (I b') c = bipCompare a' b' LT
-bipCompare (I a')  U     c = GT
-bipCompare (I a') (O b') c = bipCompare a' b' GT
+bipCompare (O a') (I b') _ = bipCompare a' b' LT
+bipCompare (I _)   U     _ = GT
+bipCompare (I a') (O b') _ = bipCompare a' b' GT
 bipCompare (I a') (I b') c = bipCompare a' b' c
 
 ||| Min
@@ -475,3 +475,18 @@ Num Bip where
   (+) = bipPlus
   (*) = bipMult
   fromInteger = fromIntegerBip
+
+DecEq Bip where
+  decEq  U     U    = Yes Refl
+  decEq  U    (O _) = No uninhabited
+  decEq  U    (I _) = No uninhabited
+  decEq (O _)  U    = No uninhabited
+  decEq (O a) (O b) with (decEq a b)
+    | Yes prf   = Yes $ cong prf
+    | No contra = No $ contra . OInj
+  decEq (O _) (I _) = No uninhabited
+  decEq (I _)  U    = No uninhabited
+  decEq (I _) (O _) = No uninhabited
+  decEq (I a) (I b) with (decEq a b)
+    | Yes prf   = Yes $ cong prf
+    | No contra = No $ contra . IInj
