@@ -811,7 +811,7 @@ Ge x y = Not (x `compare` y = LT)
 -- TODO split into `to` and `fro`
 
 ltbLtTo : (p, q: Bip) -> (p < q = True) -> p `Lt` q
-ltbLtTo p q prf with (bipCompare p q EQ)
+ltbLtTo p q prf with (p `compare` q)
   | LT = Refl
   | EQ = absurd prf
   | GT = absurd prf
@@ -1176,7 +1176,7 @@ geLe : (p, q: Bip) -> p `Ge` q -> q `Le` p
 geLe p q pgeq = rewrite compareAntisym p q in
                 aux
   where
-  aux : (compareOp (bipCompare p q EQ) = GT) -> Void
+  aux : (compareOp (p `compare` q) = GT) -> Void
   aux prf with (p `compare` q)
     | LT = pgeq Refl
     | EQ = uninhabited prf
@@ -1188,7 +1188,7 @@ leGe : (p, q: Bip) -> p `Le` q -> q `Ge` p
 leGe p q pleq = rewrite compareAntisym p q in
                 aux
   where
-  aux : (compareOp (bipCompare p q EQ) = LT) -> Void
+  aux : (compareOp (p `compare` q) = LT) -> Void
   aux prf with (p `compare` q)
     | LT = pleq $ sym prf
     | EQ = uninhabited prf
@@ -1258,7 +1258,7 @@ ltSuccRTo p q pltsq =
 ltSuccRFro : (p, q: Bip) -> p `Le` q -> p `Lt` bipSucc q
 ltSuccRFro p q pleq = aux $ compareSuccR p q
   where
-  aux : switchEq GT (p `compare` (bipSucc q)) = switchEq LT (p `compare` q) -> bipCompare p (bipSucc q) EQ = LT
+  aux : switchEq GT (p `compare` (bipSucc q)) = switchEq LT (p `compare` q) -> p `compare` (bipSucc q) = LT
   aux prf with (p `compare` q)
     aux prf | LT with (p `compare` (bipSucc q))
       aux prf | LT | LT = Refl
@@ -1322,7 +1322,7 @@ ltNleFro : (p, q: Bip) -> Not (q `Le` p) -> p `Lt` q
 ltNleFro p q nqlep with (p `compare` q) proof pq
   | LT = Refl
   | EQ = let peqq = compareEqIffTo p q (sym pq)
-             qq = replace {P=\x=>Not (Not (q `compare` x = GT))} peqq nqlep
+             qq = replace {P=\x=>Not (Not (q `Gt` x))} peqq nqlep
              nn = replace {P=\x=>Not (Not (x = GT))} (compareContRefl q EQ) qq in
            absurd $ nn uninhabited
   | GT = absurd $ nqlep $ ltLeIncl q p $ gtLt p q $ sym pq
@@ -1398,7 +1398,7 @@ leTrans p q r pleq qler pgtr with (q `compare` r) proof qr
   | LT = let pltr = leLtTrans p q r pleq (sym qr) in
            uninhabited $ replace {P=\x=>x=LT} pgtr pltr
   | EQ = let qeqr = compareEqIffTo q r (sym qr)
-             pgtq = replace {P=\x=>bipCompare p x EQ = GT} (sym qeqr) pgtr in
+             pgtq = replace {P=\x=>p `Gt` x} (sym qeqr) pgtr in
            pleq pgtq
   | GT = absurd $ qler Refl
 
