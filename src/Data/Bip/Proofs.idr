@@ -1027,7 +1027,7 @@ bimDCmp  BimO    = Refl
 bimDCmp (BimP _) = Refl
 bimDCmp  BimM    = Refl
 
-compareSubMask : (p, q: Bip) -> (p `compare` q) = mask2cmp (bimMinus p q)
+compareSubMask : (p, q: Bip) -> p `compare` q = mask2cmp (bimMinus p q)
 compareSubMask U      U    = Refl
 compareSubMask U     (O _) = Refl
 compareSubMask U     (I _) = Refl
@@ -1268,3 +1268,26 @@ ltSuccRFro p q pleq = aux $ compareSuccR p q
 
 ltSuccDiagR : (p : Bip) -> p `Lt` (bipSucc p)
 ltSuccDiagR p = ltIffAddFro p (bipSucc p) (U**add1R p)
+
+-- compare_succ_succ
+
+compareSuccSucc : (p, q: Bip) -> (bipSucc p `compare` bipSucc q) = (p `compare` q)
+compareSuccSucc  U     U    = Refl
+compareSuccSucc  U    (O b) = compareContLtLtFro U b $ le1L b
+compareSuccSucc  U    (I b) = ltSuccRFro U b $ le1L b
+compareSuccSucc (O a)  U    = compareContGtGtFro a U $ leGe U a $ le1L a
+compareSuccSucc (O _) (O _) = Refl
+compareSuccSucc (O a) (I b) = rewrite compareContSpec a (bipSucc b) GT in
+                              rewrite compareSuccR a b in
+                              sym $ compareContSpec a b LT
+compareSuccSucc (I a)  U    = aux $ leGe U (bipSucc a) $ le1L (bipSucc a)
+  where
+  aux : Not ((bipSucc a) `compare` U = LT) -> (bipSucc a) `compare` U = GT
+  aux nsalt1 with ((bipSucc a) `compare` U) proof sau
+    | LT = absurd $ nsalt1 Refl
+    | EQ = absurd $ succNotU a $ compareEqIffTo (bipSucc a) U $ sym sau
+    | GT = Refl
+compareSuccSucc (I a) (O b) = rewrite compareContSpec (bipSucc a) b LT in
+                              rewrite compareContSpec a b GT in
+                              compareSuccL a b
+compareSuccSucc (I a) (I b) = compareSuccSucc a b
