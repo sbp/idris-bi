@@ -1364,3 +1364,50 @@ ltTrans p q r pltq qltr =
      ltIffAddFro p r (r1+r2 ** rewrite addAssoc p r1 r2 in
                                rewrite prf1 in
                                prf2)
+
+-- TODO lt_ind, how useful is it?
+-- TODO lt_strorder
+-- TODO lt_compat
+
+-- lt_total
+
+ltTotal : (p, q: Bip) -> Either (Either (p `Lt` q) (q `Lt` p)) (p = q)
+ltTotal p q with (p `compare` q) proof pq
+  | LT = Left $ Left Refl
+  | EQ = Right $ compareEqIffTo p q (sym pq)
+  | GT = Left $ Right $ gtLt p q (sym pq)
+
+-- le_refl
+
+leRefl : (p: Bip) -> p `Le` p
+leRefl p = rewrite compareContRefl p EQ in
+           uninhabited
+
+-- le_lt_trans
+
+leLtTrans : (p, q, r: Bip) -> p `Le` q -> q `Lt` r -> p `Lt` r
+leLtTrans p q r pleq qltr with (p `compare` q) proof pq
+  | LT = ltTrans p q r (sym pq) qltr
+  | EQ = rewrite compareEqIffTo p q (sym pq) in
+         qltr
+  | GT = absurd $ pleq Refl
+
+-- le_succ_l
+-- TODO split into `to` and `fro`
+
+leSuccLTo : (p, q: Bip) -> bipSucc p `Le` q -> p `Lt` q
+leSuccLTo p q = succLtMonoFro p q . ltSuccRFro (bipSucc p) q
+
+leSuccLFro : (p, q: Bip) -> p `Lt` q -> bipSucc p `Le` q
+leSuccLFro p q = ltSuccRTo (bipSucc p) q . succLtMonoTo p q
+
+-- le_antisym
+
+leAntisym : (p, q: Bip) -> p `Le` q -> q `Le` p -> p = q
+leAntisym p q pleq qlep with (p `compare` q) proof pq
+  | LT = absurd $ qlep $ ltGt p q (sym pq)
+  | EQ = compareEqIffTo p q (sym pq)
+  | GT = absurd $ pleq Refl
+
+-- TODO le_preorder
+-- TODO le_partorder
