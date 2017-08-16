@@ -863,7 +863,6 @@ switchEq _ LT = LT
 switchEq c EQ = c
 switchEq _ GT = GT
 
--- compare_cont_spec
 mutual
   compLtNotEq : (p,q : Bip) -> Not (bipCompare p q LT = EQ)
   compLtNotEq  U     U    = uninhabited
@@ -886,6 +885,20 @@ mutual
   compGtNotEq (I _)  U    = uninhabited
   compGtNotEq (I a) (O b) = compGtNotEq a b
   compGtNotEq (I a) (I b) = compGtNotEq a b
+
+  switchEqLT : (o: Ordering) -> switchEq o (bipCompare a b LT) = bipCompare a b LT
+  switchEqLT {a} {b} _ with (bipCompare a b LT) proof ablt
+    | LT = Refl
+    | EQ = absurd $ compLtNotEq a b $ sym ablt
+    | GT = Refl
+
+  switchEqGT : (o: Ordering) -> switchEq o (bipCompare a b GT) = bipCompare a b GT
+  switchEqGT {a} {b} _ with (bipCompare a b GT) proof ablt
+    | LT = Refl
+    | EQ = absurd $ compGtNotEq a b $ sym ablt
+    | GT = Refl
+
+-- compare_cont_spec
 
 compareContSpec : (p, q: Bip) -> (c : Ordering) -> bipCompare p q c = switchEq c (p `compare` q)
 compareContSpec U      U    _ = Refl
@@ -1122,7 +1135,7 @@ compareContAntisym (I a) (I b) c = compareContAntisym a b c
 -- TODO split into `to` and `fro`
 
 compareEqIffTo : (p, q: Bip) -> (p `compare` q = EQ) -> p = q
-compareEqIffTo p q = rewrite compareSubMask p q in 
+compareEqIffTo p q = rewrite compareSubMask p q in
                      aux
   where
   aux : mask2cmp (bimMinus p q) = EQ -> p = q
@@ -1130,13 +1143,13 @@ compareEqIffTo p q = rewrite compareSubMask p q in
     | BimO   = subMaskNulTo p q (sym pq)
     | BimP _ = absurd prf
     | BimM   = absurd prf
- 
+
 compareEqIffFro : (p, q: Bip) -> p = q -> (p `compare` q = EQ)
-compareEqIffFro p q prf = rewrite compareSubMask p q in 
-                          rewrite subMaskNulFro p q prf in 
+compareEqIffFro p q prf = rewrite compareSubMask p q in
+                          rewrite subMaskNulFro p q prf in
                           Refl
 
--- compare_antisym 
+-- compare_antisym
 
 compareAntisym : (p, q: Bip) -> q `compare` p = compareOp (p `compare` q)
 compareAntisym p q = sym $ compareContAntisym p q EQ
@@ -1146,41 +1159,41 @@ compareAntisym p q = sym $ compareContAntisym p q EQ
 
 -- gt_lt
 
-gtLt : (p, q: Bip) -> p `Gt` q -> q `Lt` p 
-gtLt p q pgtq = rewrite compareAntisym p q in 
-                rewrite pgtq in 
+gtLt : (p, q: Bip) -> p `Gt` q -> q `Lt` p
+gtLt p q pgtq = rewrite compareAntisym p q in
+                rewrite pgtq in
                 Refl
 
 -- lt_gt
 
-ltGt : (p, q: Bip) -> p `Lt` q -> q `Gt` p 
-ltGt p q pltq = rewrite compareAntisym p q in 
-                rewrite pltq in 
+ltGt : (p, q: Bip) -> p `Lt` q -> q `Gt` p
+ltGt p q pltq = rewrite compareAntisym p q in
+                rewrite pltq in
                 Refl
 
--- ge_le 
+-- ge_le
 
-geLe : (p, q: Bip) -> p `Ge` q -> q `Le` p 
-geLe p q pgeq = rewrite compareAntisym p q in 
+geLe : (p, q: Bip) -> p `Ge` q -> q `Le` p
+geLe p q pgeq = rewrite compareAntisym p q in
                 aux
   where
   aux : (compareOp (bipCompare p q EQ) = GT) -> Void
-  aux prf with (p `compare` q) proof pq
+  aux prf with (p `compare` q)
     | LT = pgeq Refl
     | EQ = uninhabited prf
     | GT = pgeq $ sym prf
 
--- le_ge 
+-- le_ge
 
-leGe : (p, q: Bip) -> p `Le` q -> q `Ge` p 
-leGe p q pleq = rewrite compareAntisym p q in 
+leGe : (p, q: Bip) -> p `Le` q -> q `Ge` p
+leGe p q pleq = rewrite compareAntisym p q in
                 aux
   where
   aux : (compareOp (bipCompare p q EQ) = LT) -> Void
-  aux prf with (p `compare` q) proof pq
+  aux prf with (p `compare` q)
     | LT = pleq $ sym prf
     | EQ = uninhabited prf
-    | GT = pleq Refl 
+    | GT = pleq Refl
 
 -- le_1_l
 
@@ -1188,81 +1201,56 @@ le1L : (p : Bip) -> U `Le` p
 le1L  U    = uninhabited
 le1L (O _) = uninhabited
 le1L (I _) = uninhabited
- 
--- compare_succ_r 
 
-compareSuccR : (p, q: Bip) -> switchEq GT (p `compare` bipSucc q) = switchEq LT (p `compare` q) 
+-- compare_succ_r
+
+compareSuccR : (p, q: Bip) -> switchEq GT (p `compare` bipSucc q) = switchEq LT (p `compare` q)
 compareSuccR  U     U    = Refl
 compareSuccR  U    (O _) = Refl
 compareSuccR  U    (I _) = Refl
-compareSuccR (O a)  U    = rewrite sym $ compareContSpec a U GT in 
+compareSuccR (O a)  U    = rewrite sym $ compareContSpec a U GT in
                            compareContGtGtFro a U $ leGe U a $ le1L a
-compareSuccR (O a) (O b) = rewrite sym $ compareContSpec a b LT in 
-                           aux
-  where
-  aux : switchEq GT (bipCompare a b LT) = bipCompare a b LT
-  aux with (bipCompare a b LT) proof ablt
-    | LT = Refl
-    | EQ = absurd $ compLtNotEq a b $ sym ablt
-    | GT = Refl
-compareSuccR (O a) (I b) = rewrite compareSuccR a b in 
+compareSuccR (O a) (O b) = rewrite sym $ compareContSpec a b LT in
+                           switchEqLT GT
+compareSuccR (O a) (I b) = rewrite compareSuccR a b in
                            rewrite sym $ compareContSpec a b LT in
-                           aux
-  where
-  aux : bipCompare a b LT = switchEq LT (bipCompare a b LT)
-  aux with (bipCompare a b LT) proof ablt
-    | LT = Refl
-    | EQ = absurd $ compLtNotEq a b $ sym ablt
-    | GT = Refl
-compareSuccR (I a)  U    = rewrite compareContGtGtFro a U $ leGe U a $ le1L a in 
+                           sym $ switchEqLT LT
+compareSuccR (I a)  U    = rewrite compareContGtGtFro a U $ leGe U a $ le1L a in
                            Refl
 compareSuccR (I a) (O b) = rewrite sym $ compareContSpec a b GT in
-                           aux
-  where
-  aux : bipCompare a b GT = switchEq LT (bipCompare a b GT)
-  aux with (bipCompare a b GT) proof abgt
-    | LT = Refl
-    | EQ = absurd $ compGtNotEq a b $ sym abgt
-    | GT = Refl
-compareSuccR (I a) (I b) = rewrite sym $ compareSuccR a b in 
+                           sym $ switchEqGT LT
+compareSuccR (I a) (I b) = rewrite sym $ compareSuccR a b in
                            rewrite sym $ compareContSpec a (bipSucc b) GT in
-                           aux
-  where
-  aux : switchEq GT (bipCompare a (bipSucc b) GT) = bipCompare a (bipSucc b) GT                           
-  aux with (bipCompare a (bipSucc b) GT) proof asbgt
-    | LT = Refl
-    | EQ = absurd $ compGtNotEq a (bipSucc b) $ sym asbgt
-    | GT = Refl
+                           switchEqGT GT
 
--- compare_succ_l 
+-- compare_succ_l
 
-compareSuccL : (p, q: Bip) -> switchEq LT (bipSucc p `compare` q) = switchEq GT (p `compare` q)  
+compareSuccL : (p, q: Bip) -> switchEq LT (bipSucc p `compare` q) = switchEq GT (p `compare` q)
 compareSuccL p q = rewrite sym $ compareContSpec (bipSucc p) q LT in
                    rewrite sym $ compareContSpec p q GT in
-                   compareOpInj (bipCompare (bipSucc p) q LT) (bipCompare p q GT) $ 
-                     rewrite compareContAntisym p q GT in 
-                     rewrite compareContAntisym (bipSucc p) q LT in 
-                     rewrite compareContSpec q p LT in 
-                     rewrite compareContSpec q (bipSucc p) GT in 
+                   compareOpInj (bipCompare (bipSucc p) q LT) (bipCompare p q GT) $
+                     rewrite compareContAntisym p q GT in
+                     rewrite compareContAntisym (bipSucc p) q LT in
+                     rewrite compareContSpec q p LT in
+                     rewrite compareContSpec q (bipSucc p) GT in
                      compareSuccR q p
 
--- lt_succ_r 
+-- lt_succ_r
 -- TODO split into `to` and `fro`
 
 ltSuccRTo : (p, q: Bip) -> p `Lt` bipSucc q -> p `Le` q
-ltSuccRTo p q pltsq = 
-  let
-    tt = replace {P=\x=>switchEq GT x = switchEq LT (p `compare` q)} pltsq (compareSuccR p q)
-  in aux tt
+ltSuccRTo p q pltsq =
+  let tt = replace {P=\x=>switchEq GT x = switchEq LT (p `compare` q)} pltsq (compareSuccR p q) in
+    aux tt
   where
-  aux : LT = switchEq LT (p `compare` q) -> (p `compare` q = GT) -> Void  
+  aux : LT = switchEq LT (p `compare` q) -> (p `compare` q = GT) -> Void
   aux prf prf1 with (p `compare` q)
     | LT = uninhabited prf1
     | EQ = uninhabited prf1
     | GT = uninhabited prf
 
 ltSuccRFro : (p, q: Bip) -> p `Le` q -> p `Lt` bipSucc q
-ltSuccRFro p q pleq = aux $ compareSuccR p q 
+ltSuccRFro p q pleq = aux $ compareSuccR p q
   where
   aux : switchEq GT (p `compare` (bipSucc q)) = switchEq LT (p `compare` q) -> bipCompare p (bipSucc q) EQ = LT
   aux prf with (p `compare` q)
@@ -1270,13 +1258,13 @@ ltSuccRFro p q pleq = aux $ compareSuccR p q
       aux prf | LT | LT = Refl
       aux prf | LT | EQ = absurd prf
       aux prf | LT | GT = absurd prf
-    aux prf | EQ with (p `compare` (bipSucc q)) 
+    aux prf | EQ with (p `compare` (bipSucc q))
       aux prf | EQ | LT = Refl
       aux prf | EQ | EQ = absurd prf
       aux prf | EQ | GT = absurd prf
     aux prf | GT = absurd $ pleq Refl
 
--- lt_succ_diag_r 
+-- lt_succ_diag_r
 
 ltSuccDiagR : (p : Bip) -> p `Lt` (bipSucc p)
 ltSuccDiagR p = ltIffAddFro p (bipSucc p) (U**add1R p)
