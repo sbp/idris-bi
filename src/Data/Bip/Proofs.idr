@@ -1332,3 +1332,35 @@ ltNleFro p q nqlep with (p `compare` q) proof pq
 
 ltLtSucc : (p, q: Bip) -> p `Lt` q -> p `Lt` bipSucc q
 ltLtSucc p q = ltSuccRFro p q . ltLeIncl p q
+
+-- succ_lt_mono
+-- TODO split into `to` and `fro`
+
+succLtMonoTo : (p, q: Bip) -> p `Lt` q -> bipSucc p `Lt` bipSucc q
+succLtMonoTo p q pltq = rewrite compareSuccSucc p q in
+                        pltq
+
+succLtMonoFro : (p, q: Bip) -> bipSucc p `Lt` bipSucc q -> p `Lt` q
+succLtMonoFro p q spltsq = rewrite sym $ compareSuccSucc p q in
+                           spltsq
+
+-- succ_le_mono
+-- TODO split into `to` and `fro`
+
+succLeMonoTo : (p, q: Bip) -> p `Le` q -> bipSucc p `Le` bipSucc q
+succLeMonoTo p q pleq = rewrite compareSuccSucc p q in
+                        pleq
+
+succLeMonoFro : (p, q: Bip) -> bipSucc p `Le` bipSucc q -> p `Le` q
+succLeMonoFro p q splesq = rewrite sym $ compareSuccSucc p q in
+                           splesq
+
+-- lt_trans
+
+ltTrans : (p, q, r: Bip) -> p `Lt` q -> q `Lt` r -> p `Lt` r
+ltTrans p q r pltq qltr =
+   let (r1 ** prf1) = ltIffAddTo p q pltq
+       (r2 ** prf2) = ltIffAddTo q r qltr in
+     ltIffAddFro p r (r1+r2 ** rewrite addAssoc p r1 r2 in
+                               rewrite prf1 in
+                               prf2)
