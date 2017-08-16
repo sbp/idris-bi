@@ -149,7 +149,6 @@ addSuccR (O a) (I b) = cong $ addSuccR a b
 addSuccR (I a) (I b) = rewrite addCarrySpec a b in
                        cong $ addSuccR a b
 
-
 -- add_succ_l
 
 addSuccL : (p,q : Bip) -> bipSucc p + q = bipSucc (p + q)
@@ -1392,6 +1391,17 @@ leLtTrans p q r pleq qltr with (p `compare` q) proof pq
          qltr
   | GT = absurd $ pleq Refl
 
+-- le_trans
+
+leTrans : (p, q, r: Bip) -> p `Le` q -> q `Le` r -> p `Le` r
+leTrans p q r pleq qler pgtr with (q `compare` r) proof qr
+  | LT = let pltr = leLtTrans p q r pleq (sym qr) in
+           uninhabited $ replace {P=\x=>x=LT} pgtr pltr
+  | EQ = let qeqr = compareEqIffTo q r (sym qr)
+             pgtq = replace {P=\x=>bipCompare p x EQ = GT} (sym qeqr) pgtr in
+           pleq pgtq
+  | GT = absurd $ qler Refl
+
 -- le_succ_l
 -- TODO split into `to` and `fro`
 
@@ -1411,3 +1421,134 @@ leAntisym p q pleq qlep with (p `compare` q) proof pq
 
 -- TODO le_preorder
 -- TODO le_partorder
+
+-- lt_add_diag_r
+
+ltAddDiagR : (p, q: Bip) -> p `Lt` (p+q)
+ltAddDiagR p q = ltIffAddFro p (p+q) (q**Refl)
+
+-- add_compare_mono_l
+-- TODO can this be proven easier?
+addCompareMonoL : (p, q, r: Bip) -> (p+q) `compare` (p+r) = q `compare` r
+addCompareMonoL  U     q     r    = rewrite add1L q in
+                                    rewrite add1L r in
+                                    compareSuccSucc q r
+addCompareMonoL (O a)  U     U    = compareContRefl a EQ
+addCompareMonoL (O a)  U    (O c) = rewrite compareContSpec a (a+c) GT in
+                                    rewrite ltAddDiagR a c in
+                                    Refl
+addCompareMonoL (O a)  U    (I c) = ltAddDiagR a c
+addCompareMonoL (O a) (O b)  U    = rewrite compareContSpec (a+b) a LT in
+                                    rewrite ltGt a (a+b) $ ltAddDiagR a b in
+                                    Refl
+addCompareMonoL (O a) (O b) (O c) = addCompareMonoL a b c
+addCompareMonoL (O a) (O b) (I c) = rewrite compareContSpec (a+b) (a+c) LT in
+                                    rewrite compareContSpec b c LT in
+                                    rewrite addCompareMonoL a b c in
+                                    Refl
+addCompareMonoL (O a) (I b)  U    = ltGt a (a+b) $ ltAddDiagR a b
+addCompareMonoL (O a) (I b) (O c) = rewrite compareContSpec (a+b) (a+c) GT in
+                                    rewrite compareContSpec b c GT in
+                                    rewrite addCompareMonoL a b c in
+                                    Refl
+addCompareMonoL (O a) (I b) (I c) = addCompareMonoL a b c
+addCompareMonoL (I a)  U     U    = compareContRefl (bipSucc a) EQ
+addCompareMonoL (I a)  U    (O c) = rewrite compareContSpec (bipSucc a) (a+c) LT in
+                                    rewrite compareSuccL a (a+c) in
+                                    rewrite ltAddDiagR a c in
+                                    Refl
+addCompareMonoL (I a)  U    (I c) = rewrite addCarrySpec a c in
+                                    rewrite sym $ addSuccL a c in
+                                    ltAddDiagR (bipSucc a) c
+addCompareMonoL (I a) (O b)  U    = rewrite compareContSpec (a+b) (bipSucc a) GT in
+                                    rewrite compareSuccR (a+b) a in
+                                    rewrite ltGt a (a+b) $ ltAddDiagR a b in
+                                    Refl
+addCompareMonoL (I a) (O b) (O c) = addCompareMonoL a b c
+addCompareMonoL (I a) (O b) (I c) = rewrite addCarrySpec a c in
+                                    rewrite compareContSpec (a+b) (bipSucc (a+c)) GT in
+                                    rewrite compareContSpec b c LT in
+                                    rewrite compareSuccR (a+b) (a+c) in
+                                    rewrite addCompareMonoL a b c in
+                                    Refl
+addCompareMonoL (I a) (I b)  U    = rewrite addCarrySpec a b in
+                                    rewrite sym $ addSuccL a b in
+                                    ltGt (bipSucc a) ((bipSucc a)+b) $ ltAddDiagR (bipSucc a) b
+addCompareMonoL (I a) (I b) (O c) = rewrite addCarrySpec a b in
+                                    rewrite compareContSpec (bipSucc (a+b)) (a+c) LT in
+                                    rewrite compareContSpec b c GT in
+                                    rewrite compareSuccL (a+b) (a+c) in
+                                    rewrite addCompareMonoL a b c in
+                                    Refl
+addCompareMonoL (I a) (I b) (I c) = rewrite addCarrySpec a b in
+                                    rewrite addCarrySpec a c in
+                                    rewrite sym $ addSuccL a b in
+                                    rewrite sym $ addSuccL a c in
+                                    addCompareMonoL (bipSucc a) b c
+
+-- add_compare_mono_r
+
+addCompareMonoR : (p, q, r: Bip) -> (q+p) `compare` (r+p) = q `compare` r
+addCompareMonoR p q r = rewrite addComm q p in
+                        rewrite addComm r p in
+                        addCompareMonoL p q r
+
+-- add_lt_mono_l
+-- TODO split into `to` and `fro`
+
+addLtMonoLTo : (p, q, r: Bip) -> q `Lt` r -> (p+q) `Lt` (p+r)
+addLtMonoLTo p q r qltr = rewrite addCompareMonoL p q r in
+                          qltr
+
+addLtMonoLFro : (p, q, r: Bip) -> (p+q) `Lt` (p+r) -> q `Lt` r
+addLtMonoLFro p q r = rewrite addCompareMonoL p q r in
+                      id
+
+-- add_lt_mono_r
+-- TODO split into `to` and `fro`
+
+addLtMonoRTo : (p, q, r: Bip) -> q `Lt` r -> (q+p) `Lt` (r+p)
+addLtMonoRTo p q r qltr = rewrite addCompareMonoR p q r in
+                          qltr
+
+addLtMonoRFro : (p, q, r: Bip) -> (q+p) `Lt` (r+p) -> q `Lt` r
+addLtMonoRFro p q r = rewrite addCompareMonoR p q r in
+                      id
+
+-- add_lt_mono
+
+addLtMono :  (p, q, r, s: Bip) -> p `Lt` q -> r `Lt` s -> (p+r) `Lt` (q+s)
+addLtMono p q r s pltq rlts =
+  let prqr = addLtMonoRTo r p q pltq
+      qrqs = addLtMonoLTo q r s rlts in
+    ltTrans (p+r) (q+r) (q+s) prqr qrqs
+
+-- add_le_mono_l
+-- TODO split into `to` and `fro`
+
+addLeMonoLTo : (p, q, r: Bip) -> q `Le` r -> (p+q) `Le` (p+r)
+addLeMonoLTo p q r qler = rewrite addCompareMonoL p q r in
+                          qler
+
+addLeMonoLFro : (p, q, r: Bip) -> (p+q) `Le` (p+r) -> q `Le` r
+addLeMonoLFro p q r = rewrite addCompareMonoL p q r in
+                      id
+
+-- add_le_mono_r
+-- TODO split into `to` and `fro`
+
+addLeMonoRTo : (p, q, r: Bip) -> q `Le` r -> (q+p) `Le` (r+p)
+addLeMonoRTo p q r qltr = rewrite addCompareMonoR p q r in
+                          qltr
+
+addLeMonoRFro : (p, q, r: Bip) -> (q+p) `Le` (r+p) -> q `Le` r
+addLeMonoRFro p q r = rewrite addCompareMonoR p q r in
+                      id
+
+-- add_le_mono
+
+addLeMono :  (p, q, r, s: Bip) -> p `Le` q -> r `Le` s -> (p+r) `Le` (q+s)
+addLeMono p q r s pltq rlts =
+  let prqr = addLeMonoRTo r p q pltq
+      qrqs = addLeMonoLTo q r s rlts in
+    leTrans (p+r) (q+r) (q+s) prqr qrqs
