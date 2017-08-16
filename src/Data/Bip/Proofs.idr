@@ -886,17 +886,17 @@ mutual
   compGtNotEq (I a) (O b) = compGtNotEq a b
   compGtNotEq (I a) (I b) = compGtNotEq a b
 
-  switchEqLT : (o: Ordering) -> switchEq o (bipCompare a b LT) = bipCompare a b LT
-  switchEqLT {a} {b} _ with (bipCompare a b LT) proof ablt
-    | LT = Refl
-    | EQ = absurd $ compLtNotEq a b $ sym ablt
-    | GT = Refl
+switchEqLT : (o: Ordering) -> switchEq o (bipCompare a b LT) = bipCompare a b LT
+switchEqLT {a} {b} _ with (bipCompare a b LT) proof ablt
+  | LT = Refl
+  | EQ = absurd $ compLtNotEq a b $ sym ablt
+  | GT = Refl
 
-  switchEqGT : (o: Ordering) -> switchEq o (bipCompare a b GT) = bipCompare a b GT
-  switchEqGT {a} {b} _ with (bipCompare a b GT) proof ablt
-    | LT = Refl
-    | EQ = absurd $ compGtNotEq a b $ sym ablt
-    | GT = Refl
+switchEqGT : (o: Ordering) -> switchEq o (bipCompare a b GT) = bipCompare a b GT
+switchEqGT {a} {b} _ with (bipCompare a b GT) proof ablt
+  | LT = Refl
+  | EQ = absurd $ compGtNotEq a b $ sym ablt
+  | GT = Refl
 
 -- compare_cont_spec
 
@@ -1202,6 +1202,13 @@ le1L  U    = uninhabited
 le1L (O _) = uninhabited
 le1L (I _) = uninhabited
 
+-- nlt_1_r
+
+nlt1R : (p : Bip) -> Not (p `Lt` U)
+nlt1R  U    = uninhabited
+nlt1R (O _) = uninhabited
+nlt1R (I _) = uninhabited
+
 -- compare_succ_r
 
 compareSuccR : (p, q: Bip) -> switchEq GT (p `compare` bipSucc q) = switchEq LT (p `compare` q)
@@ -1291,3 +1298,37 @@ compareSuccSucc (I a) (O b) = rewrite compareContSpec (bipSucc a) b LT in
                               rewrite compareContSpec a b GT in
                               compareSuccL a b
 compareSuccSucc (I a) (I b) = compareSuccSucc a b
+
+-- lt_1_succ
+
+lt1Succ : (p : Bip) -> U `Lt` bipSucc p
+lt1Succ p = ltSuccRFro U p $ le1L p
+
+-- le_nlt is just leGe / geLe
+
+-- lt_le_incl
+
+ltLeIncl : (p, q: Bip) -> p `Lt` q -> p `Le` q
+ltLeIncl p q pltq pgtq with (p `compare` q)
+  | LT = uninhabited pgtq
+  | EQ = uninhabited pgtq
+  | GT = uninhabited pltq
+
+-- lt_nle
+-- TODO split into `to` and `fro`
+ltNleTo : (p, q: Bip) -> p `Lt` q -> Not (q `Le` p)
+ltNleTo p q pltq qlep = qlep $ ltGt p q pltq
+
+ltNleFro : (p, q: Bip) -> Not (q `Le` p) -> p `Lt` q
+ltNleFro p q nqlep with (p `compare` q) proof pq
+  | LT = Refl
+  | EQ = let peqq = compareEqIffTo p q (sym pq)
+             qq = replace {P=\x=>Not (Not (q `compare` x = GT))} peqq nqlep
+             nn = replace {P=\x=>Not (Not (x = GT))} (compareContRefl q EQ) qq in
+           absurd $ nn uninhabited
+  | GT = absurd $ nqlep $ ltLeIncl q p $ gtLt p q $ sym pq
+
+-- lt_lt_succ
+
+ltLtSucc : (p, q: Bip) -> p `Lt` q -> p `Lt` bipSucc q
+ltLtSucc p q = ltSuccRFro p q . ltLeIncl p q
