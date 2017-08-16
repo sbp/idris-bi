@@ -1552,3 +1552,39 @@ addLeMono p q r s pltq rlts =
   let prqr = addLeMonoRTo r p q pltq
       qrqs = addLeMonoLTo q r s rlts in
     leTrans (p+r) (q+r) (q+s) prqr qrqs
+
+-- mul_lt_mono_l
+-- TODO split into `to` and `fro`, intermixed with mul_compare_mono_l
+mulLtMonoLTo : (p, q, r: Bip) -> q `Lt` r -> (p*q) `Lt` (p*r)
+mulLtMonoLTo  U    _ _ qltr = qltr
+mulLtMonoLTo (O a) q r qltr = mulLtMonoLTo a q r qltr
+mulLtMonoLTo (I a) q r qltr =
+  let ih = mulLtMonoLTo a q r qltr in
+    addLtMono q r (O (a*q)) (O (a*r)) qltr ih
+
+-- mul_compare_mono_l
+
+mulCompareMonoL : (p, q, r: Bip) -> (p*q) `compare` (p*r) = q `compare` r
+mulCompareMonoL  U    _ _ = Refl
+mulCompareMonoL (O a) q r = mulCompareMonoL a q r
+mulCompareMonoL (I a) q r with (q `compare` r) proof qr
+  | LT = let aqr = mulLtMonoLTo a q r (sym qr) in
+           addLtMono q r (O (a*q)) (O (a*r)) (sym qr) aqr
+  | EQ = rewrite compareEqIffTo q r (sym qr) in
+         compareContRefl (r+(O (a*r))) EQ
+  | GT = let rltq = gtLt q r $ sym qr
+             arq = mulLtMonoLTo a r q rltq
+             mul = addLtMono r q (O (a*r)) (O (a*q)) rltq arq in
+           ltGt (r+(O (a*r))) (q+(O (a*q))) mul
+
+-- mul_lt_mono_l
+-- TODO split into `to` and `fro`, intermixed with mul_compare_mono_l
+mulLtMonoLFro : (p, q, r: Bip) -> (p*q) `Lt` (p*r) -> q `Lt` r
+mulLtMonoLFro p q r = rewrite mulCompareMonoL p q r in id
+
+-- mul_compare_mono_r
+
+mulCompareMonoR : (p, q, r: Bip) -> (q*p) `compare` (r*p) = q `compare` r
+mulCompareMonoR p q r = rewrite mulComm q p in
+                        rewrite mulComm r p in
+                        mulCompareMonoL p q r
