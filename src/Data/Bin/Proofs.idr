@@ -197,13 +197,62 @@ leZeroL (BinP _) = Right Refl
 -- Properties of double and succ_double
 
 -- double_spec
+
+doubleSpec : (a: Bin) -> binD a = 2 * a
+doubleSpec  BinO    = Refl
+doubleSpec (BinP _) = Refl
+
 -- succ_double_spec
+
+succDoubleSpec : (a: Bin) -> binDPO a = 2 * a + 1
+succDoubleSpec  BinO    = Refl
+succDoubleSpec (BinP _) = Refl
+
 -- double_add
+
+doubleAdd : (a, b: Bin) -> binD (a + b) = binD a + binD b
+doubleAdd  BinO     BinO    = Refl
+doubleAdd  BinO    (BinP _) = Refl
+doubleAdd (BinP _)  BinO    = Refl
+doubleAdd (BinP _) (BinP _) = Refl
+
 -- succ_double_add
+
+succDoubleAdd : (a, b: Bin) -> binDPO (a + b) = binD a + binDPO b
+succDoubleAdd  BinO     BinO    = Refl
+succDoubleAdd  BinO    (BinP _) = Refl
+succDoubleAdd (BinP _)  BinO    = Refl
+succDoubleAdd (BinP _) (BinP _) = Refl
+
 -- double_mul
+
+doubleMul : (a, b: Bin) -> binD (a * b) = binD a * b
+doubleMul  BinO     BinO    = Refl
+doubleMul  BinO    (BinP _) = Refl
+doubleMul (BinP _)  BinO    = Refl
+doubleMul (BinP _) (BinP _) = Refl
+
 -- succ_double_mul
+
+succDoubleMul : (a, b: Bin) -> binDPO a * b = binD a * b + b
+succDoubleMul  BinO      BinO     = Refl
+succDoubleMul  BinO     (BinP _)  = Refl
+succDoubleMul (BinP _)   BinO     = Refl
+succDoubleMul (BinP a') (BinP b') =
+  rewrite addComm (O (bipMult a' b')) b' in Refl
+
 -- div2_double
+
+divTwoDouble : (a: Bin) -> binDivTwo (binD a) = a
+divTwoDouble  BinO    = Refl
+divTwoDouble (BinP _) = Refl
+
 -- div2_succ_double
+
+divTwoSuccDouble : (a: Bin) -> binDivTwo (binDPO a) = a
+divTwoSuccDouble  BinO    = Refl
+divTwoSuccDouble (BinP _) = Refl
+
 -- double_inj
 -- succ_double_inj
 -- succ_double_lt
