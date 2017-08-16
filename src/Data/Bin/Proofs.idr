@@ -82,12 +82,29 @@ subZeroR : (a: Bin) -> binMinus a 0 = a
 subZeroR  BinO    = Refl
 subZeroR (BinP _) = Refl
 
+-- Helper for sub_succ_r
 subSuccPred : (p, q: Bip) -> bimMinus p (bipSucc q) = bimPred (bimMinus p q)
 subSuccPred a b = rewrite subMaskSuccR a b in
                   rewrite subMaskCarrySpec a b in Refl
 
--- sub_succ_r : m : n - succ m = pred (n - m)
--- TODO
+-- Helper for sub_succ_r
+bimAndBin : (a: Bim) -> bimToBin (bimPred a) = binPred (bimToBin a)
+bimAndBin (BimP U)     = Refl
+bimAndBin (BimP (O _)) = Refl
+bimAndBin (BimP (I _)) = Refl
+bimAndBin  BimO        = Refl
+bimAndBin  BimM        = Refl
+
+-- sub_succ_r
+subSuccR : (a, b: Bin) -> binMinus a (binSucc b) = binPred (binMinus a b)
+subSuccR  BinO         BinO     = Refl
+subSuccR (BinP U)      BinO     = Refl
+subSuccR (BinP (O _))  BinO     = Refl
+subSuccR (BinP (I _))  BinO     = Refl
+subSuccR  BinO        (BinP _)  = Refl
+subSuccR (BinP a')    (BinP b') =
+  rewrite subSuccPred a' b' in
+  rewrite bimAndBin (bimMinus a' b') in Refl
 
 -- Specification of multiplication
 

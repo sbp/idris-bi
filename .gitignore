@@ -2,3 +2,4 @@
 *.idc
 *.ibc
 bin/Examples
+src/Data/Bip/PM.idr

@@ -50,15 +50,16 @@ binPlus  BinO     (BinP b') = BinP b'
 binPlus (BinP a')  BinO     = BinP a'
 binPlus (BinP a') (BinP b') = BinP (bipPlus a' b')
 
+bimToBin : (a: Bim) -> Bin
+bimToBin (BimP a') = BinP a'
+bimToBin  _        = BinO
+
 ||| Subtraction
 binMinus : (a: Bin) -> (b: Bin) -> Bin
 binMinus  BinO      BinO     = BinO
 binMinus  BinO     (BinP b') = BinO
 binMinus (BinP a')  BinO     = BinP a'
-binMinus (BinP a') (BinP b') =
-  case bimMinus a' b' of
-    BimP c => BinP c
-    _ => BinO
+binMinus (BinP a') (BinP b') = bimToBin (bimMinus a' b')
 
 ||| Multiplication
 binMult : (a: Bin) -> (b: Bin) -> Bin
