@@ -1732,3 +1732,38 @@ addSub p q with (bimMinus (p+q) q) proof mpqq
         pf2 = replace {P=\x=>x=q} (addComm (p+q) r) pf
         pf3 = replace {P=\x=>x=q} (addAssoc r p q) pf2
     in absurd $ addNoNeutral q (r+p) pf3
+
+-- mul_sub_distr_l
+
+mulSubDistrL : (p, q, r: Bip) -> r `Lt` q -> p * bipMinus q r = bipMinus (p*q) (p*r)
+mulSubDistrL p q r rltq with (bimMinus q r) proof qr
+  mulSubDistrL p q r rltq | BimO   =
+    let qeqr = subMaskNulTo q r (sym qr)
+        qltq = replace {P=\x=>r `Lt` x} qeqr rltq
+    in absurd $ ltNotSelf r qltq
+  mulSubDistrL p q r rltq | BimP a with (bimMinus (p*q) (p*r)) proof pqpr
+    mulSubDistrL p q r rltq | BimP a | BimO   =
+      let qra = subMaskAdd q r a (sym qr)
+          prapr = replace {P=\x=>BimO = bimMinus (p*x) (p*r)} (sym qra) pqpr
+          praeqpr = subMaskNulTo (p*(r+a)) (p*r) (sym prapr)
+          pareqpr = replace {P=\x=>p*x=p*r} (addComm r a) praeqpr
+          papreqpr = replace {P=\x=>x=p*r} (mulAddDistrL p a r) pareqpr
+      in absurd $ addNoNeutral (p*r) (p*a) papreqpr
+    mulSubDistrL p q r rltq | BimP a | BimP b =
+      let qra = subMaskAdd q r a (sym qr)
+          prapr = replace {P=\x=>BimP b = bimMinus (p*x) (p*r)} (sym qra) pqpr
+          prpapr = replace {P=\x=>BimP b = bimMinus x (p*r)} (mulAddDistrL p r a) prapr
+          bpbpa = replace (subMaskAddDiagL (p*r) (p*a)) prpapr
+      in BimPInj $ sym bpbpa
+    mulSubDistrL p q r rltq | BimP a | BimM   =
+      let qra = subMaskAdd q r a (sym qr)
+          prapr = replace {P=\x=>BimM = bimMinus (p*x) (p*r)} (sym qra) pqpr
+          (s**pf) = subMaskNegTo (p*(r+a)) (p*r) (sym prapr)
+          prpaspr = replace {P=\x=>x+s=p*r} (mulAddDistrL p r a) pf
+          prpaspr2 = replace {P=\x=>x=p*r} (sym $addAssoc (p*r) (p*a) s) prpaspr
+          pasprpr = replace {P=\x=>x=p*r} (addComm (p*r) (p*a+s)) prpaspr2
+      in absurd $ addNoNeutral (p*r) (p*a+s) pasprpr
+  mulSubDistrL p q r rltq | BimM   =
+    let (s**pf) = subMaskNegTo q r (sym qr)
+        ll = replace {P=\x=>x `Lt` q} (sym pf) rltq
+    in absurd $ ltNotAddL q s ll
