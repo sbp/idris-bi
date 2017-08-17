@@ -1426,63 +1426,22 @@ ltAddDiagR : (p, q: Bip) -> p `Lt` (p+q)
 ltAddDiagR p q = ltIffAddFro p (p+q) (q**Refl)
 
 -- add_compare_mono_l
--- TODO can this be proven easier?
+
 addCompareMonoL : (p, q, r: Bip) -> (p+q) `compare` (p+r) = q `compare` r
-addCompareMonoL  U     q     r    = rewrite add1L q in
-                                    rewrite add1L r in
-                                    compareSuccSucc q r
-addCompareMonoL (O a)  U     U    = compareContRefl a EQ
-addCompareMonoL (O a)  U    (O c) = rewrite compareContSpec a (a+c) GT in
-                                    rewrite ltAddDiagR a c in
-                                    Refl
-addCompareMonoL (O a)  U    (I c) = ltAddDiagR a c
-addCompareMonoL (O a) (O b)  U    = rewrite compareContSpec (a+b) a LT in
-                                    rewrite ltGt a (a+b) $ ltAddDiagR a b in
-                                    Refl
-addCompareMonoL (O a) (O b) (O c) = addCompareMonoL a b c
-addCompareMonoL (O a) (O b) (I c) = rewrite compareContSpec (a+b) (a+c) LT in
-                                    rewrite compareContSpec b c LT in
-                                    rewrite addCompareMonoL a b c in
-                                    Refl
-addCompareMonoL (O a) (I b)  U    = ltGt a (a+b) $ ltAddDiagR a b
-addCompareMonoL (O a) (I b) (O c) = rewrite compareContSpec (a+b) (a+c) GT in
-                                    rewrite compareContSpec b c GT in
-                                    rewrite addCompareMonoL a b c in
-                                    Refl
-addCompareMonoL (O a) (I b) (I c) = addCompareMonoL a b c
-addCompareMonoL (I a)  U     U    = compareContRefl (bipSucc a) EQ
-addCompareMonoL (I a)  U    (O c) = rewrite compareContSpec (bipSucc a) (a+c) LT in
-                                    rewrite compareSuccL a (a+c) in
-                                    rewrite ltAddDiagR a c in
-                                    Refl
-addCompareMonoL (I a)  U    (I c) = rewrite addCarrySpec a c in
-                                    rewrite sym $ addSuccL a c in
-                                    ltAddDiagR (bipSucc a) c
-addCompareMonoL (I a) (O b)  U    = rewrite compareContSpec (a+b) (bipSucc a) GT in
-                                    rewrite compareSuccR (a+b) a in
-                                    rewrite ltGt a (a+b) $ ltAddDiagR a b in
-                                    Refl
-addCompareMonoL (I a) (O b) (O c) = addCompareMonoL a b c
-addCompareMonoL (I a) (O b) (I c) = rewrite addCarrySpec a c in
-                                    rewrite compareContSpec (a+b) (bipSucc (a+c)) GT in
-                                    rewrite compareContSpec b c LT in
-                                    rewrite compareSuccR (a+b) (a+c) in
-                                    rewrite addCompareMonoL a b c in
-                                    Refl
-addCompareMonoL (I a) (I b)  U    = rewrite addCarrySpec a b in
-                                    rewrite sym $ addSuccL a b in
-                                    ltGt (bipSucc a) ((bipSucc a)+b) $ ltAddDiagR (bipSucc a) b
-addCompareMonoL (I a) (I b) (O c) = rewrite addCarrySpec a b in
-                                    rewrite compareContSpec (bipSucc (a+b)) (a+c) LT in
-                                    rewrite compareContSpec b c GT in
-                                    rewrite compareSuccL (a+b) (a+c) in
-                                    rewrite addCompareMonoL a b c in
-                                    Refl
-addCompareMonoL (I a) (I b) (I c) = rewrite addCarrySpec a b in
-                                    rewrite addCarrySpec a c in
-                                    rewrite sym $ addSuccL a b in
-                                    rewrite sym $ addSuccL a c in
-                                    addCompareMonoL (bipSucc a) b c
+addCompareMonoL p q r =
+  peanoRect
+    (\x => (x+q) `compare` (x+r) = q `compare` r)
+    base
+    (\s,sqsr => rewrite addSuccL s q in
+                rewrite addSuccL s r in
+                rewrite compareSuccSucc (s+q) (s+r) in
+                sqsr)
+    p
+  where
+    base : ((U+q) `compare` (U+r)) = (q `compare` r)
+    base = rewrite add1L q in
+           rewrite add1L r in
+           compareSuccSucc q r
 
 -- add_compare_mono_r
 
