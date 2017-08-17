@@ -308,8 +308,6 @@ addDiag (I a) =
 
 -- peano_rect
 
--- TODO how useful is this? we can't do custom induction
-
 mutual
   peanoRect : (P : Bip -> Type) -> (a : P U) ->
               (f: (p : Bip) -> P p -> P (bipSucc p)) ->
@@ -1653,3 +1651,17 @@ ltNotAddL p q pqltp =
   let pltpq = ltAddDiagR p q
       pltp = ltTrans p (p+q) p pltpq pqltp in
     ltNotSelf p pltp
+
+-- pow_gt_1
+
+powGt1 : (p, q: Bip) -> U `Lt` p -> U `Lt` bipPow p q
+powGt1 p q ultp =
+  peanoRect
+    (\x=>U `Lt` bipPow p x)
+    (replace (sym $ pow1R p) ultp)
+    (\r,ultpr =>
+       let pultppr = mulLtMonoLTo p U (bipPow p r) ultpr
+           pultpsr = replace {P=\x=>(p*U) `Lt` x} (sym $ powSuccR p r) pultppr
+           pltpsr = replace {P=\x=>x `Lt` (bipPow p (bipSucc r))} (mul1R p) pultpsr in
+         ltTrans U p (bipPow p (bipSucc r)) ultp pltpsr)
+    q
