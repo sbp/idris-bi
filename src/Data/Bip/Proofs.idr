@@ -1517,7 +1517,7 @@ addLtMonoRFro p q r = rewrite addCompareMonoR p q r in
 
 -- add_lt_mono
 
-addLtMono :  (p, q, r, s: Bip) -> p `Lt` q -> r `Lt` s -> (p+r) `Lt` (q+s)
+addLtMono : (p, q, r, s: Bip) -> p `Lt` q -> r `Lt` s -> (p+r) `Lt` (q+s)
 addLtMono p q r s pltq rlts =
   let prqr = addLtMonoRTo r p q pltq
       qrqs = addLtMonoLTo q r s rlts in
@@ -1547,7 +1547,7 @@ addLeMonoRFro p q r = rewrite addCompareMonoR p q r in
 
 -- add_le_mono
 
-addLeMono :  (p, q, r, s: Bip) -> p `Le` q -> r `Le` s -> (p+r) `Le` (q+s)
+addLeMono : (p, q, r, s: Bip) -> p `Le` q -> r `Le` s -> (p+r) `Le` (q+s)
 addLeMono p q r s pltq rlts =
   let prqr = addLeMonoRTo r p q pltq
       qrqs = addLeMonoLTo q r s rlts in
@@ -1579,8 +1579,9 @@ mulCompareMonoL (I a) q r with (q `compare` r) proof qr
 
 -- mul_lt_mono_l
 -- TODO split into `to` and `fro`, intermixed with mul_compare_mono_l
-mulLtMonoLFro : (p, q, r: Bip) -> (p*q) `Lt` (p*r) -> q `Lt` r
-mulLtMonoLFro p q r = rewrite mulCompareMonoL p q r in id
+mulLtMonoLtFro : (p, q, r: Bip) -> (p*q) `Lt` (p*r) -> q `Lt` r
+mulLtMonoLtFro p q r = rewrite mulCompareMonoL p q r in
+                       id
 
 -- mul_compare_mono_r
 
@@ -1588,3 +1589,67 @@ mulCompareMonoR : (p, q, r: Bip) -> (q*p) `compare` (r*p) = q `compare` r
 mulCompareMonoR p q r = rewrite mulComm q p in
                         rewrite mulComm r p in
                         mulCompareMonoL p q r
+
+-- mul_lt_mono_r
+-- TODO split into `to` and `fro`
+
+mulLtMonoRTo : (p, q, r: Bip) -> q `Lt` r -> (q*p) `Lt` (r*p)
+mulLtMonoRTo p q r qltr = rewrite mulCompareMonoR p q r in
+                          qltr
+
+mulLtMonoRFro : (p, q, r: Bip) -> (q*p) `Lt` (r*p) -> q `Lt` r
+mulLtMonoRFro p q r = rewrite mulCompareMonoR p q r in
+                      id
+
+-- mul_lt_mono
+
+mulLtMono : (p, q, r, s: Bip) -> p `Lt` q -> r `Lt` s -> (p*r) `Lt` (q*s)
+mulLtMono p q r s pltq rlts =
+  let prqr = mulLtMonoRTo r p q pltq
+      qrqs = mulLtMonoLTo q r s rlts in
+   ltTrans (p*r) (q*r) (q*s) prqr qrqs
+
+-- mul_le_mono_l
+-- TODO split into `to` and `fro`
+
+mulLeMonoLTo : (p, q, r: Bip) -> q `Le` r -> (p*q) `Le` (p*r)
+mulLeMonoLTo p q r qler = rewrite mulCompareMonoL p q r in
+                          qler
+
+mulLeMonoLFro : (p, q, r: Bip) -> (p*q) `Le` (p*r) -> q `Le` r
+mulLeMonoLFro p q r = rewrite mulCompareMonoL p q r in
+                      id
+
+-- mul_le_mono_r
+-- TODO split into `to` and `fro`
+
+mulLeMonoRTo : (p, q, r: Bip) -> q `Le` r -> (q*p) `Le` (r*p)
+mulLeMonoRTo p q r qler = rewrite mulCompareMonoR p q r in
+                          qler
+
+mulLeMonoRFro : (p, q, r: Bip) -> (q*p) `Le` (r*p) -> q `Le` r
+mulLeMonoRFro p q r = rewrite mulCompareMonoR p q r in
+                      id
+
+-- mul_le_mono
+
+mulLeMono : (p, q, r, s: Bip) -> p `Le` q -> r `Le` s -> (p*r) `Le` (q*s)
+mulLeMono p q r s pltq rlts =
+  let prqr = mulLeMonoRTo r p q pltq
+      qrqs = mulLeMonoLTo q r s rlts in
+    leTrans (p*r) (q*r) (q*s) prqr qrqs
+
+-- lt_add_r looks identical to lt_add_diag_r
+
+-- lt_not_add_l
+
+ltNotSelf : (p : Bip) -> Not (p `Lt` p)
+ltNotSelf  U    = uninhabited
+ltNotSelf (O a) = ltNotSelf a
+ltNotSelf (I a) = ltNotSelf a
+
+ltNotAddL : (p, q: Bip) -> Not (p+q `Lt` p)
+ltNotAddL p q pqltp =
+  let pltpq = ltAddDiagR p q
+      pltp = ltTrans p (p+q) p pltpq pqltp in
+    ltNotSelf p pltp
