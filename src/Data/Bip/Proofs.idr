@@ -308,8 +308,6 @@ addDiag (I a) =
 
 -- peano_rect
 
--- TODO how useful is this? we can't do custom induction
-
 mutual
   peanoRect : (P : Bip -> Type) -> (a : P U) ->
               (f: (p : Bip) -> P p -> P (bipSucc p)) ->
@@ -1428,63 +1426,22 @@ ltAddDiagR : (p, q: Bip) -> p `Lt` (p+q)
 ltAddDiagR p q = ltIffAddFro p (p+q) (q**Refl)
 
 -- add_compare_mono_l
--- TODO can this be proven easier?
+
 addCompareMonoL : (p, q, r: Bip) -> (p+q) `compare` (p+r) = q `compare` r
-addCompareMonoL  U     q     r    = rewrite add1L q in
-                                    rewrite add1L r in
-                                    compareSuccSucc q r
-addCompareMonoL (O a)  U     U    = compareContRefl a EQ
-addCompareMonoL (O a)  U    (O c) = rewrite compareContSpec a (a+c) GT in
-                                    rewrite ltAddDiagR a c in
-                                    Refl
-addCompareMonoL (O a)  U    (I c) = ltAddDiagR a c
-addCompareMonoL (O a) (O b)  U    = rewrite compareContSpec (a+b) a LT in
-                                    rewrite ltGt a (a+b) $ ltAddDiagR a b in
-                                    Refl
-addCompareMonoL (O a) (O b) (O c) = addCompareMonoL a b c
-addCompareMonoL (O a) (O b) (I c) = rewrite compareContSpec (a+b) (a+c) LT in
-                                    rewrite compareContSpec b c LT in
-                                    rewrite addCompareMonoL a b c in
-                                    Refl
-addCompareMonoL (O a) (I b)  U    = ltGt a (a+b) $ ltAddDiagR a b
-addCompareMonoL (O a) (I b) (O c) = rewrite compareContSpec (a+b) (a+c) GT in
-                                    rewrite compareContSpec b c GT in
-                                    rewrite addCompareMonoL a b c in
-                                    Refl
-addCompareMonoL (O a) (I b) (I c) = addCompareMonoL a b c
-addCompareMonoL (I a)  U     U    = compareContRefl (bipSucc a) EQ
-addCompareMonoL (I a)  U    (O c) = rewrite compareContSpec (bipSucc a) (a+c) LT in
-                                    rewrite compareSuccL a (a+c) in
-                                    rewrite ltAddDiagR a c in
-                                    Refl
-addCompareMonoL (I a)  U    (I c) = rewrite addCarrySpec a c in
-                                    rewrite sym $ addSuccL a c in
-                                    ltAddDiagR (bipSucc a) c
-addCompareMonoL (I a) (O b)  U    = rewrite compareContSpec (a+b) (bipSucc a) GT in
-                                    rewrite compareSuccR (a+b) a in
-                                    rewrite ltGt a (a+b) $ ltAddDiagR a b in
-                                    Refl
-addCompareMonoL (I a) (O b) (O c) = addCompareMonoL a b c
-addCompareMonoL (I a) (O b) (I c) = rewrite addCarrySpec a c in
-                                    rewrite compareContSpec (a+b) (bipSucc (a+c)) GT in
-                                    rewrite compareContSpec b c LT in
-                                    rewrite compareSuccR (a+b) (a+c) in
-                                    rewrite addCompareMonoL a b c in
-                                    Refl
-addCompareMonoL (I a) (I b)  U    = rewrite addCarrySpec a b in
-                                    rewrite sym $ addSuccL a b in
-                                    ltGt (bipSucc a) ((bipSucc a)+b) $ ltAddDiagR (bipSucc a) b
-addCompareMonoL (I a) (I b) (O c) = rewrite addCarrySpec a b in
-                                    rewrite compareContSpec (bipSucc (a+b)) (a+c) LT in
-                                    rewrite compareContSpec b c GT in
-                                    rewrite compareSuccL (a+b) (a+c) in
-                                    rewrite addCompareMonoL a b c in
-                                    Refl
-addCompareMonoL (I a) (I b) (I c) = rewrite addCarrySpec a b in
-                                    rewrite addCarrySpec a c in
-                                    rewrite sym $ addSuccL a b in
-                                    rewrite sym $ addSuccL a c in
-                                    addCompareMonoL (bipSucc a) b c
+addCompareMonoL p q r =
+  peanoRect
+    (\x => (x+q) `compare` (x+r) = q `compare` r)
+    base
+    (\s,sqsr => rewrite addSuccL s q in
+                rewrite addSuccL s r in
+                rewrite compareSuccSucc (s+q) (s+r) in
+                sqsr)
+    p
+  where
+    base : ((U+q) `compare` (U+r)) = (q `compare` r)
+    base = rewrite add1L q in
+           rewrite add1L r in
+           compareSuccSucc q r
 
 -- add_compare_mono_r
 
@@ -1517,7 +1474,7 @@ addLtMonoRFro p q r = rewrite addCompareMonoR p q r in
 
 -- add_lt_mono
 
-addLtMono :  (p, q, r, s: Bip) -> p `Lt` q -> r `Lt` s -> (p+r) `Lt` (q+s)
+addLtMono : (p, q, r, s: Bip) -> p `Lt` q -> r `Lt` s -> (p+r) `Lt` (q+s)
 addLtMono p q r s pltq rlts =
   let prqr = addLtMonoRTo r p q pltq
       qrqs = addLtMonoLTo q r s rlts in
@@ -1547,8 +1504,231 @@ addLeMonoRFro p q r = rewrite addCompareMonoR p q r in
 
 -- add_le_mono
 
-addLeMono :  (p, q, r, s: Bip) -> p `Le` q -> r `Le` s -> (p+r) `Le` (q+s)
+addLeMono : (p, q, r, s: Bip) -> p `Le` q -> r `Le` s -> (p+r) `Le` (q+s)
 addLeMono p q r s pltq rlts =
   let prqr = addLeMonoRTo r p q pltq
       qrqs = addLeMonoLTo q r s rlts in
     leTrans (p+r) (q+r) (q+s) prqr qrqs
+
+-- mul_lt_mono_l
+-- TODO split into `to` and `fro`, intermixed with mul_compare_mono_l
+mulLtMonoLTo : (p, q, r: Bip) -> q `Lt` r -> (p*q) `Lt` (p*r)
+mulLtMonoLTo  U    _ _ qltr = qltr
+mulLtMonoLTo (O a) q r qltr = mulLtMonoLTo a q r qltr
+mulLtMonoLTo (I a) q r qltr =
+  let ih = mulLtMonoLTo a q r qltr in
+    addLtMono q r (O (a*q)) (O (a*r)) qltr ih
+
+-- mul_compare_mono_l
+
+mulCompareMonoL : (p, q, r: Bip) -> (p*q) `compare` (p*r) = q `compare` r
+mulCompareMonoL  U    _ _ = Refl
+mulCompareMonoL (O a) q r = mulCompareMonoL a q r
+mulCompareMonoL (I a) q r with (q `compare` r) proof qr
+  | LT = let aqr = mulLtMonoLTo a q r (sym qr) in
+           addLtMono q r (O (a*q)) (O (a*r)) (sym qr) aqr
+  | EQ = rewrite compareEqIffTo q r (sym qr) in
+         compareContRefl (r+(O (a*r))) EQ
+  | GT = let rltq = gtLt q r $ sym qr
+             arq = mulLtMonoLTo a r q rltq
+             mul = addLtMono r q (O (a*r)) (O (a*q)) rltq arq in
+           ltGt (r+(O (a*r))) (q+(O (a*q))) mul
+
+-- mul_lt_mono_l
+-- TODO split into `to` and `fro`, intermixed with mul_compare_mono_l
+mulLtMonoLtFro : (p, q, r: Bip) -> (p*q) `Lt` (p*r) -> q `Lt` r
+mulLtMonoLtFro p q r = rewrite mulCompareMonoL p q r in
+                       id
+
+-- mul_compare_mono_r
+
+mulCompareMonoR : (p, q, r: Bip) -> (q*p) `compare` (r*p) = q `compare` r
+mulCompareMonoR p q r = rewrite mulComm q p in
+                        rewrite mulComm r p in
+                        mulCompareMonoL p q r
+
+-- mul_lt_mono_r
+-- TODO split into `to` and `fro`
+
+mulLtMonoRTo : (p, q, r: Bip) -> q `Lt` r -> (q*p) `Lt` (r*p)
+mulLtMonoRTo p q r qltr = rewrite mulCompareMonoR p q r in
+                          qltr
+
+mulLtMonoRFro : (p, q, r: Bip) -> (q*p) `Lt` (r*p) -> q `Lt` r
+mulLtMonoRFro p q r = rewrite mulCompareMonoR p q r in
+                      id
+
+-- mul_lt_mono
+
+mulLtMono : (p, q, r, s: Bip) -> p `Lt` q -> r `Lt` s -> (p*r) `Lt` (q*s)
+mulLtMono p q r s pltq rlts =
+  let prqr = mulLtMonoRTo r p q pltq
+      qrqs = mulLtMonoLTo q r s rlts in
+   ltTrans (p*r) (q*r) (q*s) prqr qrqs
+
+-- mul_le_mono_l
+-- TODO split into `to` and `fro`
+
+mulLeMonoLTo : (p, q, r: Bip) -> q `Le` r -> (p*q) `Le` (p*r)
+mulLeMonoLTo p q r qler = rewrite mulCompareMonoL p q r in
+                          qler
+
+mulLeMonoLFro : (p, q, r: Bip) -> (p*q) `Le` (p*r) -> q `Le` r
+mulLeMonoLFro p q r = rewrite mulCompareMonoL p q r in
+                      id
+
+-- mul_le_mono_r
+-- TODO split into `to` and `fro`
+
+mulLeMonoRTo : (p, q, r: Bip) -> q `Le` r -> (q*p) `Le` (r*p)
+mulLeMonoRTo p q r qler = rewrite mulCompareMonoR p q r in
+                          qler
+
+mulLeMonoRFro : (p, q, r: Bip) -> (q*p) `Le` (r*p) -> q `Le` r
+mulLeMonoRFro p q r = rewrite mulCompareMonoR p q r in
+                      id
+
+-- mul_le_mono
+
+mulLeMono : (p, q, r, s: Bip) -> p `Le` q -> r `Le` s -> (p*r) `Le` (q*s)
+mulLeMono p q r s pltq rlts =
+  let prqr = mulLeMonoRTo r p q pltq
+      qrqs = mulLeMonoLTo q r s rlts in
+    leTrans (p*r) (q*r) (q*s) prqr qrqs
+
+-- lt_add_r looks identical to lt_add_diag_r
+
+-- lt_not_add_l
+
+ltNotSelf : (p : Bip) -> Not (p `Lt` p)
+ltNotSelf  U    = uninhabited
+ltNotSelf (O a) = ltNotSelf a
+ltNotSelf (I a) = ltNotSelf a
+
+ltNotAddL : (p, q: Bip) -> Not (p+q `Lt` p)
+ltNotAddL p q pqltp =
+  let pltpq = ltAddDiagR p q
+      pltp = ltTrans p (p+q) p pltpq pqltp in
+    ltNotSelf p pltp
+
+-- pow_gt_1
+
+powGt1 : (p, q: Bip) -> U `Lt` p -> U `Lt` bipPow p q
+powGt1 p q ultp =
+  peanoRect
+    (\x=>U `Lt` bipPow p x)
+    (replace (sym $ pow1R p) ultp)
+    (\r,ultpr =>
+       let pultppr = mulLtMonoLTo p U (bipPow p r) ultpr
+           pultpsr = replace {P=\x=>(p*U) `Lt` x} (sym $ powSuccR p r) pultppr
+           pltpsr = replace {P=\x=>x `Lt` (bipPow p (bipSucc r))} (mul1R p) pultpsr in
+         ltTrans U p (bipPow p (bipSucc r)) ultp pltpsr)
+    q
+
+-- sub_1_r
+
+sub1R : (p : Bip) -> bipMinus p U = bipPred p
+sub1R  U   = Refl
+sub1R (O _) = Refl
+sub1R (I _) = Refl
+
+-- pred_sub is just sym . sub1R
+
+-- sub_succ_r
+-- TODO trying to rewrite with `subMaskSuccR` from the start is an error
+-- TODO opened https://github.com/idris-lang/Idris-dev/issues/4001
+subSuccR : (p, q: Bip) -> bipMinus p (bipSucc q) = bipPred (bipMinus p q)
+subSuccR p q with (bimMinus p (bipSucc q)) proof psq
+  subSuccR p q | BimO with (bimMinus p q) proof pq
+    subSuccR p q | BimO | BimO = Refl
+    subSuccR p q | BimO | BimP U = Refl
+    subSuccR p q | BimO | BimP (O a) =
+      let ll = replace (subMaskSuccR p q) psq
+          l2 = replace (subMaskCarrySpec p q) ll
+          l3 = replace {P=\x=>BimO = bimPred x} (sym pq) l2
+      in absurd l3
+    subSuccR p q | BimO | BimP (I a) =
+      let ll = replace (subMaskSuccR p q) psq
+          l2 = replace (subMaskCarrySpec p q) ll
+          l3 = replace {P=\x=>BimO = bimPred x} (sym pq) l2
+      in absurd l3
+    subSuccR p q | BimO | BimM = Refl
+  subSuccR p q | (BimP a) with (bimMinus p q) proof pq
+    subSuccR p q | BimP a | BimO =
+      let ll = replace (subMaskSuccR p q) psq
+          l2 = replace (subMaskCarrySpec p q) ll
+          l3 = replace {P=\x=>BimP a = bimPred x} (sym pq) l2
+      in absurd l3
+    subSuccR p q | BimP a | BimP U =
+      let ll = replace (subMaskSuccR p q) psq
+          l2 = replace (subMaskCarrySpec p q) ll
+          l3 = replace {P=\x=>BimP a = bimPred x} (sym pq) l2
+       in absurd l3
+    subSuccR p q | BimP a | BimP (O b) =
+      let ll = replace (subMaskSuccR p q) psq
+          l2 = replace (subMaskCarrySpec p q) ll
+          l3 = replace {P=\x=>BimP a = bimPred x} (sym pq) l2
+       in BimPInj l3
+    subSuccR p q | BimP a | BimP (I b) =
+      let ll = replace (subMaskSuccR p q) psq
+          l2 = replace (subMaskCarrySpec p q) ll
+          l3 = replace {P=\x=>BimP a = bimPred x} (sym pq) l2
+       in BimPInj l3
+    subSuccR p q | BimP a | BimM =
+      let ll = replace (subMaskSuccR p q) psq
+          l2 = replace (subMaskCarrySpec p q) ll
+          l3 = replace {P=\x=>BimP a = bimPred x} (sym pq) l2
+       in absurd l3
+  subSuccR p q | BimM with (bimMinus p q) proof pq
+    subSuccR p q | BimM | BimO = Refl
+    subSuccR p q | BimM | BimP a =
+      let ll = replace (subMaskSuccR p q) psq
+          l2 = replace (subMaskCarrySpec p q) ll
+          l3 = replace {P=\x=>BimM = bimPred x} (sym pq) l2
+        in absurd $ bimPNotM a (sym l3)
+        where
+          bimPNotM : (a: Bip) -> Not (bimPred (BimP a) = BimM)
+          bimPNotM  U    = uninhabited
+          bimPNotM (O _) = uninhabited
+          bimPNotM (I _) = uninhabited
+    subSuccR p q | BimM | BimM = Refl
+
+-- sub_mask_pos'
+
+subMaskPos' : (p, q: Bip) -> q `Lt` p -> (r ** (bimMinus p q = BimP r, q + r = p))
+subMaskPos' p q qltp =
+  let (r ** prf) = ltIffAddTo q p qltp
+  in (r ** (rewrite sym prf in subMaskAddDiagL q r, prf))
+
+-- sub_mask_pos
+
+subMaskPos : (p, q: Bip) -> q `Lt` p -> (r ** bimMinus p q = BimP r)
+subMaskPos p q qltp =
+  let (r ** prf) = ltIffAddTo q p qltp
+  in (r ** rewrite sym prf in subMaskAddDiagL q r)
+
+-- sub_add
+
+subAdd : (p, q: Bip) -> q `Lt` p -> (bipMinus p q)+q = p
+subAdd p q qltp with (subMaskPos p q qltp)
+  subAdd p q qltp | (r ** pf) with (bimMinus p q) proof mpq  -- TODO rewrite in case again
+    subAdd p q qltp | (r ** pf) | BimO   = absurd pf
+    subAdd p q qltp | (r ** pf) | BimP a = rewrite addComm a q in
+                                           subMaskAdd p q a (sym mpq)
+    subAdd p q qltp | (r ** pf) | BimM   = absurd pf
+
+-- add_sub
+
+addSub : (p, q: Bip) -> bipMinus (p+q) q = p
+addSub p q with (bimMinus (p+q) q) proof mpqq
+  addSub p q | BimO   =
+    absurd $ addNoNeutral q p $ subMaskNulTo (p+q) q $ sym mpqq
+  addSub p q | BimP a =
+    let qapq = subMaskAdd (p+q) q a (sym mpqq)
+        qaqp = replace (addComm p q) qapq
+    in addRegL q a p qaqp
+  addSub p q | BimM   =
+    let (r**pf) = subMaskNegTo (p+q) q (sym mpqq)
+        pf2 = replace {P=\x=>x=q} (addComm (p+q) r) pf
+        pf3 = replace {P=\x=>x=q} (addAssoc r p q) pf2
+    in absurd $ addNoNeutral q (r+p) pf3
