@@ -4,7 +4,7 @@ This work-in-progress package implements [structurally inductive](https://en.wik
 
 Idris already contains types for [unary integer arithmetic](https://www.idris-lang.org/docs/1.0/prelude_doc/docs/Prelude.Nat.html) and [fixed-precision binary integer arithmetic](https://www.idris-lang.org/docs/1.0/base_doc/docs/Data.Bits.html), but it does not contain types for arbitrary-precision binary integer arithmetic. This package fills that gap. Once completed, the authors hope for this package to be incorporated into the Idris standard library per feature request [#3976](https://github.com/idris-lang/Idris-dev/issues/3976).
 
-This package implements arithmetics based on [PArith](https://coq.inria.fr/library/Coq.PArith.PArith.html), [NArith](https://coq.inria.fr/library/Coq.NArith.NArith.html), and [ZArith](https://coq.inria.fr/library/Coq.ZArith.ZArith.html) from the Coq programming language. In Coq the [primary types](https://coq.inria.fr/library/Coq.Numbers.BinNums.html) of these arithmetics are called `positive`, `N`, and `Z` respectively, but in this package those types are renamed `[Bip](https://github.com/sbp/idris-bi/blob/master/src/Data/Bip.idr)`, `[Bin](https://github.com/sbp/idris-bi/blob/master/src/Data/Bin.idr)`, and `[Biz](https://github.com/sbp/idris-bi/blob/master/src/Data/Biz.idr)` for consistency.
+This package implements arithmetics based on [PArith](https://coq.inria.fr/library/Coq.PArith.PArith.html), [NArith](https://coq.inria.fr/library/Coq.NArith.NArith.html), and [ZArith](https://coq.inria.fr/library/Coq.ZArith.ZArith.html) from the Coq programming language. In Coq the [primary types](https://coq.inria.fr/library/Coq.Numbers.BinNums.html) of these arithmetics are called `positive`, `N`, and `Z` respectively, but in this package those types are renamed [Bip](https://github.com/sbp/idris-bi/blob/master/src/Data/Bip.idr), [Bin](https://github.com/sbp/idris-bi/blob/master/src/Data/Bin.idr), and [Biz](https://github.com/sbp/idris-bi/blob/master/src/Data/Biz.idr) for consistency.
 
 Because Idris is dependently typed, it is possible to assert arbitrary properties about the code that the type checker will verify at compile time. This means that it is possible to prove characteristics of code, equivalent to running tests for all possible inputs (even an infinite number) simultaneously. We are porting dozens of proofs specifying the behaviour of the three arithmetics from Coq, making it possible to rely on those proven specifications when using the code.
 
@@ -86,3 +86,7 @@ $ time ./Performance
 ./Performance
    0.00s user 0.00s system 40% cpu 0.013 total
 ```
+
+## Contributors and licensing
+
+See [contributors](https://github.com/sbp/idris-bi/graphs/contributors) for the definitive list of contributors. Since the intention is for this package to be incorporated into Idris, we intend also to use the same license as Idris itself.
