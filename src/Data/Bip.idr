@@ -112,7 +112,7 @@ Uninhabited (BimM = BimP _) where
   uninhabited Refl impossible
 
 BimPInj : BimP p = BimP q -> p = q
-BimPInj Refl = Refl  
+BimPInj Refl = Refl
 
 %name Bim k,j,l,m,n
 
@@ -152,7 +152,7 @@ mutual
   bimMinus (I a')  U     = BimP (O a')
   bimMinus (I a') (O b') = bimDPO (bimMinus a' b')
   bimMinus (I a') (I b') = bimD (bimMinus a' b')
-  
+
   bimMinusCarry : (a, b: Bip) -> Bim
   bimMinusCarry  U      _     = BimM
   bimMinusCarry (O a')  U     = bimDMT a'
@@ -475,6 +475,12 @@ Num Bip where
   (+) = bipPlus
   (*) = bipMult
   fromInteger = fromIntegerBip
+
+-- negate and abs don't make much sense here, but it's syntactically convenient
+Neg Bip where
+  negate = const U
+  (-) = bipMinus
+  abs = id
 
 DecEq Bip where
   decEq  U     U    = Yes Refl
