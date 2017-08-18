@@ -727,15 +727,17 @@ subMaskAddDiagL : (p, q : Bip) -> bimMinus (p+q) p = BimP q
 subMaskAddDiagL p q =
   case subMaskSpec (p+q) p of
     SubIsNul     prf _  =>
-      let prf1 = replace {P=\x=>x=p} (addComm p q) prf in
-        absurd $ addNoNeutral p q prf1
+      absurd $ addNoNeutral p q $
+        rewrite addComm q p in
+        prf
     SubIsPos {r} prf mp =>
-      let reqq = addRegL p r q prf in
-        replace {P=\x=>bimMinus (bipPlus p q) p = BimP x} reqq mp
+        rewrite cong {f=BimP} $ sym $ addRegL p r q prf in
+        mp
     SubIsNeg {r} prf _  =>
-      let prf1 = replace {P=\x=>x=p} (sym $ addAssoc p q r) prf
-          prf2 = replace {P=\x=>x=p} (addComm p (q+r)) prf1 in
-        absurd $ addNoNeutral p (q+r) prf2
+      absurd $ addNoNeutral p (q+r) $
+        rewrite addComm (q+r) p in
+        rewrite addAssoc p q r in
+        prf
 
 -- sub_mask_add_diag_r
 
@@ -743,13 +745,16 @@ subMaskAddDiagR : (p, q : Bip) -> bimMinus p (p+q) = BimM
 subMaskAddDiagR p q =
   case subMaskSpec p (p+q) of
     SubIsNul     prf _ =>
-      let prf1 = replace {P=\x=>x=p} (addComm p q) (sym prf) in
-        absurd $ addNoNeutral p q prf1
+      absurd $ addNoNeutral p q $
+        rewrite addComm q p in
+        sym prf
     SubIsPos {r} prf _ =>
-      let prf1 = replace {P=\x=>x=p} (sym $ addAssoc p q r) prf
-          prf2 = replace {P=\x=>x=p} (addComm p (q+r)) prf1 in
-        absurd $ addNoNeutral p (q+r) prf2
+      absurd $ addNoNeutral p (q+r) $
+        rewrite addComm (q+r) p in
+        rewrite addAssoc p q r in
+        prf
     SubIsNeg {r} _  mm => mm
+
 
 -- sub_mask_neg_iff
 
@@ -758,8 +763,10 @@ subMaskAddDiagR p q =
 subMaskNegTo : (p, q : Bip) -> bimMinus p q = BimM -> (r ** p + r = q)
 subMaskNegTo p q prf =
   case subMaskSpec p q of
-    SubIsNul     Refl mo => absurd $ replace {P=\x=>x=BimM} mo prf
-    SubIsPos     Refl mp => absurd $ replace {P=\x=>x=BimM} mp prf
+    SubIsNul     Refl mo => absurd $
+      the (BimO   = BimM) (rewrite sym mo in prf)
+    SubIsPos {r} Refl mp => absurd $
+      the (BimP r = BimM) (rewrite sym mp in prf)
     SubIsNeg {r} Refl mm => (r ** Refl)
 
 subMaskNegFro : (p, q : Bip) -> (r ** p + r = q) -> bimMinus p q = BimM
@@ -926,8 +933,7 @@ compareContEq p q GT prf = absurd $ compGtNotEq p q prf
 
 compareContLtGtTo : (p, q: Bip) -> bipCompare p q LT = GT -> p `Gt` q
 compareContLtGtTo p q prf =
-  let prf2 = replace {P=\x=>x=GT} (compareContSpec p q LT) prf in
-    aux prf2
+  aux $ rewrite sym $ compareContSpec p q LT in prf
   where
   aux : switchEq LT (p `compare` q) = GT -> p `compare` q = GT
   aux prf with (p `compare` q)
@@ -945,9 +951,13 @@ compareContLtGtFro p q x = rewrite compareContSpec p q LT in
 
 compareContLtLtTo : (p, q: Bip) -> bipCompare p q LT = LT -> p `Le` q
 compareContLtLtTo p q prf pgtq =
-  let prf2 = replace {P=\x=> bipCompare p q LT = switchEq LT x} pgtq (compareContSpec p q LT)
-      contra = replace {P=\x=>x=GT} prf prf2 in
-    uninhabited contra
+  uninhabited $ the (LT = GT) $
+    rewrite sym prf in
+    rewrite sym aux in
+    compareContSpec p q LT
+  where
+  aux : switchEq LT (p `compare` q) = GT
+  aux = rewrite pgtq in Refl
 
 compareContLtLtFro : (p, q: Bip) -> p `Le` q -> bipCompare p q LT = LT
 compareContLtLtFro p q prf = rewrite compareContSpec p q LT in
@@ -964,8 +974,7 @@ compareContLtLtFro p q prf = rewrite compareContSpec p q LT in
 
 compareContGtLtTo : (p, q: Bip) -> bipCompare p q GT = LT -> p `Lt` q
 compareContGtLtTo p q prf =
-  let prf2 = replace {P=\x=>x=LT} (compareContSpec p q GT) prf in
-    aux prf2
+  aux $ rewrite sym $ compareContSpec p q GT in prf
   where
   aux : switchEq GT (p `compare` q) = LT -> p `compare` q = LT
   aux prf with (p `compare` q)
@@ -981,11 +990,15 @@ compareContGtLtFro p q x = rewrite compareContSpec p q GT in
 -- compare_cont_Gt_Gt
 -- TODO split into `to` and `fro`
 
-compareContGtGtTo : (p, q: Bip) -> bipCompare p q GT = GT -> p `Ge` q
-compareContGtGtTo p q prf pltq =
-  let prf2 = replace {P=\x=> bipCompare p q GT = switchEq GT x} pltq (compareContSpec p q GT)
-      contra = replace {P=\x=>x=LT} prf prf2 in
-    uninhabited contra
+compareContGtGtTo' : (p, q: Bip) -> bipCompare p q GT = GT -> p `Ge` q
+compareContGtGtTo' p q prf pltq =
+  uninhabited $ the (GT=LT) $
+    rewrite sym prf in
+    rewrite sym aux in
+    compareContSpec p q GT
+  where
+  aux : switchEq GT (p `compare` q) = LT
+  aux = rewrite pltq in Refl
 
 compareContGtGtFro : (p, q: Bip) -> p `Ge` q -> bipCompare p q GT = GT
 compareContGtGtFro p q prf = rewrite compareContSpec p q GT in
@@ -1247,7 +1260,7 @@ ltSuccRTo p q pltsq =
   let tt = replace {P=\x=>switchEq GT x = switchEq LT (p `compare` q)} pltsq (compareSuccR p q) in
     aux tt
   where
-  aux : LT = switchEq LT (p `compare` q) -> (p `compare` q = GT) -> Void
+  aux : LT = switchEq LT (p `compare` q) -> (p `Le` q)
   aux prf prf1 with (p `compare` q)
     | LT = uninhabited prf1
     | EQ = uninhabited prf1
@@ -1393,11 +1406,11 @@ leLtTrans p q r pleq qltr with (p `compare` q) proof pq
 
 leTrans : (p, q, r: Bip) -> p `Le` q -> q `Le` r -> p `Le` r
 leTrans p q r pleq qler pgtr with (q `compare` r) proof qr
-  | LT = let pltr = leLtTrans p q r pleq (sym qr) in
-           uninhabited $ replace {P=\x=>x=LT} pgtr pltr
-  | EQ = let qeqr = compareEqIffTo q r (sym qr)
-             pgtq = replace {P=\x=>p `Gt` x} (sym qeqr) pgtr in
-           pleq pgtq
+  | LT = uninhabited $ the (GT=LT) $
+           rewrite sym pgtr in
+           leLtTrans p q r pleq (sym qr)
+  | EQ = pleq $ rewrite compareEqIffTo q r (sym qr) in
+                pgtr
   | GT = absurd $ qler Refl
 
 -- le_succ_l
