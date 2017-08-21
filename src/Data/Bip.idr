@@ -237,7 +237,7 @@ bipMinMaxHelp a _ _  = a
 ||| Min
 bipMin : (a, b: Bip) -> Bip
 bipMin a b = bipMinMaxHelp a b (bipCompare a b EQ)
-    
+
 ||| Max
 bipMax : (a, b: Bip) -> Bip
 bipMax a b = bipMinMaxHelp b a (bipCompare a b EQ)
@@ -253,7 +253,7 @@ bipSqrtRemStepHelp s _  r' _  = (O s, BimP r')
 
 -- Square root helper function
 bipSqrtRemStep : (f, g: Bip -> Bip) -> (Bip, Bim) -> (Bip, Bim)
-bipSqrtRemStep f g (s, BimP r) = 
+bipSqrtRemStep f g (s, BimP r) =
   let s' = I (O s)
       r' = g (f r)
   in
@@ -282,7 +282,7 @@ mutual
   bipGCDNHelp : Nat -> (a, b: Bip) -> Ordering -> Bip
   bipGCDNHelp _ a _ EQ = I a
   bipGCDNHelp n a b LT = bipGCDN n (bipMinus b a) (I a)
-  bipGCDNHelp n a b GT = bipGCDN n (bipMinus a b) (I b)  
+  bipGCDNHelp n a b GT = bipGCDN n (bipMinus a b) (I b)
 
   ||| GCD, with Nat of total combined digits
   bipGCDN : (n: Nat) -> (a, b: Bip) -> Bip
@@ -293,7 +293,7 @@ mutual
   bipGCDN (S n')  a     (O b') = bipGCDN n' a  b'
   bipGCDN (S n') (O a')  b     = bipGCDN n' a' b
   bipGCDN (S n') (I a') (I b') = bipGCDNHelp n' a' b' (bipCompare a' b' EQ)
-  
+
 ||| GCD, using the Stein binary algorithm
 bipGCD : (a, b: Bip) -> Bip
 bipGCD a b = bipGCDN ((bipDigitsNat a) + (bipDigitsNat b)) a b
@@ -314,11 +314,11 @@ mutual
   bipGGCDN  Z      a      b     = (U, (a, b))
   bipGGCDN (S _ )  U      b     = (U, (U, b))
   bipGGCDN (S _ )  a      U     = (U, (a, U))
-  bipGGCDN (S n') (O a') (O b') = let (g, p) = bipGGCDN n' a' b' in 
+  bipGGCDN (S n') (O a') (O b') = let (g, p) = bipGGCDN n' a' b' in
                                     (O g, p)
-  bipGGCDN (S n')  a     (O b') = let (g, (aa, bb)) = bipGGCDN n' a b' in 
+  bipGGCDN (S n')  a     (O b') = let (g, (aa, bb)) = bipGGCDN n' a b' in
                                     (g, (aa, O bb))
-  bipGGCDN (S n') (O a')  b     = let (g, (aa, bb)) = bipGGCDN n' a' b in 
+  bipGGCDN (S n') (O a')  b     = let (g, (aa, bb)) = bipGGCDN n' a' b in
                                     (g, (O aa, bb))
   bipGGCDN (S n') (I a') (I b') = bipGGCDNHelp n' a' b' (bipCompare a' b' EQ)
 
@@ -446,11 +446,11 @@ integerParity n =
       else Odd
 
 mutual
-  -- Helper for bipGGCDN, to work around #4001      
+  -- Helper for bipGGCDN, to work around #4001
   fromIntegerBipHelp : Integer -> Parity -> Bip
   fromIntegerBipHelp x Even = O (fromIntegerBip x)
   fromIntegerBipHelp x Odd  = I (fromIntegerBip x)
-  
+
   fromIntegerBip : Integer -> Bip
   fromIntegerBip n =
     if n > 1

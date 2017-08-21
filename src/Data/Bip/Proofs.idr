@@ -1647,63 +1647,18 @@ sub1R (I _) = Refl
 -- pred_sub is just sym . sub1R
 
 -- sub_succ_r
--- TODO trying to rewrite with `subMaskSuccR` from the start is an error
--- TODO opened https://github.com/idris-lang/Idris-dev/issues/4001
+
 subSuccR : (p, q: Bip) -> p - (bipSucc q) = bipPred (p - q)
-subSuccR p q with (bimMinus p (bipSucc q)) proof psq
-  subSuccR p q | BimO with (bimMinus p q) proof pq
-    subSuccR p q | BimO | BimO = Refl
-    subSuccR p q | BimO | BimP U = Refl
-    subSuccR p q | BimO | BimP (O a) =
-      let ll = replace (subMaskSuccR p q) psq
-          l2 = replace (subMaskCarrySpec p q) ll
-          l3 = replace {P=\x=>BimO = bimPred x} (sym pq) l2
-      in absurd l3
-    subSuccR p q | BimO | BimP (I a) =
-      let ll = replace (subMaskSuccR p q) psq
-          l2 = replace (subMaskCarrySpec p q) ll
-          l3 = replace {P=\x=>BimO = bimPred x} (sym pq) l2
-      in absurd l3
-    subSuccR p q | BimO | BimM = Refl
-  subSuccR p q | (BimP a) with (bimMinus p q) proof pq
-    subSuccR p q | BimP a | BimO =
-      let ll = replace (subMaskSuccR p q) psq
-          l2 = replace (subMaskCarrySpec p q) ll
-          l3 = replace {P=\x=>BimP a = bimPred x} (sym pq) l2
-      in absurd l3
-    subSuccR p q | BimP a | BimP U =
-      let ll = replace (subMaskSuccR p q) psq
-          l2 = replace (subMaskCarrySpec p q) ll
-          l3 = replace {P=\x=>BimP a = bimPred x} (sym pq) l2
-       in absurd l3
-    subSuccR p q | BimP a | BimP (O b) =
-      let ll = replace (subMaskSuccR p q) psq
-          l2 = replace (subMaskCarrySpec p q) ll
-          l3 = replace {P=\x=>BimP a = bimPred x} (sym pq) l2
-       in BimPInj l3
-    subSuccR p q | BimP a | BimP (I b) =
-      let ll = replace (subMaskSuccR p q) psq
-          l2 = replace (subMaskCarrySpec p q) ll
-          l3 = replace {P=\x=>BimP a = bimPred x} (sym pq) l2
-       in BimPInj l3
-    subSuccR p q | BimP a | BimM =
-      let ll = replace (subMaskSuccR p q) psq
-          l2 = replace (subMaskCarrySpec p q) ll
-          l3 = replace {P=\x=>BimP a = bimPred x} (sym pq) l2
-       in absurd l3
-  subSuccR p q | BimM with (bimMinus p q) proof pq
-    subSuccR p q | BimM | BimO = Refl
-    subSuccR p q | BimM | BimP a =
-      let ll = replace (subMaskSuccR p q) psq
-          l2 = replace (subMaskCarrySpec p q) ll
-          l3 = replace {P=\x=>BimM = bimPred x} (sym pq) l2
-        in absurd $ bimPNotM a (sym l3)
-        where
-          bimPNotM : (a: Bip) -> Not (bimPred (BimP a) = BimM)
-          bimPNotM  U    = uninhabited
-          bimPNotM (O _) = uninhabited
-          bimPNotM (I _) = uninhabited
-    subSuccR p q | BimM | BimM = Refl
+subSuccR p q = rewrite subMaskSuccR p q in
+  rewrite subMaskCarrySpec p q in
+  aux (bimMinus p q)
+  where
+  aux : (m : Bim) -> bipMinusHelp (bimPred m) = bipPred (bipMinusHelp m)
+  aux  BimO        = Refl
+  aux (BimP  U   ) = Refl
+  aux (BimP (O _)) = Refl
+  aux (BimP (I _)) = Refl
+  aux  BimM        = Refl
 
 -- sub_mask_pos'
 
@@ -1723,95 +1678,53 @@ subMaskPos p q qltp =
 
 subAdd : (p, q: Bip) -> q `Lt` p -> (p-q)+q = p
 subAdd p q qltp with (subMaskPos p q qltp)
-  subAdd p q qltp | (r ** pf) with (bimMinus p q) proof mpq  -- TODO rewrite in case again
-    subAdd p q qltp | (r ** pf) | BimO   = absurd pf
-    subAdd p q qltp | (r ** pf) | BimP a = rewrite addComm a q in
-                                           subMaskAdd p q a (sym mpq)
-    subAdd p q qltp | (r ** pf) | BimM   = absurd pf
+  subAdd p q qltp | (r ** pmqr) =
+    rewrite pmqr in
+    rewrite addComm r q in
+    subMaskAdd p q r pmqr
 
 -- add_sub
 
 addSub : (p, q: Bip) -> (p+q)-q = p
-addSub p q with (bimMinus (p+q) q) proof mpqq
-  addSub p q | BimO   =
-    absurd $ addNoNeutral q p $ subMaskNulTo (p+q) q $ sym mpqq
-  addSub p q | BimP a =
-    let qapq = subMaskAdd (p+q) q a (sym mpqq)
-        qaqp = replace (addComm p q) qapq
-    in addRegL q a p qaqp
-  addSub p q | BimM   =
-    let (r**pf) = subMaskNegTo (p+q) q (sym mpqq)
-        pf2 = replace {P=\x=>x=q} (addComm (p+q) r) pf
-        pf3 = replace {P=\x=>x=q} (addAssoc r p q) pf2
-    in absurd $ addNoNeutral q (r+p) pf3
+addSub p q = rewrite addComm p q in
+             rewrite subMaskAddDiagL q p in
+             Refl
 
 -- mul_sub_distr_l
 
 mulSubDistrL : (p, q, r: Bip) -> r `Lt` q -> p * (q-r) = p*q - p*r
-mulSubDistrL p q r rltq with (bimMinus q r) proof qr
-  mulSubDistrL p q r rltq | BimO   =
-    let qeqr = subMaskNulTo q r (sym qr)
-        qltq = replace {P=\x=>r `Lt` x} qeqr rltq
-    in absurd $ ltNotSelf r qltq
-  mulSubDistrL p q r rltq | BimP a with (bimMinus (p*q) (p*r)) proof pqpr
-    mulSubDistrL p q r rltq | BimP a | BimO   =
-      let qra = subMaskAdd q r a (sym qr)
-          prapr = replace {P=\x=>BimO = bimMinus (p*x) (p*r)} (sym qra) pqpr
-          praeqpr = subMaskNulTo (p*(r+a)) (p*r) (sym prapr)
-          pareqpr = replace {P=\x=>p*x=p*r} (addComm r a) praeqpr
-          papreqpr = replace {P=\x=>x=p*r} (mulAddDistrL p a r) pareqpr
-      in absurd $ addNoNeutral (p*r) (p*a) papreqpr
-    mulSubDistrL p q r rltq | BimP a | BimP b =
-      let qra = subMaskAdd q r a (sym qr)
-          prapr = replace {P=\x=>BimP b = bimMinus (p*x) (p*r)} (sym qra) pqpr
-          prpapr = replace {P=\x=>BimP b = bimMinus x (p*r)} (mulAddDistrL p r a) prapr
-          bpbpa = replace (subMaskAddDiagL (p*r) (p*a)) prpapr
-      in BimPInj $ sym bpbpa
-    mulSubDistrL p q r rltq | BimP a | BimM   =
-      let qra = subMaskAdd q r a (sym qr)
-          prapr = replace {P=\x=>BimM = bimMinus (p*x) (p*r)} (sym qra) pqpr
-          (s**pf) = subMaskNegTo (p*(r+a)) (p*r) (sym prapr)
-          prpaspr = replace {P=\x=>x+s=p*r} (mulAddDistrL p r a) pf
-          prpaspr2 = replace {P=\x=>x=p*r} (sym $addAssoc (p*r) (p*a) s) prpaspr
-          pasprpr = replace {P=\x=>x=p*r} (addComm (p*r) (p*a+s)) prpaspr2
-      in absurd $ addNoNeutral (p*r) (p*a+s) pasprpr
-  mulSubDistrL p q r rltq | BimM   =
-    let (s**pf) = subMaskNegTo q r (sym qr)
-        ll = replace {P=\x=>x `Lt` q} (sym pf) rltq
-    in absurd $ ltNotAddL q s ll
+mulSubDistrL p q r rltq = addRegR (p * (q-r)) (p*q - p*r) (p*r) $
+  rewrite subAdd (p*q) (p*r) (rewrite mulCompareMonoL p r q in rltq) in
+  rewrite sym $ mulAddDistrL p (q-r) r in
+  rewrite subAdd q r rltq in
+  Refl
 
 -- mul_sub_distr_r
 
-mulSubDistrR : (p, q, r: Bip) -> q `Lt` p -> (p-q)*r = (p*q)-(p*r)
--- TODO this should just be `mulComm` x 3 + `mulSubDistrL` but rewrite in case strikes again :(
-mulSubDistrR p q r qltp = really_believe_me qltp
+mulSubDistrR : (p, q, r: Bip) -> q `Lt` p -> (p-q)*r = p*r-q*r
+mulSubDistrR p q r qltp = rewrite mulComm q r in
+                          rewrite mulComm p r in
+                          rewrite mulComm (p-q) r in
+                          mulSubDistrL r p q qltp
 
 -- sub_lt_mono_l
+
+gtNotSelf : (p : Bip) -> Not (p `Gt` p)
+gtNotSelf  U    = uninhabited
+gtNotSelf (O a) = gtNotSelf a
+gtNotSelf (I a) = gtNotSelf a
+
 subLtMonoL : (p, q, r: Bip) -> q `Lt` p -> p `Lt` r -> (r-p) `Lt` (r-q)
-subLtMonoL p q r qltp pltr with (bimMinus r p) proof rp
-  subLtMonoL p q r qltp pltr | BimO =
-    let reqp = subMaskNulTo r p (sym rp)
-        pltp = replace {P=\x=>p `Lt` x} reqp pltr
-    in absurd $ ltNotSelf p pltp
-  subLtMonoL p q r qltp pltr | BimP a with (bimMinus r q) proof rq
-    subLtMonoL p q r qltp pltr | BimP a | BimO =
-      let qltr = ltTrans q p r qltp pltr
-          reqq = subMaskNulTo r q (sym rq)
-          qltq = replace {P=\x=>q `Lt` x} reqq qltr
-      in absurd $ ltNotSelf q qltq
-    subLtMonoL p q r qltp pltr | BimP a | BimP b =
-      let rpa = subMaskAdd r p a (sym rp)
-          rqb = subMaskAdd r q b (sym rq)
-          qbpa = replace (sym rpa) rqb
-          qbpb = addLtMonoRTo b q p qltp
-          papb = replace {P=\x=>x `Lt` (p+b)} qbpa qbpb
-      in addLtMonoLFro p a b papb
-    subLtMonoL p q r qltp pltr | BimP a | BimM =
-      let qltr = ltTrans q p r qltp pltr
-          (s**pf) = subMaskNegTo r q (sym rq)
-          ll = replace {P=\x=>x `Lt` r} (sym pf) qltr
-      in absurd $ ltNotAddL r s ll
-  subLtMonoL p q r qltp pltr | BimM =
-    let (s**pf) = subMaskNegTo r p (sym rp)
-        ll = replace {P=\x=>x `Lt` r} (sym pf) pltr
-    in absurd $ ltNotAddL r s ll
+subLtMonoL p q r qltp pltr = addLtMonoRFro p (r-p) (r-q) $
+   rewrite subAdd r p pltr in
+   leLtTrans r ((r-q)+q) ((r-q)+p)
+     (rewrite subAdd r q (ltTrans q p r qltp pltr) in gtNotSelf r)
+     (addLtMonoLTo (r-q) q p qltp)
+
+-- sub_compare_mono_l
+
+subCompareMonoL : (p, q, r: Bip) -> q `Lt`p -> r `Lt` p -> ((p-q) `compare` (p-r)) = (r `compare` q)
+subCompareMonoL p q r qltp rltp with (r `compare` q) proof rq
+  | LT = subLtMonoL q r p (sym rq) qltp
+  | EQ = rewrite compareEqIffTo r q (sym rq) in compareContRefl (p-q) EQ
+  | GT = ltGt (p-r) (p-q) $ subLtMonoL r q p (gtLt r q (sym rq)) rltp
