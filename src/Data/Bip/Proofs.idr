@@ -1702,10 +1702,11 @@ mulSubDistrL p q r rltq = addRegR (p * (q-r)) (p*q - p*r) (p*r) $
 -- mul_sub_distr_r
 
 mulSubDistrR : (p, q, r: Bip) -> q `Lt` p -> (p-q)*r = p*r-q*r
-mulSubDistrR p q r qltp = rewrite mulComm q r in
-                          rewrite mulComm p r in
-                          rewrite mulComm (p-q) r in
-                          mulSubDistrL r p q qltp
+mulSubDistrR p q r qltp =
+  rewrite mulComm q r in
+  rewrite mulComm p r in
+  rewrite mulComm (p-q) r in
+  mulSubDistrL r p q qltp
 
 -- sub_lt_mono_l
 
@@ -1723,8 +1724,76 @@ subLtMonoL p q r qltp pltr = addLtMonoRFro p (r-p) (r-q) $
 
 -- sub_compare_mono_l
 
-subCompareMonoL : (p, q, r: Bip) -> q `Lt`p -> r `Lt` p -> ((p-q) `compare` (p-r)) = (r `compare` q)
+subCompareMonoL : (p, q, r: Bip) -> q `Lt` p -> r `Lt` p -> (p-q) `compare` (p-r) = r `compare` q
 subCompareMonoL p q r qltp rltp with (r `compare` q) proof rq
   | LT = subLtMonoL q r p (sym rq) qltp
   | EQ = rewrite compareEqIffTo r q (sym rq) in compareContRefl (p-q) EQ
   | GT = ltGt (p-r) (p-q) $ subLtMonoL r q p (gtLt r q (sym rq)) rltp
+
+-- sub_compare_mono_r
+
+subCompareMonoR : (p, q, r: Bip) -> p `Lt` q -> p `Lt` r -> (q-p) `compare` (r-p) = q `compare` r
+subCompareMonoR p q r pltq pltr =
+  rewrite sym $ addCompareMonoR p (q-p) (r-p) in
+  rewrite subAdd q p pltq in
+  rewrite subAdd r p pltr in
+  Refl
+
+-- sub_lt_mono_r
+
+subLtMonoR : (p, q, r: Bip) -> q `Lt` p -> r `Lt` q -> q-r `Lt` p-r
+subLtMonoR p q r qltp rltq =
+  rewrite subCompareMonoR r q p rltq (ltTrans r q p rltq qltp) in
+  qltp
+
+-- sub_decr
+
+subDecr : (p, q: Bip) -> q `Lt` p -> (p-q) `Lt` p
+subDecr p q qltp = addLtMonoRFro q (p-q) p $
+  rewrite subAdd p q qltp in
+  ltAddDiagR p q
+
+-- add_sub_assoc
+
+addSubAssoc : (p, q, r: Bip) -> r `Lt` q -> p+(q-r) = p+q-r
+addSubAssoc p q r rltq = addRegR (p+(q-r)) (p+q-r) r $
+  rewrite sym $ addAssoc p (q-r) r in
+  rewrite subAdd q r rltq in
+  rewrite subAdd (p+q) r $
+            ltTrans r q (p+q) rltq $
+              rewrite addComm p q in
+              ltAddDiagR q p
+  in Refl
+
+-- sub_add_distr
+
+subAddDistr : (p, q, r: Bip) -> q+r `Lt` p -> p-(q+r) = p-q-r
+subAddDistr p q r qrltp =
+  rewrite addComm q r in
+    addRegR (p-(r+q)) (p-q-r) (r+q) $
+      rewrite subAdd p (r+q) rqltp in
+      rewrite addAssoc ((p-q)-r) r q in
+      rewrite subAdd (p-q) r $
+                addLtMonoRFro q r (p-q) $
+                  rewrite subAdd p q qltp in
+                  rqltp
+      in sym $ subAdd p q qltp
+  where
+    qltp : q `Lt` p
+    qltp = ltTrans q (q+r) p (ltAddDiagR q r) qrltp
+    rqltp : r+q `Lt` p
+    rqltp = rewrite addComm r q in qrltp
+
+--  sub_sub_distr
+
+subSubDistr : (p, q, r: Bip) -> r `Lt` q -> q-r `Lt` p -> p-(q-r) = p+r-q
+subSubDistr p q r rltq qrltp =
+  addRegR (p-(q-r)) (p+r-q) ((q-r)+r) $
+    rewrite addAssoc (p-(q-r)) (q-r) r in
+    rewrite subAdd p (q-r) qrltp in
+    rewrite subAdd q r rltq in
+    sym $ subAdd (p+r) q $
+      rewrite sym $ subCompareMonoR r q (p+r) rltq $
+                rewrite addComm p r in ltAddDiagR r p in
+      rewrite addSub p r in
+      qrltp
