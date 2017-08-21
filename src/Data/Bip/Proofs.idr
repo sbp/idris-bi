@@ -1287,7 +1287,7 @@ ltSuccDiagR p = ltIffAddFro p (bipSucc p) (U**add1R p)
 
 -- compare_succ_succ
 
-compareSuccSucc : (p, q: Bip) -> (bipSucc p `compare` bipSucc q) = (p `compare` q)
+compareSuccSucc : (p, q: Bip) -> bipSucc p `compare` bipSucc q = p `compare` q
 compareSuccSucc  U     U    = Refl
 compareSuccSucc  U    (O b) = compareContLtLtFro U b $ le1L b
 compareSuccSucc  U    (I b) = ltSuccRFro U b $ le1L b
@@ -1902,3 +1902,35 @@ sizeLe (O a) = rewrite powSuccR 2 (bipDigits a) in
 sizeLe (I a) = rewrite powSuccR 2 (bipDigits a) in
                leTrans (bipPow 2 (bipDigits a)) (O a) (I a)
                  (sizeLe a) (rewrite compareContRefl a LT in uninhabited)
+
+-- max_l
+
+maxL : (p, q : Bip) -> q `Le` p -> bipMax p q = p
+maxL p q qlep with (p `compare` q) proof pq
+  | LT = absurd $ qlep $ ltGt p q $ sym pq
+  | EQ = sym $ compareEqIffTo p q (sym pq)
+  | GT = Refl
+
+-- max_r
+
+maxR : (p, q : Bip) -> p `Le` q -> bipMax p q = q
+maxR p q pleq with (p `compare` q)
+  | LT = Refl
+  | EQ = Refl
+  | GT = absurd $ pleq Refl
+
+-- min_l
+
+minL : (p, q : Bip) -> p `Le` q -> bipMin p q = p
+minL p q pleq with (p `compare` q)
+  | LT = Refl
+  | EQ = Refl
+  | GT = absurd $ pleq Refl
+
+-- min_r
+
+minR : (p, q : Bip) -> q `Le` p -> bipMin p q = q
+minR p q qlep with (p `compare` q) proof pq
+  | LT = absurd $ qlep $ ltGt p q $ sym pq
+  | EQ = compareEqIffTo p q (sym pq)
+  | GT = Refl
