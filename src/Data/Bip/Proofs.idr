@@ -1865,3 +1865,23 @@ subLt p q = subLe p q . ltLeIncl p q
 subDiag : (p : Bip) -> p-p = U
 subDiag p = rewrite subMaskDiag p in
             Refl
+
+-- size_nat_monotone
+
+sizeNatMonotone : (p, q : Bip) -> p `Lt` q -> bipDigitsNat p `LTE` bipDigitsNat q
+sizeNatMonotone  U     U    pltq = absurd pltq
+sizeNatMonotone  U    (O _) _    = LTESucc LTEZero
+sizeNatMonotone  U    (I _) _    = LTESucc LTEZero
+sizeNatMonotone (O _)  U    pltq = absurd pltq
+sizeNatMonotone (O a) (O b) pltq = LTESucc $ sizeNatMonotone a b pltq
+sizeNatMonotone (O a) (I b) pltq = LTESucc aux
+  where
+  aux : bipDigitsNat a `LTE` bipDigitsNat b
+  aux with (a `compare` b) proof ab
+    | LT = sizeNatMonotone a b $ sym ab
+    | EQ = rewrite compareEqIffTo a b $ sym ab in
+           lteRefl
+    | GT = absurd $ compareContLtLtTo a b pltq $ sym ab
+sizeNatMonotone (I _)  U    pltq = absurd pltq
+sizeNatMonotone (I a) (O b) pltq = LTESucc $ sizeNatMonotone a b $ compareContGtLtTo a b pltq
+sizeNatMonotone (I a) (I b) pltq = LTESucc $ sizeNatMonotone a b pltq
