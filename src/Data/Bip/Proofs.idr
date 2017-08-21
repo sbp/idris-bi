@@ -1883,3 +1883,22 @@ sizeNatMonotone (O a) (I b) pltq = LTESucc aux
     | GT = absurd $ compareContLtLtTo a b pltq $ sym ab
 sizeNatMonotone (I a) (O b) pltq = LTESucc $ sizeNatMonotone a b $ compareContGtLtTo a b pltq
 sizeNatMonotone (I a) (I b) pltq = LTESucc $ sizeNatMonotone a b pltq
+
+--  size_gt
+
+sizeGt : (p : Bip) -> p `Lt` bipPow 2 (bipDigits p)
+sizeGt  U    = Refl
+sizeGt (O a) = rewrite powSuccR 2 (bipDigits a) in
+               sizeGt a
+sizeGt (I a) = rewrite powSuccR 2 (bipDigits a) in
+               compareContGtLtFro a (bipPow 2 (bipDigits a)) $ sizeGt a
+
+-- size_le
+
+sizeLe : (p : Bip) -> bipPow 2 (bipDigits p) `Le` O p
+sizeLe  U    = uninhabited
+sizeLe (O a) = rewrite powSuccR 2 (bipDigits a) in
+               sizeLe a
+sizeLe (I a) = rewrite powSuccR 2 (bipDigits a) in
+               leTrans (bipPow 2 (bipDigits a)) (O a) (I a)
+                 (sizeLe a) (rewrite compareContRefl a LT in uninhabited)
