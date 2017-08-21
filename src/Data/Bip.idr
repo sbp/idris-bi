@@ -162,11 +162,14 @@ mutual
   bimMinusCarry (I a') (O b') = bimD (bimMinus a' b')
   bimMinusCarry (I a') (I b') = bimDPO (bimMinusCarry a' b')
 
+-- Helper for bipMinus, to work around #4001
+bipMinusHelp : Bim -> Bip
+bipMinusHelp (BimP c) = c
+bipMinusHelp _        = U
+
 ||| Subtraction, result as a Bip, and 1 if a <= b
 bipMinus : (a, b: Bip) -> Bip
-bipMinus a b = case bimMinus a b of
-                 BimP c => c
-                 _      => U
+bipMinus a b = bipMinusHelp (bimMinus a b)
 
 ||| Multiplication
 bipMult : (a, b: Bip) -> Bip
@@ -226,33 +229,35 @@ bipCompare (I _)   U     _ = GT
 bipCompare (I a') (O b') _ = bipCompare a' b' GT
 bipCompare (I a') (I b') c = bipCompare a' b' c
 
+-- Helper for bipMin and bipMax, to work around #4001
+bipMinMaxHelp : (a, b: Bip) -> Ordering -> Bip
+bipMinMaxHelp _ b GT = b
+bipMinMaxHelp a _ _  = a
+
 ||| Min
 bipMin : (a, b: Bip) -> Bip
-bipMin a b =
-  case bipCompare a b EQ of
-    GT => b
-    _  => a
-
+bipMin a b = bipMinMaxHelp a b (bipCompare a b EQ)
+    
 ||| Max
 bipMax : (a, b: Bip) -> Bip
-bipMax a b =
-  case bipCompare a b EQ of
-    GT => a
-    _  => b
+bipMax a b = bipMinMaxHelp b a (bipCompare a b EQ)
 
 -- Boolean equality and comparisons
 -- Defined in Ord below
 
+-- Helper for bipSqrtRemStep, to work around #4001
+bipSqrtRemStepHelp : (s, s', r': Bip) -> Ordering -> (Bip, Bim)
+bipSqrtRemStepHelp s s' r' LT = (I s, bimMinus r' s')
+bipSqrtRemStepHelp s s' r' EQ = (I s, bimMinus r' s')
+bipSqrtRemStepHelp s _  r' _  = (O s, BimP r')
+
 -- Square root helper function
 bipSqrtRemStep : (f, g: Bip -> Bip) -> (Bip, Bim) -> (Bip, Bim)
-bipSqrtRemStep f g (s, BimP r) =
+bipSqrtRemStep f g (s, BimP r) = 
   let s' = I (O s)
       r' = g (f r)
   in
-    case bipCompare s' r' EQ of
-      LT => (I s, bimMinus r' s')
-      EQ => (I s, bimMinus r' s')
-      _  => (O s, BimP r')
+    bipSqrtRemStepHelp s s' r' (bipCompare s' r' EQ)
 bipSqrtRemStep f g (s, _) = (O s, bimMinus (g (f U)) (O (O U)))
 
 ||| Square root with remainder
@@ -272,53 +277,50 @@ bipSqrt = fst . bipSqrtRem
 -- Divide
 -- TODO
 
-||| GCD, with Nat of total combined digits
-bipGCDN : (n: Nat) -> (a, b: Bip) -> Bip
-bipGCDN  Z     _ _ = U
-bipGCDN (S n') a b =
-  case (a, b) of
-    (U   , _   ) => U
-    (_   , U   ) => U
-    (O a', O b') => O (bipGCDN n' a' b')
-    (_   , O b') => bipGCDN n' a b'
-    (O a', _   ) => bipGCDN n' a' b
-    (I a', I b') =>
-      case bipCompare a' b' EQ of
-        EQ => a
-        LT => bipGCDN n' (bipMinus b' a') a
-        GT => bipGCDN n' (bipMinus a' b') b
+mutual
+  -- Helper for bipGCDN, to work around #4001
+  bipGCDNHelp : Nat -> (a, b: Bip) -> Ordering -> Bip
+  bipGCDNHelp _ a _ EQ = I a
+  bipGCDNHelp n a b LT = bipGCDN n (bipMinus b a) (I a)
+  bipGCDNHelp n a b GT = bipGCDN n (bipMinus a b) (I b)  
 
+  ||| GCD, with Nat of total combined digits
+  bipGCDN : (n: Nat) -> (a, b: Bip) -> Bip
+  bipGCDN  Z      _      _     = U
+  bipGCDN (S _ )  U      _     = U
+  bipGCDN (S _ )  _      U     = U
+  bipGCDN (S n') (O a') (O b') = O (bipGCDN n' a' b')
+  bipGCDN (S n')  a     (O b') = bipGCDN n' a  b'
+  bipGCDN (S n') (O a')  b     = bipGCDN n' a' b
+  bipGCDN (S n') (I a') (I b') = bipGCDNHelp n' a' b' (bipCompare a' b' EQ)
+  
 ||| GCD, using the Stein binary algorithm
 bipGCD : (a, b: Bip) -> Bip
 bipGCD a b = bipGCDN ((bipDigitsNat a) + (bipDigitsNat b)) a b
 
-||| Generalised GCD, with Nat of total combined digits
-bipGGCDN : (n: Nat) -> (a, b: Bip) -> (Bip, (Bip, Bip))
-bipGGCDN  Z     a b = (U, (a, b))
-bipGGCDN (S n') a b =
-  case (a, b) of
-    (U   , _   ) => (U, (U, b))
-    (_   , U   ) => (U, (a, U))
-    (O a', O b') =>
-      let (g, p) = bipGGCDN n' a' b' in
-                    (O g, p)
-    (_   , O b') =>
-      let (g, (aa, bb)) = bipGGCDN n' a b' in
-                    (g, (aa, O bb))
-    (O a', _   ) =>
-      let (g, (aa, bb)) = bipGGCDN n' a' b in
-                    (g, (O aa, bb))
-    (I a', I b') =>
-      case bipCompare a' b' EQ of
-        EQ => (a, (U, U))
-        LT =>
-          let a'' = bipMinus b' a'
-              (g, (ba, aa)) = bipGGCDN n' a'' a in
-              (g, (aa, bipPlus aa (O ba)))
-        GT =>
-          let a'' = bipMinus a' b'
-              (g, (ab, bb)) = bipGGCDN n' a'' b in
-              (g, (bipPlus bb (O ab), bb))
+mutual
+  -- Helper for bipGGCDN, to work around #4001
+  bipGGCDNHelp : Nat -> (a, b: Bip) -> Ordering -> (Bip, (Bip, Bip))
+  bipGGCDNHelp _ a _ EQ = (I a, (U, U))
+  bipGGCDNHelp n a b LT = let a' = bipMinus b a
+                              (g, (ba, aa)) = bipGGCDN n a' (I a) in
+                            (g, (aa, bipPlus aa (O ba)))
+  bipGGCDNHelp n a b GT = let a' = bipMinus a b
+                              (g, (ab, bb)) = bipGGCDN n a' (I b) in
+                            (g, (bipPlus bb (O ab), bb))
+
+  ||| Generalised GCD, with Nat of total combined digits
+  bipGGCDN : (n: Nat) -> (a, b: Bip) -> (Bip, (Bip, Bip))
+  bipGGCDN  Z      a      b     = (U, (a, b))
+  bipGGCDN (S _ )  U      b     = (U, (U, b))
+  bipGGCDN (S _ )  a      U     = (U, (a, U))
+  bipGGCDN (S n') (O a') (O b') = let (g, p) = bipGGCDN n' a' b' in 
+                                    (O g, p)
+  bipGGCDN (S n')  a     (O b') = let (g, (aa, bb)) = bipGGCDN n' a b' in 
+                                    (g, (aa, O bb))
+  bipGGCDN (S n') (O a')  b     = let (g, (aa, bb)) = bipGGCDN n' a' b in 
+                                    (g, (O aa, bb))
+  bipGGCDN (S n') (I a') (I b') = bipGGCDNHelp n' a' b' (bipCompare a' b' EQ)
 
 ||| Generalised GCD
 bipGGCD : (a, b: Bip) -> (Bip, (Bip, Bip))
@@ -443,18 +445,22 @@ integerParity n =
       then Even
       else Odd
 
-fromIntegerBip : Integer -> Bip
-fromIntegerBip n =
-  if n > 1
-    -- prim__sdivBigInt is total with divisor /= 0 as here
-    -- quotient is n / 2, hence quotient and quotient' are < n
-    -- this is true because n / 2 floors
-    then let quotient = (assert_total (prim__sdivBigInt n 2))
-             quotient' = (assert_smaller n quotient) in
-             case integerParity n of
-               Even => O (fromIntegerBip quotient')
-               Odd => I (fromIntegerBip quotient')
-    else U
+mutual
+  -- Helper for bipGGCDN, to work around #4001      
+  fromIntegerBipHelp : Integer -> Parity -> Bip
+  fromIntegerBipHelp x Even = O (fromIntegerBip x)
+  fromIntegerBipHelp x Odd  = I (fromIntegerBip x)
+  
+  fromIntegerBip : Integer -> Bip
+  fromIntegerBip n =
+    if n > 1
+      -- prim__sdivBigInt is total with divisor /= 0 as here
+      -- quotient is n / 2, hence quotient and quotient' are < n
+      -- this is true because n / 2 floors
+      then let quotient = (assert_total (prim__sdivBigInt n 2))
+               quotient' = (assert_smaller n quotient) in
+             fromIntegerBipHelp quotient' (integerParity n)
+      else U
 
 Eq Bip where
   U     ==  U    = True
