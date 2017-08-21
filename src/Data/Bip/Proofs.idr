@@ -1797,3 +1797,71 @@ subSubDistr p q r rltq qrltp =
                 rewrite addComm p r in ltAddDiagR r p in
       rewrite addSub p r in
       qrltp
+
+-- sub_xO_xO
+
+subXOXO : (p, q: Bip) -> q `Lt` p -> (O p) - (O q) = O (p-q)
+subXOXO p q qltp = let
+    (_**pqr) = subMaskPos p q qltp
+  in
+    rewrite pqr in
+    Refl
+
+-- sub_xI_xI
+
+subXIXI : (p, q: Bip) -> q `Lt` p -> (I p) - (I q) = O (p-q)
+subXIXI p q qltp = let
+    (_**pqr) = subMaskPos p q qltp
+  in
+    rewrite pqr in
+    Refl
+
+-- sub_xI_xO
+
+subXIXO : (p, q: Bip) -> q `Lt` p -> (I p) - (O q) = I (p-q)
+subXIXO p q qltp = let
+    (_**pqr) = subMaskPos p q qltp
+  in
+    rewrite pqr in
+    Refl
+
+-- sub_xO_xI
+
+subXOXI : (p, q: Bip) -> (O p) - (I q) = bipDMO (p-q)
+subXOXI p q = rewrite subMaskCarrySpec p q in
+              aux
+  where
+  aux : bipMinusHelp (bimDPO (bimPred (bimMinus p q))) = bipDMO (p-q)
+  aux with (bimMinus p q)
+    | BimO   = Refl
+    | BimP a = rewrite dpoPredDouble (BimP a) in Refl
+    | BimM   = Refl
+
+-- sub_mask_neg_iff'
+-- TODO split into `to` and `fro`, fro case = sub_mask_neg
+
+subMaskNegTo' : (p, q : Bip) -> bimMinus p q = BimM -> p `Lt` q
+subMaskNegTo' p q = ltIffAddFro p q . subMaskNegTo p q
+
+subMaskNeg : (p, q : Bip) -> p `Lt` q -> bimMinus p q = BimM
+subMaskNeg p q = subMaskNegFro p q . ltIffAddTo p q
+
+-- sub_le
+
+subLe : (p, q : Bip) -> p `Le` q -> p-q = U
+subLe p q pleq with (bimMinus p q) proof pq
+  | BimO   = Refl
+  | BimP a = let qltp = ltGt q p $ ltIffAddFro q p (a**subMaskAdd p q a $ sym pq)
+               in absurd $ pleq qltp
+  | BimM   = Refl
+
+-- sub_lt
+
+subLt : (p, q : Bip) -> p `Lt` q -> p-q = U
+subLt p q = subLe p q . ltLeIncl p q
+
+-- sub_diag
+
+subDiag : (p : Bip) -> p-p = U
+subDiag p = rewrite subMaskDiag p in
+            Refl
