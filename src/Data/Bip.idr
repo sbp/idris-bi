@@ -476,6 +476,8 @@ Cast Bip Integer where
 
 Ord Bip where
   compare a b = bipCompare a b EQ
+  max = bipMax
+  min = bipMin
 
 Num Bip where
   (+) = bipPlus
