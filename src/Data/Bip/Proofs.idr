@@ -2068,3 +2068,24 @@ mulMinDistrR p q r = rewrite mulComm p r in
                      rewrite mulComm q r in
                      rewrite mulComm (min p q) r in
                      minMonotone (bipMult r) (mulLeMonoLTo r) p q
+
+-- TODO reformulate iter_op_succ so that it describes toNatBip/bipMultNat
+
+-- of_nat_succ
+
+ofNatSucc : (n: Nat) -> toBipNatSucc n = toBipNat (S n)
+ofNatSucc  Z    = Refl
+ofNatSucc (S k) = cong $ ofNatSucc k
+
+--- pred_of_succ_nat
+
+predOfSuccNat : (n: Nat) -> bipPred (toBipNatSucc n) = toBipNat n
+predOfSuccNat Z = Refl
+predOfSuccNat (S k) = rewrite predSucc (toBipNatSucc k) in
+                      ofNatSucc k
+
+-- succ_of_nat
+
+succOfNat : (n: Nat) -> Not (n=Z) -> bipSucc (toBipNat n) = toBipNatSucc n
+succOfNat  Z    contra = absurd $ contra Refl
+succOfNat (S k) _      = cong $ sym $ ofNatSucc k
