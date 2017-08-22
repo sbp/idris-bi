@@ -1905,7 +1905,7 @@ sizeLe (I a) = rewrite powSuccR 2 (bipDigits a) in
 
 -- max_l
 
-maxL : (p, q : Bip) -> q `Le` p -> bipMax p q = p
+maxL : (p, q : Bip) -> q `Le` p -> max p q = p
 maxL p q qlep with (p `compare` q) proof pq
   | LT = absurd $ qlep $ ltGt p q $ sym pq
   | EQ = sym $ compareEqIffTo p q (sym pq)
@@ -1913,7 +1913,7 @@ maxL p q qlep with (p `compare` q) proof pq
 
 -- max_r
 
-maxR : (p, q : Bip) -> p `Le` q -> bipMax p q = q
+maxR : (p, q : Bip) -> p `Le` q -> max p q = q
 maxR p q pleq with (p `compare` q)
   | LT = Refl
   | EQ = Refl
@@ -1921,7 +1921,7 @@ maxR p q pleq with (p `compare` q)
 
 -- min_l
 
-minL : (p, q : Bip) -> p `Le` q -> bipMin p q = p
+minL : (p, q : Bip) -> p `Le` q -> min p q = p
 minL p q pleq with (p `compare` q)
   | LT = Refl
   | EQ = Refl
@@ -1929,8 +1929,142 @@ minL p q pleq with (p `compare` q)
 
 -- min_r
 
-minR : (p, q : Bip) -> q `Le` p -> bipMin p q = q
+minR : (p, q : Bip) -> q `Le` p -> min p q = q
 minR p q qlep with (p `compare` q) proof pq
   | LT = absurd $ qlep $ ltGt p q $ sym pq
   | EQ = compareEqIffTo p q (sym pq)
   | GT = Refl
+
+-- max_1_l
+
+max1L : (p : Bip) -> max U p = p
+max1L  U    = Refl
+max1L (O _) = Refl
+max1L (I _) = Refl
+
+-- max_1_r
+
+max1R : (p : Bip) -> max p U = p
+max1R  U    = Refl
+max1R (O _) = Refl
+max1R (I _) = Refl
+
+-- min_1_l
+
+min1L : (p : Bip) -> min U p = U
+min1L  U    = Refl
+min1L (O _) = Refl
+min1L (I _) = Refl
+
+-- min_1_r
+
+min1R : (p : Bip) -> min p U = U
+min1R  U    = Refl
+min1R (O _) = Refl
+min1R (I _) = Refl
+
+-- distributivity with monotone functions
+
+leLtOrEq : (x, y : Bip) -> x `Le` y -> Either (x `Lt` y) (x=y)
+leLtOrEq x y xley with (x `compare` y) proof xy
+  | LT = Left Refl
+  | EQ = Right $ compareEqIffTo x y (sym xy)
+  | GT = absurd $ xley Refl
+
+maxMonotone : (f : Bip -> Bip) ->
+              ((a,b: Bip) -> (a `Le` b) -> (f a `Le` f b)) ->
+              (x, y : Bip) -> max (f x) (f y) = f (max x y)
+maxMonotone f fle x y with (x `compare` y) proof xy
+  | LT = case leLtOrEq (f x) (f y) $ fle x y $ ltLeIncl x y $ sym xy of
+           Left fxlty => rewrite fxlty in Refl
+           Right fxeqy => rewrite fxeqy in
+                         rewrite compareContRefl (f y) EQ in
+                         Refl
+  | EQ = rewrite compareEqIffTo x y (sym xy) in
+         rewrite compareContRefl (f y) EQ in
+         Refl
+  | GT = case leLtOrEq (f y) (f x) $ fle y x $ ltLeIncl y x $ gtLt x y $ sym xy of
+           Left fyltx => rewrite ltGt (f y) (f x) fyltx in Refl
+           Right fxeqy => rewrite fxeqy in
+                         rewrite compareContRefl (f x) EQ in
+                         Refl
+
+minMonotone : (f : Bip -> Bip) ->
+              ((a,b: Bip) -> (a `Le` b) -> (f a `Le` f b)) ->
+              (x, y : Bip) -> min (f x) (f y) = f (min x y)
+minMonotone f fle x y with (x `compare` y) proof xy
+  | LT = case leLtOrEq (f x) (f y) $ fle x y (ltLeIncl x y $ sym xy) of
+           Left fxlty => rewrite fxlty in Refl
+           Right fxeqy => rewrite fxeqy in
+                         rewrite compareContRefl (f y) EQ in
+                         Refl
+  | EQ = rewrite compareEqIffTo x y (sym xy) in
+         rewrite compareContRefl (f y) EQ in
+         Refl
+  | GT = case leLtOrEq (f y) (f x) $ fle y x (ltLeIncl y x $ gtLt x y $ sym xy) of
+           Left fyltx => rewrite ltGt (f y) (f x) fyltx in Refl
+           Right fxeqy => rewrite fxeqy in
+                         rewrite compareContRefl (f x) EQ in
+                         Refl
+
+-- succ_max_distr
+
+succMaxDistr : (p, q : Bip) -> bipSucc (max p q) = max (bipSucc p) (bipSucc q)
+succMaxDistr p q = sym $ maxMonotone bipSucc succLeMonoTo p q
+
+-- succ_min_distr
+
+succMinDistr : (p, q : Bip) -> bipSucc (min p q) = min (bipSucc p) (bipSucc q)
+succMinDistr p q = sym $ minMonotone bipSucc succLeMonoTo p q
+
+-- add_max_distr_l
+
+addMaxDistrL : (p, q, r: Bip) -> max (r + p) (r + q) = r + max p q
+addMaxDistrL p q r = maxMonotone (bipPlus r) (addLeMonoLTo r) p q
+
+-- add_max_distr_r
+
+addMaxDistrR : (p, q, r: Bip) -> max (p + r) (q + r) = max p q + r
+addMaxDistrR p q r = rewrite addComm p r in
+                     rewrite addComm q r in
+                     rewrite addComm (max p q) r in
+                     maxMonotone (bipPlus r) (addLeMonoLTo r) p q
+
+-- add_min_distr_l
+
+addMinDistrL : (p, q, r: Bip) -> min (r + p) (r + q) = r + min p q
+addMinDistrL p q r = minMonotone (bipPlus r) (addLeMonoLTo r) p q
+
+-- add_min_distr_r
+
+addMinDistrR : (p, q, r: Bip) -> min (p + r) (q + r) = min p q + r
+addMinDistrR p q r = rewrite addComm p r in
+                     rewrite addComm q r in
+                     rewrite addComm (min p q) r in
+                     minMonotone (bipPlus r) (addLeMonoLTo r) p q
+
+-- mul_max_distr_l
+
+mulMaxDistrL : (p, q, r: Bip) -> max (r * p) (r * q) = r * max p q
+mulMaxDistrL p q r = maxMonotone (bipMult r) (mulLeMonoLTo r) p q
+
+-- mul_max_distr_r
+
+mulMaxDistrR : (p, q, r: Bip) -> max (p * r) (q * r) = max p q * r
+mulMaxDistrR p q r = rewrite mulComm p r in
+                     rewrite mulComm q r in
+                     rewrite mulComm (max p q) r in
+                     maxMonotone (bipMult r) (mulLeMonoLTo r) p q
+
+-- mul_min_distr_l
+
+mulMinDistrL : (p, q, r: Bip) -> min (r * p) (r * q) = r * min p q
+mulMinDistrL p q r = minMonotone (bipMult r) (mulLeMonoLTo r) p q
+
+-- mul_min_distr_r
+
+mulMinDistrR : (p, q, r: Bip) -> min (p * r) (q * r) = min p q * r
+mulMinDistrR p q r = rewrite mulComm p r in
+                     rewrite mulComm q r in
+                     rewrite mulComm (min p q) r in
+                     minMonotone (bipMult r) (mulLeMonoLTo r) p q
