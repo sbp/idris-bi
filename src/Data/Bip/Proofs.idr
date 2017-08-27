@@ -1801,29 +1801,20 @@ subSubDistr p q r rltq qrltp =
 -- sub_xO_xO
 
 subXOXO : (p, q: Bip) -> q `Lt` p -> (O p) - (O q) = O (p-q)
-subXOXO p q qltp = let
-    (_**pqr) = subMaskPos p q qltp
-  in
-    rewrite pqr in
-    Refl
+subXOXO p q qltp = rewrite snd $ subMaskPos p q qltp in
+                   Refl
 
 -- sub_xI_xI
 
 subXIXI : (p, q: Bip) -> q `Lt` p -> (I p) - (I q) = O (p-q)
-subXIXI p q qltp = let
-    (_**pqr) = subMaskPos p q qltp
-  in
-    rewrite pqr in
-    Refl
+subXIXI p q qltp = rewrite snd $ subMaskPos p q qltp in
+                   Refl
 
 -- sub_xI_xO
 
 subXIXO : (p, q: Bip) -> q `Lt` p -> (I p) - (O q) = I (p-q)
-subXIXO p q qltp = let
-    (_**pqr) = subMaskPos p q qltp
-  in
-    rewrite pqr in
-    Refl
+subXIXO p q qltp = rewrite snd $ subMaskPos p q qltp in
+                   Refl
 
 -- sub_xO_xI
 
@@ -2115,27 +2106,27 @@ sqrtremStepSpec {f} {g} foi goi (SqrtApprox {s} {r} prf rle pprf) =
   aux
   where
   hfg : (p, q: Bip) -> Either (f=O) (f=I) -> Either (g=O) (g=I) -> g (f (p+q)) = O (O p) + g (f q)
-  hfg p q (Left fo ) (Left go ) = rewrite fo in rewrite go in Refl
-  hfg p q (Left fo ) (Right gi) = rewrite fo in rewrite gi in Refl
-  hfg p q (Right fi) (Left go ) = rewrite fi in rewrite go in Refl
-  hfg p q (Right fi) (Right gi) = rewrite fi in rewrite gi in Refl
+  hfg _ _ (Left fo ) (Left go ) = rewrite fo in rewrite go in Refl
+  hfg _ _ (Left fo ) (Right gi) = rewrite fo in rewrite gi in Refl
+  hfg _ _ (Right fi) (Left go ) = rewrite fi in rewrite go in Refl
+  hfg _ _ (Right fi) (Right gi) = rewrite fi in rewrite gi in Refl
   gfleii : (p, q: Bip) -> Either (f=O) (f=I) -> Either (g=O) (g=I) -> p `Le` q -> g (f p) `Le` I (I q)
   gfleii p q (Left fo ) (Left go ) pleq =
     rewrite fo in rewrite go in
-    \ltgt => pleq $ compareContLtGtTo p q ltgt
+    pleq . compareContLtGtTo p q
   gfleii p q (Left fo ) (Right gi) pleq =
     rewrite fo in rewrite gi in
-    \ltgt => pleq $ compareContLtGtTo p q ltgt
+    pleq . compareContLtGtTo p q
   gfleii p q (Right fi) (Left go ) pleq =
     rewrite fi in rewrite go in
-    \ltgt => pleq $ compareContLtGtTo p q ltgt
-  gfleii p q (Right fi) (Right gi) pleq =
+    pleq . compareContLtGtTo p q
+  gfleii _ _ (Right fi) (Right gi) pleq =
     rewrite fi in rewrite gi in
     pleq
   aux : SqrtSpec
          (bipSqrtRemStepHelp s (I (O s)) (g (f r)) $
-		   (I (O s)) `compare` (g (f r)))
-		 ((O (O (s*s)))+(g (f r)))
+           (I (O s)) `compare` (g (f r)))
+         ((O (O (s*s)))+(g (f r)))
   aux with ((I (O s)) `compare` (g (f r))) proof cmp
     | LT = let (q**qprf) = subMaskPos (g (f r)) (I (O s)) $ sym cmp
                qdef = sym $ cong {f=bipMinusHelp} qprf
@@ -2143,15 +2134,15 @@ sqrtremStepSpec {f} {g} foi goi (SqrtApprox {s} {r} prf rle pprf) =
             rewrite qprf in
             SqrtApprox {s=I s} {r=q}
               (rewrite qdef in
-               rewrite addSubAssoc (I (s+(s*(I s)))) (g (f r)) (I (O s)) $ sym cmp in
-               addRegR ((O (O (s*s)))+(g (f r))) (((I (s+(s*(I s))))+(g (f r)))-(I (O s))) (I (O s)) $
-               rewrite subAdd ((I (s+(s*(I s))))+(g (f r))) (I (O s)) $
-                 ltTrans (I (O s)) (I (s+(s*(I s)))) ((I (s+(s*(I s))))+(g (f r)))
+               rewrite addSubAssoc (I (s+s*(I s))) (g (f r)) (I (O s)) $ sym cmp in
+               addRegR ((O (O (s*s)))+(g (f r))) (((I (s+s*(I s)))+(g (f r)))-(I (O s))) (I (O s)) $
+               rewrite subAdd ((I (s+s*(I s)))+(g (f r))) (I (O s)) $
+                 ltTrans (I (O s)) (I (s+s*(I s))) ((I (s+(s*(I s))))+(g (f r)))
                    (rewrite sym $ addDiag s in
                     addLtMonoLTo s s (s*(I s)) $
                     rewrite mulXIR s s in
                     ltAddDiagR s (O (s*s)))
-                   (ltAddDiagR (I (bipPlus s (bipMult s (I s)))) (g (f r))) in
+                   (ltAddDiagR (I (s+s*(I s))) (g (f r))) in
                rewrite sym $ addAssoc (O (O (s*s))) (g (f r)) (I (O s)) in
                rewrite addComm (g (f r)) (I (O s)) in
                rewrite addAssoc (O (O (s*s))) (I (O s)) (g (f r)) in
@@ -2179,7 +2170,7 @@ sqrtremStepSpec {f} {g} foi goi (SqrtApprox {s} {r} prf rle pprf) =
              (rewrite mulXOR s s in Refl)
              (ltSuccRTo (g (f r)) (O (O s)) $
               gtLt (I (O s)) (g (f r)) $
-			  sym cmp)
+              sym cmp)
              Refl
 
 -- sqrtrem_spec
@@ -2197,12 +2188,12 @@ sqrtremSpec (I (I a)) = sqrtremStepSpec (Right Refl) (Right Refl) (sqrtremSpec a
 
 sqrtSpec : (p : Bip) -> let s = bipSqrt p in
                         (s*s `Le` p, p `Lt` (bipSucc s)*(bipSucc s))
-sqrtSpec p with (sqrtremSpec p)
-  sqrtSpec p | (SqrtExact {s} prf srprf) =
+sqrtSpec p = case sqrtremSpec p of
+  SqrtExact {s} prf srprf =>
     rewrite srprf in rewrite prf in
     (gtNotSelf (s*s),
      mulLtMono s (bipSucc s) s (bipSucc s) (ltSuccDiagR s) (ltSuccDiagR s))
-  sqrtSpec p | (SqrtApprox {s} {r} prf rle srprf) =
+  SqrtApprox {s} {r} prf rle srprf =>
     rewrite srprf in rewrite prf in
     (ltLeIncl (s*s) (s*s+r) $ ltAddDiagR (s*s) r,
      rewrite mulSuccR (bipSucc s) s in
