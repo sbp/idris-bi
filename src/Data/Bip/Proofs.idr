@@ -2205,3 +2205,52 @@ sqrtSpec p = case sqrtremSpec p of
      rewrite sym $ addAssoc U s s in
      rewrite addDiag s in
      ltSuccRFro r (O s) rle)
+
+bipDivides : (p, q : Bip) -> Type
+bipDivides p q = (r ** q = r*p)
+
+-- divide_add_cancel_l
+
+divideAddCancelL : (p, q, r : Bip) -> bipDivides p r -> bipDivides p (q+r) -> bipDivides p q
+divideAddCancelL p q r (s ** pr) (t ** pqr) =
+   ((t-s) **
+     rewrite mulSubDistrR t s p
+       (mulLtMonoRFro p s t $
+        rewrite sym pr in
+        rewrite sym pqr in
+        rewrite addComm q r in
+        ltAddDiagR r q) in
+     rewrite sym pr in
+     rewrite sym pqr in
+     sym $ addSub q r)
+
+-- divide_xO_xI
+
+divideXOXI : (p, q, r : Bip) -> bipDivides p (O q) ->  bipDivides p (I r) -> bipDivides p q
+divideXOXI  U    q _  _          _         = (q ** sym $ mul1R q)
+divideXOXI (O a) _ _  _         (t ** pir) = absurd $ replace (mulXOR t a) pir
+divideXOXI (I _) _ _ (s ** poq)  _         = case s of
+  U   => absurd poq
+  O d => (d ** OInj poq)
+  I _ => absurd poq
+
+-- divide_xO_xO
+
+divideXOXO : (p, q : Bip) -> bipDivides (O p) (O q) -> bipDivides p q
+divideXOXO p _ (r ** opoq) = (r ** OInj $ rewrite sym $ mulXOR r p in opoq)
+
+-- divide_mul_l
+
+divideMulL : (p, q, r : Bip) -> bipDivides p q -> bipDivides p (q*r)
+divideMulL p _ r (s ** pq) = ((s*r) **
+  rewrite pq in
+  rewrite sym $ mulAssoc s p r in
+  rewrite sym $ mulAssoc s r p in
+  rewrite mulComm p r in
+  Refl)
+
+-- divide_mul_r
+
+divideMulR : (p, q, r : Bip) -> bipDivides p r -> bipDivides p (q*r)
+divideMulR p q r dpr = rewrite mulComm q r in
+                       divideMulL p r q dpr
