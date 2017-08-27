@@ -2254,3 +2254,23 @@ divideMulL p _ r (s ** pq) = ((s*r) **
 divideMulR : (p, q, r : Bip) -> bipDivides p r -> bipDivides p (q*r)
 divideMulR p q r dpr = rewrite mulComm q r in
                        divideMulL p r q dpr
+
+-- ggcdn_gcdn
+
+ggcdnGcdn : (n : Nat) -> (p, q : Bip) -> fst $ bipGGCDN n p q = bipGCDN n p q
+ggcdnGcdn  Z     _     _    = Refl
+ggcdnGcdn (S _)  U     _    = Refl
+ggcdnGcdn (S _) (O _)  U    = Refl
+ggcdnGcdn (S k) (O a) (O b) = cong $ ggcdnGcdn k a b
+ggcdnGcdn (S k) (O a) (I b) = ggcdnGcdn k a (I b)
+ggcdnGcdn (S _) (I _)  U    = Refl
+ggcdnGcdn (S k) (I a) (O b) = ggcdnGcdn k (I a) b
+ggcdnGcdn (S k) (I a) (I b) with (a `compare` b)
+  | LT = ggcdnGcdn k (b-a) (I a)
+  | EQ = Refl
+  | GT = ggcdnGcdn k (a-b) (I b)
+
+-- ggcd_gcd
+
+ggcdGcd : (p, q : Bip) -> fst $ bipGGCD p q = bipGCD p q
+ggcdGcd p q = ggcdnGcdn ((bipDigitsNat p)+(bipDigitsNat q)) p q
