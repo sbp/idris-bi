@@ -2274,3 +2274,76 @@ ggcdnGcdn (S k) (I a) (I b) with (a `compare` b)
 
 ggcdGcd : (p, q : Bip) -> fst $ bipGGCD p q = bipGCD p q
 ggcdGcd p q = ggcdnGcdn ((bipDigitsNat p)+(bipDigitsNat q)) p q
+
+subInverse : (p,q,r : Bip) -> r `Lt` p -> p - r = q -> p = q + r
+subInverse p q r rltp prq =
+  rewrite sym $ subAdd p r rltp in
+  cong {f=\x=>x+r} prq
+
+-- ggcdn_correct_divisors
+
+ggcdnCorrectDivisors : (n : Nat) -> (p, q : Bip) ->
+                       let gppqq = bipGGCDN n p q
+                           g = fst gppqq
+                           pp = fst $ snd gppqq
+                           qq = snd $ snd gppqq in
+                         (p=g*pp, q=g*qq)
+ggcdnCorrectDivisors  Z     _     _    = (Refl, Refl)
+ggcdnCorrectDivisors (S _)  U     _    = (Refl, Refl)
+ggcdnCorrectDivisors (S _) (O _)  U    = (Refl, Refl)
+ggcdnCorrectDivisors (S k) (O a) (O b) =
+  let (aprf, bprf) = ggcdnCorrectDivisors k a b in
+     (cong aprf, cong bprf)
+ggcdnCorrectDivisors (S k) (O a) (I b) =
+  let (aprf, ibprf) = ggcdnCorrectDivisors k a (I b) in
+    (rewrite mulXOR (fst $ bipGGCDN k a (I b)) (fst $ snd $ bipGGCDN k a (I b)) in
+     cong aprf,
+     ibprf)
+ggcdnCorrectDivisors (S _) (I _)  U    = (Refl, Refl)
+ggcdnCorrectDivisors (S k) (I a) (O b) =
+  let (iaprf, bprf) = ggcdnCorrectDivisors k (I a) b in
+    (iaprf,
+     rewrite mulXOR (fst $ bipGGCDN k (I a) b) (snd $ snd $ bipGGCDN k (I a) b) in
+     cong bprf)
+ggcdnCorrectDivisors (S k) (I a) (I b) with (a `compare` b) proof ab
+  | LT = let (bmaprf, iaprf) = ggcdnCorrectDivisors k (b-a) (I a)
+             x = bipGGCDN k (b-a) (I a)
+             fx = fst x
+             fsx = fst $ snd x
+             ssx = snd $ snd x
+         in
+         (iaprf,
+          rewrite mulAddDistrL fx ssx (O fsx) in
+          rewrite sym iaprf in
+          rewrite mulXOR fx fsx in
+          cong {f=I} $
+          rewrite addComm a (fx*fsx) in
+          subInverse b (fx*fsx) a (sym ab) $
+          bmaprf)
+  | EQ = rewrite compareEqIffTo a b $ sym ab in
+         rewrite mul1R b in
+         (Refl, Refl)
+  | GT = let (ambprf, ibprf) = ggcdnCorrectDivisors k (a-b) (I b)
+             x = bipGGCDN k (a-b) (I b)
+             fx = fst x
+             fsx = fst $ snd x
+             ssx = snd $ snd x
+         in
+         (rewrite mulAddDistrL fx ssx (O fsx) in
+          rewrite sym ibprf in
+          rewrite mulXOR fx fsx in
+          cong {f=I} $
+          rewrite addComm b (fx*fsx) in
+          subInverse a (fx*fsx) b (gtLt a b $ sym ab) $
+          ambprf,
+          ibprf)
+
+-- ggcd_correct_divisors
+
+ggcdCorrectDivisors : (p, q : Bip) ->
+                      let gppqq = bipGGCD p q
+                          g = fst gppqq
+                          pp = fst $ snd gppqq
+                          qq = snd $ snd gppqq in
+                        (p=g*pp, q=g*qq)
+ggcdCorrectDivisors p q = ggcdnCorrectDivisors ((bipDigitsNat p) + (bipDigitsNat q)) p q
