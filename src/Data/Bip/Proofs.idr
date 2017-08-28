@@ -1720,6 +1720,11 @@ subAdd p q qltp with (subMaskPos p q qltp)
     rewrite addComm r q in
     subMaskAdd p q r pmqr
 
+subInverse : (p, q, r : Bip) -> r `Lt` p -> p - r = q -> p = q + r
+subInverse p q r rltp prq =
+  rewrite sym $ subAdd p r rltp in
+  cong {f=\x=>x+r} prq
+
 -- add_sub
 
 addSub : (p, q : Bip) -> (p+q)-q = p
@@ -2347,11 +2352,6 @@ ggcdnGcdn (S k) (I a) (I b) with (a `compare` b)
 ggcdGcd : (p, q : Bip) -> fst $ bipGGCD p q = bipGCD p q
 ggcdGcd p q = ggcdnGcdn ((bipDigitsNat p)+(bipDigitsNat q)) p q
 
-subInverse : (p,q,r : Bip) -> r `Lt` p -> p - r = q -> p = q + r
-subInverse p q r rltp prq =
-  rewrite sym $ subAdd p r rltp in
-  cong {f=\x=>x+r} prq
-
 -- ggcdn_correct_divisors
 
 ggcdnCorrectDivisors : (n : Nat) -> (p, q : Bip) ->
@@ -2567,3 +2567,34 @@ gcdGreatest p q r rp rq =
   gcdnGreatest ((bipDigitsNat p) + (bipDigitsNat q))
                p q lteRefl r rp rq
 
+-- ggcd_greatest
+
+-- The rests after division by GCD are relatively prime
+
+ggcdGreatest : (p, q : Bip) ->
+                let ppqq = snd $ bipGGCD p q
+                    pp = fst ppqq
+                    qq = snd ppqq
+                in
+                  (r : Bip) -> bipDivides r pp -> bipDivides r qq -> r = U
+ggcdGreatest p q r (s**rpp) (t**rqq) =
+  let (peq, qeq) = ggcdCorrectDivisors p q
+      (rr**rprf) = gcdGreatest p q ((fst $ bipGGCD p q)*r)
+                     (s ** rewrite mulComm s ((fst $ bipGGCD p q)*r) in
+                           rewrite sym $ mulAssoc (fst $ bipGGCD p q) r s in
+                           rewrite mulComm r s in
+                           rewrite sym rpp in
+                           peq)
+                     (t ** rewrite mulComm t ((fst $ bipGGCD p q)*r) in
+                           rewrite sym $ mulAssoc (fst $ bipGGCD p q) r t in
+                           rewrite mulComm r t in
+                           rewrite sym rqq in
+                           qeq)
+      tt = replace {P=\x=>x=rr*((fst $ bipGGCD p q)*r)} (sym $ ggcdGcd p q)
+                  rprf
+  in
+    mulEq1R rr r $
+    mulOneNeutral (rr*r) (fst $ bipGGCD p q) $
+    rewrite sym $ mulAssoc rr r (fst $ bipGGCD p q) in
+    rewrite mulComm r (fst $ bipGGCD p q) in
+    sym tt
