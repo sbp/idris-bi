@@ -2327,6 +2327,8 @@ divideMulR p q r dpr = rewrite mulComm q r in
 
 -- ggcdn_gcdn
 
+-- The first component of GGCD is GCD
+
 ggcdnGcdn : (n : Nat) -> (p, q : Bip) -> fst $ bipGGCDN n p q = bipGCDN n p q
 ggcdnGcdn  Z     _     _    = Refl
 ggcdnGcdn (S _)  U     _    = Refl
@@ -2457,8 +2459,10 @@ plusLTEMonoR p (S b) (S c) (LTESucc l) = LTESucc $ plusLTEMonoR p b c l
 
 -- gcdn_greatest
 
+-- GCD is the greatest amongst common divisors
+
 gcdnGreatest : (n : Nat) -> (p, q : Bip) -> (bipDigitsNat p + bipDigitsNat q) `LTE` n ->
-               (r: Bip) -> bipDivides r p -> bipDivides r q -> bipDivides r (bipGCDN n p q)
+               (r : Bip) -> bipDivides r p -> bipDivides r q -> bipDivides r (bipGCDN n p q)
 gcdnGreatest  Z     U     _    pqlte  _     _          _         = absurd pqlte
 gcdnGreatest  Z    (O _)  _    pqlte  _     _          _         = absurd pqlte
 gcdnGreatest  Z    (I _)  _    pqlte  _     _          _         = absurd pqlte
@@ -2554,3 +2558,12 @@ gcdnGreatest (S k) (I a) (I b) pqlte  r    (s ** psr) (t ** qtr) with (a `compar
               (t**qtr)
            )
            (t**qtr)
+
+-- gcd_greatest
+
+gcdGreatest : (p, q, r : Bip) -> bipDivides r p -> bipDivides r q
+                              -> bipDivides r (bipGCD p q)
+gcdGreatest p q r rp rq =
+  gcdnGreatest ((bipDigitsNat p) + (bipDigitsNat q))
+               p q lteRefl r rp rq
+
