@@ -776,7 +776,7 @@ subMaskNegFro p _ (r ** prf) = rewrite sym prf in
 -- eqb_eq
 -- TODO split into `to` and `fro`
 
-eqbEqTo : (p, q: Bip) -> (p == q = True) -> p=q
+eqbEqTo : (p, q : Bip) -> (p == q = True) -> p=q
 eqbEqTo  U     U    Refl = Refl
 eqbEqTo  U    (O _) Refl impossible
 eqbEqTo  U    (I _) Refl impossible
@@ -789,7 +789,7 @@ eqbEqTo (I _) (O _) Refl impossible
 eqbEqTo (I a) (I b) prf  = rewrite eqbEqTo a b prf in
                            Refl
 
-eqbEqFro : (p, q: Bip) -> p=q -> (p == q = True)
+eqbEqFro : (p, q : Bip) -> p=q -> (p == q = True)
 eqbEqFro  U     U    Refl = Refl
 eqbEqFro  U    (O _) Refl impossible
 eqbEqFro  U    (I _) Refl impossible
@@ -815,13 +815,13 @@ Ge x y = Not (x `compare` y = LT)
 -- ltb_lt
 -- TODO split into `to` and `fro`
 
-ltbLtTo : (p, q: Bip) -> (p < q = True) -> p `Lt` q
+ltbLtTo : (p, q : Bip) -> (p < q = True) -> p `Lt` q
 ltbLtTo p q prf with (p `compare` q)
   | LT = Refl
   | EQ = absurd prf
   | GT = absurd prf
 
-ltbLtFro : (p, q: Bip) -> p `Lt` q -> (p < q = True)
+ltbLtFro : (p, q : Bip) -> p `Lt` q -> (p < q = True)
 ltbLtFro _ _ pltq = rewrite pltq in Refl
 
 -- TODO add to Prelude.Interfaces ?
@@ -847,13 +847,13 @@ Uninhabited (EQ = GT) where
 -- leb_le
 -- TODO split into `to` and `fro`
 
-lebLeTo : (p, q: Bip) -> (p > q = False) -> p `Le` q
+lebLeTo : (p, q : Bip) -> (p > q = False) -> p `Le` q
 lebLeTo p q prf pq with (p `compare` q)
   | LT = absurd pq
   | EQ = absurd pq
   | GT = absurd prf
 
-lebLeFro : (p, q: Bip) -> p `Le` q -> (p > q = False)
+lebLeFro : (p, q : Bip) -> p `Le` q -> (p > q = False)
 lebLeFro p q pleq with (p `compare` q)
   | LT = Refl
   | EQ = Refl
@@ -904,7 +904,7 @@ switchEqGT {a} {b} _ with (bipCompare a b GT) proof ablt
 
 -- compare_cont_spec
 
-compareContSpec : (p, q: Bip) -> (c : Ordering)
+compareContSpec : (p, q : Bip) -> (c : Ordering)
                -> bipCompare p q c = switchEq c (p `compare` q)
 compareContSpec U      U    _ = Refl
 compareContSpec U     (O _) _ = Refl
@@ -924,7 +924,7 @@ compareContSpec (I a) (I b) c = compareContSpec a b c
 
 -- compare_cont_Eq
 
-compareContEq : (p, q: Bip) -> (c : Ordering) -> bipCompare p q c = EQ -> c = EQ
+compareContEq : (p, q : Bip) -> (c : Ordering) -> bipCompare p q c = EQ -> c = EQ
 compareContEq p q LT prf = absurd $ compLtNotEq p q prf
 compareContEq _ _ EQ _   = Refl
 compareContEq p q GT prf = absurd $ compGtNotEq p q prf
@@ -932,7 +932,7 @@ compareContEq p q GT prf = absurd $ compGtNotEq p q prf
 -- compare_cont_Lt_Gt
 -- TODO split into `to` and `fro`
 
-compareContLtGtTo : (p, q: Bip) -> bipCompare p q LT = GT -> p `Gt` q
+compareContLtGtTo : (p, q : Bip) -> bipCompare p q LT = GT -> p `Gt` q
 compareContLtGtTo p q prf =
   aux (p `compare` q) $
     rewrite sym $ compareContSpec p q LT in
@@ -943,7 +943,7 @@ compareContLtGtTo p q prf =
   aux EQ prf = absurd prf
   aux GT _   = Refl
 
-compareContLtGtFro : (p, q: Bip) -> p `Gt` q -> bipCompare p q LT = GT
+compareContLtGtFro : (p, q : Bip) -> p `Gt` q -> bipCompare p q LT = GT
 compareContLtGtFro p q x = rewrite compareContSpec p q LT in
                            rewrite x in
                            Refl
@@ -951,7 +951,7 @@ compareContLtGtFro p q x = rewrite compareContSpec p q LT in
 -- compare_cont_Lt_Lt
 -- TODO split into `to` and `fro`
 
-compareContLtLtTo : (p, q: Bip) -> bipCompare p q LT = LT -> p `Le` q
+compareContLtLtTo : (p, q : Bip) -> bipCompare p q LT = LT -> p `Le` q
 compareContLtLtTo p q prf pgtq =
   uninhabited $ the (LT = GT) $
     rewrite sym prf in
@@ -961,7 +961,7 @@ compareContLtLtTo p q prf pgtq =
   aux : switchEq LT (p `compare` q) = GT
   aux = rewrite pgtq in Refl
 
-compareContLtLtFro : (p, q: Bip) -> p `Le` q -> bipCompare p q LT = LT
+compareContLtLtFro : (p, q : Bip) -> p `Le` q -> bipCompare p q LT = LT
 compareContLtLtFro p q prf = rewrite compareContSpec p q LT in
                              aux
   where
@@ -974,7 +974,7 @@ compareContLtLtFro p q prf = rewrite compareContSpec p q LT in
 -- compare_cont_Gt_Lt
 -- TODO split into `to` and `fro`
 
-compareContGtLtTo : (p, q: Bip) -> bipCompare p q GT = LT -> p `Lt` q
+compareContGtLtTo : (p, q : Bip) -> bipCompare p q GT = LT -> p `Lt` q
 compareContGtLtTo p q prf =
   aux (p `compare` q) $
     rewrite sym $ compareContSpec p q GT in
@@ -985,7 +985,7 @@ compareContGtLtTo p q prf =
   aux EQ prf = absurd prf
   aux GT prf = absurd prf
 
-compareContGtLtFro : (p, q: Bip) -> p `Lt` q -> bipCompare p q GT = LT
+compareContGtLtFro : (p, q : Bip) -> p `Lt` q -> bipCompare p q GT = LT
 compareContGtLtFro p q x =
   rewrite compareContSpec p q GT in
   rewrite x in
@@ -994,7 +994,7 @@ compareContGtLtFro p q x =
 -- compare_cont_Gt_Gt
 -- TODO split into `to` and `fro`
 
-compareContGtGtTo : (p, q: Bip) -> bipCompare p q GT = GT -> p `Ge` q
+compareContGtGtTo : (p, q : Bip) -> bipCompare p q GT = GT -> p `Ge` q
 compareContGtGtTo p q prf pltq =
   uninhabited $ the (GT=LT) $
     rewrite sym prf in
@@ -1004,7 +1004,7 @@ compareContGtGtTo p q prf pltq =
   aux : switchEq GT (p `compare` q) = LT
   aux = rewrite pltq in Refl
 
-compareContGtGtFro : (p, q: Bip) -> p `Ge` q -> bipCompare p q GT = GT
+compareContGtGtFro : (p, q : Bip) -> p `Ge` q -> bipCompare p q GT = GT
 compareContGtGtFro p q prf = rewrite compareContSpec p q GT in
                              aux
   where
@@ -1019,12 +1019,12 @@ compareContGtGtFro p q prf = rewrite compareContSpec p q GT in
 
 -- compare_xI_xO
 
-compareXIXO : (p, q: Bip) -> (I p `compare` O q) = switchEq GT (p `compare` q)
+compareXIXO : (p, q : Bip) -> (I p `compare` O q) = switchEq GT (p `compare` q)
 compareXIXO p q = compareContSpec p q GT
 
 -- compare_xO_xI
 
-compareXOXI : (p, q: Bip) -> (O p `compare` I q) = switchEq LT (p `compare` q)
+compareXOXI : (p, q : Bip) -> (O p `compare` I q) = switchEq LT (p `compare` q)
 compareXOXI p q = compareContSpec p q LT
 
 -- mask2cmp
@@ -1041,7 +1041,7 @@ bimDCmp  BimO    = Refl
 bimDCmp (BimP _) = Refl
 bimDCmp  BimM    = Refl
 
-compareSubMask : (p, q: Bip) -> p `compare` q = mask2cmp (bimMinus p q)
+compareSubMask : (p, q : Bip) -> p `compare` q = mask2cmp (bimMinus p q)
 compareSubMask U      U    = Refl
 compareSubMask U     (O _) = Refl
 compareSubMask U     (I _) = Refl
@@ -1074,7 +1074,7 @@ compareSubMask (I a) (I b) = rewrite bimDCmp (bimMinus a b) in
 -- lt_iff_add
 -- TODO split into `to` and `fro`
 
-ltIffAddTo : (p, q: Bip) -> p `Lt` q -> (r ** p + r = q)
+ltIffAddTo : (p, q : Bip) -> p `Lt` q -> (r ** p + r = q)
 ltIffAddTo p q = rewrite compareSubMask p q in
                  aux
   where
@@ -1084,7 +1084,7 @@ ltIffAddTo p q = rewrite compareSubMask p q in
     | BimP _ = absurd prf
     | BimM   = subMaskNegTo p q (sym pq)
 
-ltIffAddFro : (p, q: Bip) -> (r ** p + r = q) -> p `Lt` q
+ltIffAddFro : (p, q : Bip) -> (r ** p + r = q) -> p `Lt` q
 ltIffAddFro p q rprf =
   rewrite compareSubMask p q in
   rewrite subMaskNegFro p q rprf in
@@ -1093,7 +1093,7 @@ ltIffAddFro p q rprf =
 -- gt_iff_add
 -- TODO split into `to` and `fro`
 
-gtIffAddTo : (p, q: Bip) -> p `Gt` q -> (r ** q + r = p)
+gtIffAddTo : (p, q : Bip) -> p `Gt` q -> (r ** q + r = p)
 gtIffAddTo p q = rewrite compareSubMask p q in
                  aux
   where
@@ -1103,7 +1103,7 @@ gtIffAddTo p q = rewrite compareSubMask p q in
     | BimP r = (r ** subMaskAdd p q r (sym pq))
     | BimM   = absurd prf
 
-gtIffAddFro : (p, q: Bip) -> (r ** q + r = p) -> p `Gt` q
+gtIffAddFro : (p, q : Bip) -> (r ** q + r = p) -> p `Gt` q
 gtIffAddFro p q (r**qrp) =
   rewrite compareSubMask p q in
   rewrite sym qrp in
@@ -1136,7 +1136,7 @@ compareOpInj GT GT Refl = Refl
 
 -- compare_cont_antisym
 
-compareContAntisym : (p, q: Bip) -> (c : Ordering)
+compareContAntisym : (p, q : Bip) -> (c : Ordering)
                   -> compareOp (bipCompare p q c) = bipCompare q p (compareOp c)
 compareContAntisym  U     U    _ = Refl
 compareContAntisym  U    (O _) _ = Refl
@@ -1151,7 +1151,7 @@ compareContAntisym (I a) (I b) c = compareContAntisym a b c
 -- compare_eq_iff
 -- TODO split into `to` and `fro`
 
-compareEqIffTo : (p, q: Bip) -> (p `compare` q = EQ) -> p = q
+compareEqIffTo : (p, q : Bip) -> (p `compare` q = EQ) -> p = q
 compareEqIffTo p q = rewrite compareSubMask p q in
                      aux
   where
@@ -1161,7 +1161,7 @@ compareEqIffTo p q = rewrite compareSubMask p q in
     | BimP _ = absurd prf
     | BimM   = absurd prf
 
-compareEqIffFro : (p, q: Bip) -> p = q -> (p `compare` q = EQ)
+compareEqIffFro : (p, q : Bip) -> p = q -> (p `compare` q = EQ)
 compareEqIffFro p q prf =
   rewrite compareSubMask p q in
   rewrite subMaskNulFro p q prf in
@@ -1169,7 +1169,7 @@ compareEqIffFro p q prf =
 
 -- compare_antisym
 
-compareAntisym : (p, q: Bip) -> q `compare` p = compareOp (p `compare` q)
+compareAntisym : (p, q : Bip) -> q `compare` p = compareOp (p `compare` q)
 compareAntisym p q = sym $ compareContAntisym p q EQ
 
 -- compare_lt_iff is trivial
@@ -1177,7 +1177,7 @@ compareAntisym p q = sym $ compareContAntisym p q EQ
 
 -- gt_lt
 
-gtLt : (p, q: Bip) -> p `Gt` q -> q `Lt` p
+gtLt : (p, q : Bip) -> p `Gt` q -> q `Lt` p
 gtLt p q pgtq =
   rewrite compareAntisym p q in
   rewrite pgtq in
@@ -1185,7 +1185,7 @@ gtLt p q pgtq =
 
 -- lt_gt
 
-ltGt : (p, q: Bip) -> p `Lt` q -> q `Gt` p
+ltGt : (p, q : Bip) -> p `Lt` q -> q `Gt` p
 ltGt p q pltq =
   rewrite compareAntisym p q in
   rewrite pltq in
@@ -1193,7 +1193,7 @@ ltGt p q pltq =
 
 -- ge_le
 
-geLe : (p, q: Bip) -> p `Ge` q -> q `Le` p
+geLe : (p, q : Bip) -> p `Ge` q -> q `Le` p
 geLe p q pgeq = rewrite compareAntisym p q in
                 aux
   where
@@ -1205,7 +1205,7 @@ geLe p q pgeq = rewrite compareAntisym p q in
 
 -- le_ge
 
-leGe : (p, q: Bip) -> p `Le` q -> q `Ge` p
+leGe : (p, q : Bip) -> p `Le` q -> q `Ge` p
 leGe p q pleq = rewrite compareAntisym p q in
                 aux
   where
@@ -1231,7 +1231,7 @@ nlt1R (I _) = uninhabited
 
 -- compare_succ_r
 
-compareSuccR : (p, q: Bip)
+compareSuccR : (p, q : Bip)
             -> switchEq GT (p `compare` bipSucc q) = switchEq LT (p `compare` q)
 compareSuccR  U     U    = Refl
 compareSuccR  U    (O _) = Refl
@@ -1253,7 +1253,7 @@ compareSuccR (I a) (I b) = rewrite sym $ compareSuccR a b in
 
 -- compare_succ_l
 
-compareSuccL : (p, q: Bip)
+compareSuccL : (p, q : Bip)
             -> switchEq LT (bipSucc p `compare` q) = switchEq GT (p `compare` q)
 compareSuccL p q =
   rewrite sym $ compareContSpec (bipSucc p) q LT in
@@ -1268,7 +1268,7 @@ compareSuccL p q =
 -- lt_succ_r
 -- TODO split into `to` and `fro`
 
-ltSuccRTo : (p, q: Bip) -> p `Lt` bipSucc q -> p `Le` q
+ltSuccRTo : (p, q : Bip) -> p `Lt` bipSucc q -> p `Le` q
 ltSuccRTo p q pltsq =
   let tt = replace {P=\x=>switchEq GT x = switchEq LT (p `compare` q)}
                    pltsq (compareSuccR p q)
@@ -1281,7 +1281,7 @@ ltSuccRTo p q pltsq =
     | EQ = uninhabited prf1
     | GT = uninhabited prf
 
-ltSuccRFro : (p, q: Bip) -> p `Le` q -> p `Lt` bipSucc q
+ltSuccRFro : (p, q : Bip) -> p `Le` q -> p `Lt` bipSucc q
 ltSuccRFro p q pleq = aux $ compareSuccR p q
   where
   aux : switchEq GT (p `compare` (bipSucc q)) = switchEq LT (p `compare` q)
@@ -1304,7 +1304,7 @@ ltSuccDiagR p = ltIffAddFro p (bipSucc p) (U**add1R p)
 
 -- compare_succ_succ
 
-compareSuccSucc : (p, q: Bip) -> bipSucc p `compare` bipSucc q = p `compare` q
+compareSuccSucc : (p, q : Bip) -> bipSucc p `compare` bipSucc q = p `compare` q
 compareSuccSucc  U     U    = Refl
 compareSuccSucc  U    (O b) = compareContLtLtFro U b $ le1L b
 compareSuccSucc  U    (I b) = ltSuccRFro U b $ le1L b
@@ -1336,7 +1336,7 @@ lt1Succ p = ltSuccRFro U p $ le1L p
 
 -- lt_le_incl
 
-ltLeIncl : (p, q: Bip) -> p `Lt` q -> p `Le` q
+ltLeIncl : (p, q : Bip) -> p `Lt` q -> p `Le` q
 ltLeIncl p q pltq pgtq with (p `compare` q)
   | LT = uninhabited pgtq
   | EQ = uninhabited pgtq
@@ -1344,10 +1344,10 @@ ltLeIncl p q pltq pgtq with (p `compare` q)
 
 -- lt_nle
 -- TODO split into `to` and `fro`
-ltNleTo : (p, q: Bip) -> p `Lt` q -> Not (q `Le` p)
+ltNleTo : (p, q : Bip) -> p `Lt` q -> Not (q `Le` p)
 ltNleTo p q pltq qlep = qlep $ ltGt p q pltq
 
-ltNleFro : (p, q: Bip) -> Not (q `Le` p) -> p `Lt` q
+ltNleFro : (p, q : Bip) -> Not (q `Le` p) -> p `Lt` q
 ltNleFro p q nqlep with (p `compare` q) proof pq
   | LT = Refl
   | EQ =
@@ -1362,34 +1362,34 @@ ltNleFro p q nqlep with (p `compare` q) proof pq
 
 -- lt_lt_succ
 
-ltLtSucc : (p, q: Bip) -> p `Lt` q -> p `Lt` bipSucc q
+ltLtSucc : (p, q : Bip) -> p `Lt` q -> p `Lt` bipSucc q
 ltLtSucc p q = ltSuccRFro p q . ltLeIncl p q
 
 -- succ_lt_mono
 -- TODO split into `to` and `fro`
 
-succLtMonoTo : (p, q: Bip) -> p `Lt` q -> bipSucc p `Lt` bipSucc q
+succLtMonoTo : (p, q : Bip) -> p `Lt` q -> bipSucc p `Lt` bipSucc q
 succLtMonoTo p q pltq = rewrite compareSuccSucc p q in
                         pltq
 
-succLtMonoFro : (p, q: Bip) -> bipSucc p `Lt` bipSucc q -> p `Lt` q
+succLtMonoFro : (p, q : Bip) -> bipSucc p `Lt` bipSucc q -> p `Lt` q
 succLtMonoFro p q spltsq = rewrite sym $ compareSuccSucc p q in
                            spltsq
 
 -- succ_le_mono
 -- TODO split into `to` and `fro`
 
-succLeMonoTo : (p, q: Bip) -> p `Le` q -> bipSucc p `Le` bipSucc q
+succLeMonoTo : (p, q : Bip) -> p `Le` q -> bipSucc p `Le` bipSucc q
 succLeMonoTo p q pleq = rewrite compareSuccSucc p q in
                         pleq
 
-succLeMonoFro : (p, q: Bip) -> bipSucc p `Le` bipSucc q -> p `Le` q
+succLeMonoFro : (p, q : Bip) -> bipSucc p `Le` bipSucc q -> p `Le` q
 succLeMonoFro p q splesq = rewrite sym $ compareSuccSucc p q in
                            splesq
 
 -- lt_trans
 
-ltTrans : (p, q, r: Bip) -> p `Lt` q -> q `Lt` r -> p `Lt` r
+ltTrans : (p, q, r : Bip) -> p `Lt` q -> q `Lt` r -> p `Lt` r
 ltTrans p q r pltq qltr =
    let (r1 ** prf1) = ltIffAddTo p q pltq
        (r2 ** prf2) = ltIffAddTo q r qltr in
@@ -1403,7 +1403,7 @@ ltTrans p q r pltq qltr =
 
 -- lt_total
 
-ltTotal : (p, q: Bip) -> Either (Either (p `Lt` q) (q `Lt` p)) (p = q)
+ltTotal : (p, q : Bip) -> Either (Either (p `Lt` q) (q `Lt` p)) (p = q)
 ltTotal p q with (p `compare` q) proof pq
   | LT = Left $ Left Refl
   | EQ = Right $ compareEqIffTo p q (sym pq)
@@ -1417,7 +1417,7 @@ leRefl p = rewrite compareContRefl p EQ in
 
 -- le_lt_trans
 
-leLtTrans : (p, q, r: Bip) -> p `Le` q -> q `Lt` r -> p `Lt` r
+leLtTrans : (p, q, r : Bip) -> p `Le` q -> q `Lt` r -> p `Lt` r
 leLtTrans p q r pleq qltr with (p `compare` q) proof pq
   | LT = ltTrans p q r (sym pq) qltr
   | EQ = rewrite compareEqIffTo p q (sym pq) in
@@ -1426,7 +1426,7 @@ leLtTrans p q r pleq qltr with (p `compare` q) proof pq
 
 -- le_trans
 
-leTrans : (p, q, r: Bip) -> p `Le` q -> q `Le` r -> p `Le` r
+leTrans : (p, q, r : Bip) -> p `Le` q -> q `Le` r -> p `Le` r
 leTrans p q r pleq qler pgtr with (q `compare` r) proof qr
   | LT = uninhabited $ the (GT=LT) $
            rewrite sym pgtr in
@@ -1438,15 +1438,15 @@ leTrans p q r pleq qler pgtr with (q `compare` r) proof qr
 -- le_succ_l
 -- TODO split into `to` and `fro`
 
-leSuccLTo : (p, q: Bip) -> bipSucc p `Le` q -> p `Lt` q
+leSuccLTo : (p, q : Bip) -> bipSucc p `Le` q -> p `Lt` q
 leSuccLTo p q = succLtMonoFro p q . ltSuccRFro (bipSucc p) q
 
-leSuccLFro : (p, q: Bip) -> p `Lt` q -> bipSucc p `Le` q
+leSuccLFro : (p, q : Bip) -> p `Lt` q -> bipSucc p `Le` q
 leSuccLFro p q = ltSuccRTo (bipSucc p) q . succLtMonoTo p q
 
 -- le_antisym
 
-leAntisym : (p, q: Bip) -> p `Le` q -> q `Le` p -> p = q
+leAntisym : (p, q : Bip) -> p `Le` q -> q `Le` p -> p = q
 leAntisym p q pleq qlep with (p `compare` q) proof pq
   | LT = absurd $ qlep $ ltGt p q (sym pq)
   | EQ = compareEqIffTo p q (sym pq)
@@ -1457,12 +1457,12 @@ leAntisym p q pleq qlep with (p `compare` q) proof pq
 
 -- lt_add_diag_r
 
-ltAddDiagR : (p, q: Bip) -> p `Lt` (p+q)
+ltAddDiagR : (p, q : Bip) -> p `Lt` (p+q)
 ltAddDiagR p q = ltIffAddFro p (p+q) (q**Refl)
 
 -- add_compare_mono_l
 
-addCompareMonoL : (p, q, r: Bip) -> (p+q) `compare` (p+r) = q `compare` r
+addCompareMonoL : (p, q, r : Bip) -> (p+q) `compare` (p+r) = q `compare` r
 addCompareMonoL p q r =
   peanoRect
     (\x => (x+q) `compare` (x+r) = q `compare` r)
@@ -1481,7 +1481,7 @@ addCompareMonoL p q r =
 
 -- add_compare_mono_r
 
-addCompareMonoR : (p, q, r: Bip) -> (q+p) `compare` (r+p) = q `compare` r
+addCompareMonoR : (p, q, r : Bip) -> (q+p) `compare` (r+p) = q `compare` r
 addCompareMonoR p q r =
   rewrite addComm q p in
   rewrite addComm r p in
@@ -1490,28 +1490,28 @@ addCompareMonoR p q r =
 -- add_lt_mono_l
 -- TODO split into `to` and `fro`
 
-addLtMonoLTo : (p, q, r: Bip) -> q `Lt` r -> (p+q) `Lt` (p+r)
+addLtMonoLTo : (p, q, r : Bip) -> q `Lt` r -> (p+q) `Lt` (p+r)
 addLtMonoLTo p q r qltr = rewrite addCompareMonoL p q r in
                           qltr
 
-addLtMonoLFro : (p, q, r: Bip) -> (p+q) `Lt` (p+r) -> q `Lt` r
+addLtMonoLFro : (p, q, r : Bip) -> (p+q) `Lt` (p+r) -> q `Lt` r
 addLtMonoLFro p q r = rewrite addCompareMonoL p q r in
                       id
 
 -- add_lt_mono_r
 -- TODO split into `to` and `fro`
 
-addLtMonoRTo : (p, q, r: Bip) -> q `Lt` r -> (q+p) `Lt` (r+p)
+addLtMonoRTo : (p, q, r : Bip) -> q `Lt` r -> (q+p) `Lt` (r+p)
 addLtMonoRTo p q r qltr = rewrite addCompareMonoR p q r in
                           qltr
 
-addLtMonoRFro : (p, q, r: Bip) -> (q+p) `Lt` (r+p) -> q `Lt` r
+addLtMonoRFro : (p, q, r : Bip) -> (q+p) `Lt` (r+p) -> q `Lt` r
 addLtMonoRFro p q r = rewrite addCompareMonoR p q r in
                       id
 
 -- add_lt_mono
 
-addLtMono : (p, q, r, s: Bip) -> p `Lt` q -> r `Lt` s -> (p+r) `Lt` (q+s)
+addLtMono : (p, q, r, s : Bip) -> p `Lt` q -> r `Lt` s -> (p+r) `Lt` (q+s)
 addLtMono p q r s pltq rlts =
   let prqr = addLtMonoRTo r p q pltq
       qrqs = addLtMonoLTo q r s rlts in
@@ -1520,28 +1520,28 @@ addLtMono p q r s pltq rlts =
 -- add_le_mono_l
 -- TODO split into `to` and `fro`
 
-addLeMonoLTo : (p, q, r: Bip) -> q `Le` r -> (p+q) `Le` (p+r)
+addLeMonoLTo : (p, q, r : Bip) -> q `Le` r -> (p+q) `Le` (p+r)
 addLeMonoLTo p q r qler = rewrite addCompareMonoL p q r in
                           qler
 
-addLeMonoLFro : (p, q, r: Bip) -> (p+q) `Le` (p+r) -> q `Le` r
+addLeMonoLFro : (p, q, r : Bip) -> (p+q) `Le` (p+r) -> q `Le` r
 addLeMonoLFro p q r = rewrite addCompareMonoL p q r in
                       id
 
 -- add_le_mono_r
 -- TODO split into `to` and `fro`
 
-addLeMonoRTo : (p, q, r: Bip) -> q `Le` r -> (q+p) `Le` (r+p)
+addLeMonoRTo : (p, q, r : Bip) -> q `Le` r -> (q+p) `Le` (r+p)
 addLeMonoRTo p q r qltr = rewrite addCompareMonoR p q r in
                           qltr
 
-addLeMonoRFro : (p, q, r: Bip) -> (q+p) `Le` (r+p) -> q `Le` r
+addLeMonoRFro : (p, q, r : Bip) -> (q+p) `Le` (r+p) -> q `Le` r
 addLeMonoRFro p q r = rewrite addCompareMonoR p q r in
                       id
 
 -- add_le_mono
 
-addLeMono : (p, q, r, s: Bip) -> p `Le` q -> r `Le` s -> (p+r) `Le` (q+s)
+addLeMono : (p, q, r, s : Bip) -> p `Le` q -> r `Le` s -> (p+r) `Le` (q+s)
 addLeMono p q r s pltq rlts =
   let prqr = addLeMonoRTo r p q pltq
       qrqs = addLeMonoLTo q r s rlts in
@@ -1549,7 +1549,7 @@ addLeMono p q r s pltq rlts =
 
 -- mul_lt_mono_l
 -- TODO split into `to` and `fro`, intermixed with mul_compare_mono_l
-mulLtMonoLTo : (p, q, r: Bip) -> q `Lt` r -> (p*q) `Lt` (p*r)
+mulLtMonoLTo : (p, q, r : Bip) -> q `Lt` r -> (p*q) `Lt` (p*r)
 mulLtMonoLTo  U    _ _ qltr = qltr
 mulLtMonoLTo (O a) q r qltr = mulLtMonoLTo a q r qltr
 mulLtMonoLTo (I a) q r qltr =
@@ -1558,7 +1558,7 @@ mulLtMonoLTo (I a) q r qltr =
 
 -- mul_compare_mono_l
 
-mulCompareMonoL : (p, q, r: Bip) -> (p*q) `compare` (p*r) = q `compare` r
+mulCompareMonoL : (p, q, r : Bip) -> (p*q) `compare` (p*r) = q `compare` r
 mulCompareMonoL  U    _ _ = Refl
 mulCompareMonoL (O a) q r = mulCompareMonoL a q r
 mulCompareMonoL (I a) q r with (q `compare` r) proof qr
@@ -1574,13 +1574,13 @@ mulCompareMonoL (I a) q r with (q `compare` r) proof qr
 
 -- mul_lt_mono_l
 -- TODO split into `to` and `fro`, intermixed with mul_compare_mono_l
-mulLtMonoLtFro : (p, q, r: Bip) -> (p*q) `Lt` (p*r) -> q `Lt` r
+mulLtMonoLtFro : (p, q, r : Bip) -> (p*q) `Lt` (p*r) -> q `Lt` r
 mulLtMonoLtFro p q r = rewrite mulCompareMonoL p q r in
                        id
 
 -- mul_compare_mono_r
 
-mulCompareMonoR : (p, q, r: Bip) -> (q*p) `compare` (r*p) = q `compare` r
+mulCompareMonoR : (p, q, r : Bip) -> (q*p) `compare` (r*p) = q `compare` r
 mulCompareMonoR p q r =
   rewrite mulComm q p in
   rewrite mulComm r p in
@@ -1589,11 +1589,11 @@ mulCompareMonoR p q r =
 -- mul_lt_mono_r
 -- TODO split into `to` and `fro`
 
-mulLtMonoRTo : (p, q, r: Bip) -> q `Lt` r -> (q*p) `Lt` (r*p)
+mulLtMonoRTo : (p, q, r : Bip) -> q `Lt` r -> (q*p) `Lt` (r*p)
 mulLtMonoRTo p q r qltr = rewrite mulCompareMonoR p q r in
                           qltr
 
-mulLtMonoRFro : (p, q, r: Bip) -> (q*p) `Lt` (r*p) -> q `Lt` r
+mulLtMonoRFro : (p, q, r : Bip) -> (q*p) `Lt` (r*p) -> q `Lt` r
 mulLtMonoRFro p q r = rewrite mulCompareMonoR p q r in
                       id
 
@@ -1608,22 +1608,22 @@ mulLtMono p q r s pltq rlts =
 -- mul_le_mono_l
 -- TODO split into `to` and `fro`
 
-mulLeMonoLTo : (p, q, r: Bip) -> q `Le` r -> (p*q) `Le` (p*r)
+mulLeMonoLTo : (p, q, r : Bip) -> q `Le` r -> (p*q) `Le` (p*r)
 mulLeMonoLTo p q r qler = rewrite mulCompareMonoL p q r in
                           qler
 
-mulLeMonoLFro : (p, q, r: Bip) -> (p*q) `Le` (p*r) -> q `Le` r
+mulLeMonoLFro : (p, q, r : Bip) -> (p*q) `Le` (p*r) -> q `Le` r
 mulLeMonoLFro p q r = rewrite mulCompareMonoL p q r in
                       id
 
 -- mul_le_mono_r
 -- TODO split into `to` and `fro`
 
-mulLeMonoRTo : (p, q, r: Bip) -> q `Le` r -> (q*p) `Le` (r*p)
+mulLeMonoRTo : (p, q, r : Bip) -> q `Le` r -> (q*p) `Le` (r*p)
 mulLeMonoRTo p q r qler = rewrite mulCompareMonoR p q r in
                           qler
 
-mulLeMonoRFro : (p, q, r: Bip) -> (q*p) `Le` (r*p) -> q `Le` r
+mulLeMonoRFro : (p, q, r : Bip) -> (q*p) `Le` (r*p) -> q `Le` r
 mulLeMonoRFro p q r = rewrite mulCompareMonoR p q r in
                       id
 
@@ -1644,7 +1644,7 @@ ltNotSelf  U    = uninhabited
 ltNotSelf (O a) = ltNotSelf a
 ltNotSelf (I a) = ltNotSelf a
 
-ltNotAddL : (p, q: Bip) -> Not (p+q `Lt` p)
+ltNotAddL : (p, q : Bip) -> Not (p+q `Lt` p)
 ltNotAddL p q pqltp =
   let pltpq = ltAddDiagR p q
       pltp = ltTrans p (p+q) p pltpq pqltp in
@@ -1652,7 +1652,7 @@ ltNotAddL p q pqltp =
 
 -- pow_gt_1
 
-powGt1 : (p, q: Bip) -> U `Lt` p -> U `Lt` bipPow p q
+powGt1 : (p, q : Bip) -> U `Lt` p -> U `Lt` bipPow p q
 powGt1 p q ultp =
   peanoRect
     (\x => U `Lt` bipPow p x)
@@ -1677,9 +1677,14 @@ sub1R (I _) = Refl
 
 -- pred_sub is just sym . sub1R
 
+-- A helper to "go back" if subtraction over-evaluates
+				
+subMono : {p,q,r,s: Bip} -> p = q -> r = s -> p-r = q-s
+subMono pq rs = rewrite pq in rewrite rs in Refl				
+
 -- sub_succ_r
 
-subSuccR : (p, q: Bip) -> p - (bipSucc q) = bipPred (p - q)
+subSuccR : (p, q : Bip) -> p - (bipSucc q) = bipPred (p - q)
 subSuccR p q = rewrite subMaskSuccR p q in
   rewrite subMaskCarrySpec p q in
   aux (bimMinus p q)
@@ -1693,7 +1698,7 @@ subSuccR p q = rewrite subMaskSuccR p q in
 
 -- sub_mask_pos'
 
-subMaskPos' : (p, q: Bip) -> q `Lt` p
+subMaskPos' : (p, q : Bip) -> q `Lt` p
                           -> (r ** (bimMinus p q = BimP r, q + r = p))
 subMaskPos' p q qltp =
   let (r ** prf) = ltIffAddTo q p qltp
@@ -1701,14 +1706,14 @@ subMaskPos' p q qltp =
 
 -- sub_mask_pos
 
-subMaskPos : (p, q: Bip) -> q `Lt` p -> (r ** bimMinus p q = BimP r)
+subMaskPos : (p, q : Bip) -> q `Lt` p -> (r ** bimMinus p q = BimP r)
 subMaskPos p q qltp =
   let (r ** prf) = ltIffAddTo q p qltp
   in (r ** rewrite sym prf in subMaskAddDiagL q r)
 
 -- sub_add
 
-subAdd : (p, q: Bip) -> q `Lt` p -> (p-q)+q = p
+subAdd : (p, q : Bip) -> q `Lt` p -> (p-q)+q = p
 subAdd p q qltp with (subMaskPos p q qltp)
   | (r ** pmqr) =
     rewrite pmqr in
@@ -1717,14 +1722,14 @@ subAdd p q qltp with (subMaskPos p q qltp)
 
 -- add_sub
 
-addSub : (p, q: Bip) -> (p+q)-q = p
+addSub : (p, q : Bip) -> (p+q)-q = p
 addSub p q = rewrite addComm p q in
              rewrite subMaskAddDiagL q p in
              Refl
 
 -- mul_sub_distr_l
 
-mulSubDistrL : (p, q, r: Bip) -> r `Lt` q -> p * (q-r) = p*q - p*r
+mulSubDistrL : (p, q, r : Bip) -> r `Lt` q -> p * (q-r) = p*q - p*r
 mulSubDistrL p q r rltq =
   addRegR (p * (q-r)) (p*q - p*r) (p*r) $
   rewrite subAdd (p*q) (p*r) $
@@ -1736,7 +1741,7 @@ mulSubDistrL p q r rltq =
 
 -- mul_sub_distr_r
 
-mulSubDistrR : (p, q, r: Bip) -> q `Lt` p -> (p-q)*r = p*r-q*r
+mulSubDistrR : (p, q, r : Bip) -> q `Lt` p -> (p-q)*r = p*r-q*r
 mulSubDistrR p q r qltp =
   rewrite mulComm q r in
   rewrite mulComm p r in
@@ -1750,7 +1755,7 @@ gtNotSelf  U    = uninhabited
 gtNotSelf (O a) = gtNotSelf a
 gtNotSelf (I a) = gtNotSelf a
 
-subLtMonoL : (p, q, r: Bip) -> q `Lt` p -> p `Lt` r -> (r-p) `Lt` (r-q)
+subLtMonoL : (p, q, r : Bip) -> q `Lt` p -> p `Lt` r -> (r-p) `Lt` (r-q)
 subLtMonoL p q r qltp pltr = addLtMonoRFro p (r-p) (r-q) $
    rewrite subAdd r p pltr in
    leLtTrans r ((r-q)+q) ((r-q)+p)
@@ -1759,7 +1764,7 @@ subLtMonoL p q r qltp pltr = addLtMonoRFro p (r-p) (r-q) $
 
 -- sub_compare_mono_l
 
-subCompareMonoL : (p, q, r: Bip) -> q `Lt` p -> r `Lt` p
+subCompareMonoL : (p, q, r : Bip) -> q `Lt` p -> r `Lt` p
                                  -> (p-q) `compare` (p-r) = r `compare` q
 subCompareMonoL p q r qltp rltp with (r `compare` q) proof rq
   | LT = subLtMonoL q r p (sym rq) qltp
@@ -1768,7 +1773,7 @@ subCompareMonoL p q r qltp rltp with (r `compare` q) proof rq
 
 -- sub_compare_mono_r
 
-subCompareMonoR : (p, q, r: Bip) -> p `Lt` q -> p `Lt` r
+subCompareMonoR : (p, q, r : Bip) -> p `Lt` q -> p `Lt` r
                                  -> (q-p) `compare` (r-p) = q `compare` r
 subCompareMonoR p q r pltq pltr =
   rewrite sym $ addCompareMonoR p (q-p) (r-p) in
@@ -1778,21 +1783,21 @@ subCompareMonoR p q r pltq pltr =
 
 -- sub_lt_mono_r
 
-subLtMonoR : (p, q, r: Bip) -> q `Lt` p -> r `Lt` q -> q-r `Lt` p-r
+subLtMonoR : (p, q, r : Bip) -> q `Lt` p -> r `Lt` q -> q-r `Lt` p-r
 subLtMonoR p q r qltp rltq =
   rewrite subCompareMonoR r q p rltq (ltTrans r q p rltq qltp) in
   qltp
 
 -- sub_decr
 
-subDecr : (p, q: Bip) -> q `Lt` p -> (p-q) `Lt` p
+subDecr : (p, q : Bip) -> q `Lt` p -> (p-q) `Lt` p
 subDecr p q qltp = addLtMonoRFro q (p-q) p $
   rewrite subAdd p q qltp in
   ltAddDiagR p q
 
 -- add_sub_assoc
 
-addSubAssoc : (p, q, r: Bip) -> r `Lt` q -> p+(q-r) = p+q-r
+addSubAssoc : (p, q, r : Bip) -> r `Lt` q -> p+(q-r) = p+q-r
 addSubAssoc p q r rltq = addRegR (p+(q-r)) (p+q-r) r $
   rewrite sym $ addAssoc p (q-r) r in
   rewrite subAdd q r rltq in
@@ -1804,7 +1809,7 @@ addSubAssoc p q r rltq = addRegR (p+(q-r)) (p+q-r) r $
 
 -- sub_add_distr
 
-subAddDistr : (p, q, r: Bip) -> q+r `Lt` p -> p-(q+r) = p-q-r
+subAddDistr : (p, q, r : Bip) -> q+r `Lt` p -> p-(q+r) = p-q-r
 subAddDistr p q r qrltp =
   rewrite addComm q r in
     addRegR (p-(r+q)) (p-q-r) (r+q) $
@@ -1823,7 +1828,7 @@ subAddDistr p q r qrltp =
 
 --  sub_sub_distr
 
-subSubDistr : (p, q, r: Bip) -> r `Lt` q -> q-r `Lt` p -> p-(q-r) = p+r-q
+subSubDistr : (p, q, r : Bip) -> r `Lt` q -> q-r `Lt` p -> p-(q-r) = p+r-q
 subSubDistr p q r rltq qrltp =
   addRegR (p-(q-r)) (p+r-q) ((q-r)+r) $
     rewrite addAssoc (p-(q-r)) (q-r) r in
@@ -1837,25 +1842,25 @@ subSubDistr p q r rltq qrltp =
 
 -- sub_xO_xO
 
-subXOXO : (p, q: Bip) -> q `Lt` p -> (O p) - (O q) = O (p-q)
+subXOXO : (p, q : Bip) -> q `Lt` p -> (O p) - (O q) = O (p-q)
 subXOXO p q qltp = rewrite snd $ subMaskPos p q qltp in
                    Refl
 
 -- sub_xI_xI
 
-subXIXI : (p, q: Bip) -> q `Lt` p -> (I p) - (I q) = O (p-q)
+subXIXI : (p, q : Bip) -> q `Lt` p -> (I p) - (I q) = O (p-q)
 subXIXI p q qltp = rewrite snd $ subMaskPos p q qltp in
                    Refl
-
+				
 -- sub_xI_xO
 
-subXIXO : (p, q: Bip) -> q `Lt` p -> (I p) - (O q) = I (p-q)
+subXIXO : (p, q : Bip) -> q `Lt` p -> (I p) - (O q) = I (p-q)
 subXIXO p q qltp = rewrite snd $ subMaskPos p q qltp in
                    Refl
 
 -- sub_xO_xI
 
-subXOXI : (p, q: Bip) -> (O p) - (I q) = bipDMO (p-q)
+subXOXI : (p, q : Bip) -> (O p) - (I q) = bipDMO (p-q)
 subXOXI p q = rewrite subMaskCarrySpec p q in
               aux
   where
@@ -2053,12 +2058,12 @@ succMinDistr p q = sym $ minMonotone bipSucc succLeMonoTo p q
 
 -- add_max_distr_l
 
-addMaxDistrL : (p, q, r: Bip) -> max (r + p) (r + q) = r + max p q
+addMaxDistrL : (p, q, r : Bip) -> max (r + p) (r + q) = r + max p q
 addMaxDistrL p q r = maxMonotone (bipPlus r) (addLeMonoLTo r) p q
 
 -- add_max_distr_r
 
-addMaxDistrR : (p, q, r: Bip) -> max (p + r) (q + r) = max p q + r
+addMaxDistrR : (p, q, r : Bip) -> max (p + r) (q + r) = max p q + r
 addMaxDistrR p q r =
   rewrite addComm p r in
   rewrite addComm q r in
@@ -2067,12 +2072,12 @@ addMaxDistrR p q r =
 
 -- add_min_distr_l
 
-addMinDistrL : (p, q, r: Bip) -> min (r + p) (r + q) = r + min p q
+addMinDistrL : (p, q, r : Bip) -> min (r + p) (r + q) = r + min p q
 addMinDistrL p q r = minMonotone (bipPlus r) (addLeMonoLTo r) p q
 
 -- add_min_distr_r
 
-addMinDistrR : (p, q, r: Bip) -> min (p + r) (q + r) = min p q + r
+addMinDistrR : (p, q, r : Bip) -> min (p + r) (q + r) = min p q + r
 addMinDistrR p q r =
   rewrite addComm p r in
   rewrite addComm q r in
@@ -2081,12 +2086,12 @@ addMinDistrR p q r =
 
 -- mul_max_distr_l
 
-mulMaxDistrL : (p, q, r: Bip) -> max (r * p) (r * q) = r * max p q
+mulMaxDistrL : (p, q, r : Bip) -> max (r * p) (r * q) = r * max p q
 mulMaxDistrL p q r = maxMonotone (bipMult r) (mulLeMonoLTo r) p q
 
 -- mul_max_distr_r
 
-mulMaxDistrR : (p, q, r: Bip) -> max (p * r) (q * r) = max p q * r
+mulMaxDistrR : (p, q, r : Bip) -> max (p * r) (q * r) = max p q * r
 mulMaxDistrR p q r =
   rewrite mulComm p r in
   rewrite mulComm q r in
@@ -2095,12 +2100,12 @@ mulMaxDistrR p q r =
 
 -- mul_min_distr_l
 
-mulMinDistrL : (p, q, r: Bip) -> min (r * p) (r * q) = r * min p q
+mulMinDistrL : (p, q, r : Bip) -> min (r * p) (r * q) = r * min p q
 mulMinDistrL p q r = minMonotone (bipMult r) (mulLeMonoLTo r) p q
 
 -- mul_min_distr_r
 
-mulMinDistrR : (p, q, r: Bip) -> min (p * r) (q * r) = min p q * r
+mulMinDistrR : (p, q, r : Bip) -> min (p * r) (q * r) = min p q * r
 mulMinDistrR p q r =
   rewrite mulComm p r in
   rewrite mulComm q r in
@@ -2156,13 +2161,13 @@ sqrtremStepSpec {f} {g} foi goi (SqrtApprox {s} {r} prf rle pprf) =
   rewrite hfg (s*s) r foi goi in
   aux
   where
-  hfg : (p, q: Bip) -> Either (f=O) (f=I) -> Either (g=O) (g=I)
+  hfg : (p, q : Bip) -> Either (f=O) (f=I) -> Either (g=O) (g=I)
                     -> g (f (p+q)) = O (O p) + g (f q)
   hfg _ _ (Left fo ) (Left go ) = rewrite fo in rewrite go in Refl
   hfg _ _ (Left fo ) (Right gi) = rewrite fo in rewrite gi in Refl
   hfg _ _ (Right fi) (Left go ) = rewrite fi in rewrite go in Refl
   hfg _ _ (Right fi) (Right gi) = rewrite fi in rewrite gi in Refl
-  gfleii : (p, q: Bip) -> Either (f=O) (f=I) -> Either (g=O) (g=I) -> p `Le` q
+  gfleii : (p, q : Bip) -> Either (f=O) (f=I) -> Either (g=O) (g=I) -> p `Le` q
                        -> g (f p) `Le` I (I q)
   gfleii p q (Left fo ) (Left go ) pleq =
     rewrite fo in rewrite go in
@@ -2442,3 +2447,110 @@ gcdDivideR p q =
   (snd $ snd x **
     rewrite mulComm (snd $ snd x) (fst x) in
     qprf)
+
+-- TODO contribute to Prelude.Nat?
+
+plusLTEMonoR : (p, q, r : Nat) -> q `LTE` r -> (q+p) `LTE` (r+p)
+plusLTEMonoR p  Z     r     LTEZero    = rewrite plusCommutative r p in
+                                         lteAddRight p
+plusLTEMonoR p (S b) (S c) (LTESucc l) = LTESucc $ plusLTEMonoR p b c l
+
+-- gcdn_greatest
+
+gcdnGreatest : (n : Nat) -> (p, q : Bip) -> (bipDigitsNat p + bipDigitsNat q) `LTE` n ->
+               (r: Bip) -> bipDivides r p -> bipDivides r q -> bipDivides r (bipGCDN n p q)
+gcdnGreatest  Z     U     _    pqlte  _     _          _         = absurd pqlte
+gcdnGreatest  Z    (O _)  _    pqlte  _     _          _         = absurd pqlte
+gcdnGreatest  Z    (I _)  _    pqlte  _     _          _         = absurd pqlte
+gcdnGreatest (S _)  U     _    _      r    (s ** psr)  _         =
+  (U ** sym $ mulEq1R s r $ sym psr)
+gcdnGreatest (S _) (O _)  U    _      r     _         (t ** qtr) =
+  (U ** sym $ mulEq1R t r $ sym qtr)
+gcdnGreatest (S _) (I _)  U    _      r     _         (t ** qtr) =
+  (U ** sym $ mulEq1R t r $ sym qtr)
+gcdnGreatest (S k) (O a) (O b) _      U     _          _         =
+  (O $ bipGCDN k a b ** rewrite mul1R (bipGCDN k a b) in
+                        Refl)
+gcdnGreatest (S k) (O a) (O b) pqlte (O c)  pr         qr        =
+  let (r**prf) = gcdnGreatest k a b
+                   (fromLteSucc $
+                    lteSuccLeft $
+                    rewrite plusSuccRightSucc (bipDigitsNat a) (bipDigitsNat b) in
+                    pqlte)
+                   c
+                   (divideXOXO c a pr)
+                   (divideXOXO c b qr)
+  in
+    (r ** rewrite mulXOR r c in cong prf)
+gcdnGreatest (S k) (O a) (O b) pqlte (I c)  pr         qr        =
+  let (r**prf) = gcdnGreatest k a b
+                   (fromLteSucc $
+                    lteSuccLeft $
+                    rewrite plusSuccRightSucc (bipDigitsNat a) (bipDigitsNat b) in
+                    pqlte)
+                   (I c)
+                   (divideXOXI (I c) a c pr (U**Refl))
+                   (divideXOXI (I c) b c qr (U**Refl))
+  in
+    (O r ** cong prf)
+gcdnGreatest (S k) (O a) (I b) pqlte  r     pr         qr        =
+  gcdnGreatest k a (I b)
+    (fromLteSucc pqlte)
+     r
+    (divideXOXI r a b pr qr)
+     qr
+gcdnGreatest (S k) (I a) (O b) pqlte  r     pr         qr        =
+  gcdnGreatest k (I a) b
+    (rewrite plusSuccRightSucc (bipDigitsNat a) (bipDigitsNat b) in
+     fromLteSucc pqlte)
+     r
+     pr
+    (divideXOXI r b a qr pr)
+gcdnGreatest (S k) (I a) (I b) pqlte  r    (s ** psr) (t ** qtr) with (a `compare` b) proof ab
+  | LT = gcdnGreatest k (b-a) (I a)
+           (lteTransitive {m=(bipDigitsNat b) + (S $ bipDigitsNat a)}
+              (plusLTEMonoR (S $ bipDigitsNat a) (bipDigitsNat $ b-a) (bipDigitsNat b) $
+               sizeNatMonotone (b-a) b $
+               addLtMonoRFro a (b-a) b $
+               rewrite subAdd b a $ sym ab in
+               ltAddDiagR b a)
+              (rewrite plusCommutative (bipDigitsNat b) (S $ bipDigitsNat a) in
+               rewrite plusSuccRightSucc (bipDigitsNat a) (bipDigitsNat b) in
+               fromLteSucc pqlte))
+            r
+           (divideXOXI r (b-a) a
+              (rewrite sym $ subXIXI b a $ sym ab in
+               rewrite subMono qtr psr in
+               rewrite sym $ mulSubDistrR t s r $
+                         mulLtMonoRFro r s t $
+                         rewrite sym psr in
+                         rewrite sym qtr in
+                         sym ab
+                       in
+                 (t-s ** Refl))
+              (s**psr)
+           )
+           (s**psr)
+  | EQ = (s**psr)
+  | GT = gcdnGreatest k (a-b) (I b)
+           (lteTransitive {m=(bipDigitsNat a) + (S $ bipDigitsNat b)}
+            (plusLTEMonoR (S $ bipDigitsNat b) (bipDigitsNat $ a-b) (bipDigitsNat $ a) $
+             sizeNatMonotone (a-b) a $
+             addLtMonoRFro b (a-b) a $
+             rewrite subAdd a b $ gtLt a b $ sym ab in
+              ltAddDiagR a b)
+            (fromLteSucc pqlte))
+           r
+           (divideXOXI r (a-b) b
+              (rewrite sym $ subXIXI a b $ gtLt a b $ sym ab in
+               rewrite subMono psr qtr in
+               rewrite sym $ mulSubDistrR s t r $
+                         mulLtMonoRFro r t s $
+                         rewrite sym psr in
+                         rewrite sym qtr in
+                         gtLt a b $ sym ab
+                       in
+                 (s-t ** Refl))
+              (t**qtr)
+           )
+           (t**qtr)
