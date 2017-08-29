@@ -28,23 +28,23 @@ peanoRect P f0 f (BinP a) = peanoRect (P . BinP) (f BinO f0) (\p => f $ BinP p) 
 -- Properties of mixed successor and predecessor
 
 -- pos_pred_spec
-posPredSpec : (a: Bip) -> bipPredBin a = binPred (BinP a)
+posPredSpec : (a : Bip) -> bipPredBin a = binPred (BinP a)
 posPredSpec  U    = Refl
 posPredSpec (O _) = Refl
 posPredSpec (I _) = Refl
 
 -- succ_pos_spec
-succPosSpec : (a: Bin) -> BinP (binSuccBip a) = binSucc a
+succPosSpec : (a : Bin) -> BinP (binSuccBip a) = binSucc a
 succPosSpec  BinO    = Refl
 succPosSpec (BinP _) = Refl
 
 -- pos_pred_succ
-posPredSucc : (a: Bin) -> bipPredBin (binSuccBip a) = a
+posPredSucc : (a : Bin) -> bipPredBin (binSuccBip a) = a
 posPredSucc  BinO     = Refl
 posPredSucc (BinP a') = rewrite predBinSucc a' in Refl
 
 -- succ_pos_pred
-succPosPred : (a: Bip) -> binSucc (bipPredBin a) = BinP a
+succPosPred : (a : Bip) -> binSucc (bipPredBin a) = BinP a
 succPosPred  U     = Refl
 succPosPred (O a') = rewrite succPredDouble a' in Refl
 succPosPred (I _ ) = Refl
@@ -52,31 +52,31 @@ succPosPred (I _ ) = Refl
 -- Properties of successor and predecessor
 
 -- pred_succ
-predSucc : (a: Bin) -> binPred (binSucc a) = a
+predSucc : (a : Bin) -> binPred (binSucc a) = a
 predSucc  BinO     = Refl
 predSucc (BinP a') = rewrite predBinSucc a' in Refl
 
 -- pred_sub
-predSub : (a: Bin) -> binPred a = a-(BinP U)
+predSub : (a : Bin) -> binPred a = a-(BinP U)
 predSub  BinO         = Refl
 predSub (BinP  U    ) = Refl
 predSub (BinP (O a')) = Refl
 predSub (BinP (I a')) = Refl
 
 -- succ_0_discr
-succZeroDiscr : (a: Bin) -> Not (binSucc a = 0)
+succZeroDiscr : (a : Bin) -> Not (binSucc a = 0)
 succZeroDiscr  BinO     = uninhabited
 succZeroDiscr (BinP a') = uninhabited
 
 -- Specification of addition
 
 -- add_0_l
-addZeroL : (a: Bin) -> BinO + a = a
+addZeroL : (a : Bin) -> BinO + a = a
 addZeroL  BinO    = Refl
 addZeroL (BinP _) = Refl
 
 -- add_succ_l
-addSuccL : (a, b: Bin) -> (binSucc a) + b = binSucc (a+b)
+addSuccL : (a, b : Bin) -> (binSucc a) + b = binSucc (a+b)
 addSuccL  BinO      BinO        = Refl
 addSuccL  BinO     (BinP  U   ) = Refl
 addSuccL  BinO     (BinP (O _)) = Refl
@@ -87,17 +87,17 @@ addSuccL (BinP a') (BinP  b'  ) = rewrite addSuccL a' b' in Refl
 -- Specification of subtraction
 
 -- sub_0_r
-subZeroR : (a: Bin) -> a-0 = a
+subZeroR : (a : Bin) -> a-0 = a
 subZeroR  BinO    = Refl
 subZeroR (BinP _) = Refl
 
 -- Helper for sub_succ_r
-subSuccPred : (p, q: Bip) -> bimMinus p (bipSucc q) = bimPred (bimMinus p q)
+subSuccPred : (p, q : Bip) -> bimMinus p (bipSucc q) = bimPred (bimMinus p q)
 subSuccPred a b = rewrite subMaskSuccR a b in
                   rewrite subMaskCarrySpec a b in Refl
 
 -- Helper for sub_succ_r
-bimAndBin : (a: Bim) -> bimToBin (bimPred a) = binPred (bimToBin a)
+bimAndBin : (a : Bim) -> bimToBin (bimPred a) = binPred (bimToBin a)
 bimAndBin (BimP  U   ) = Refl
 bimAndBin (BimP (O _)) = Refl
 bimAndBin (BimP (I _)) = Refl
@@ -105,7 +105,7 @@ bimAndBin  BimO        = Refl
 bimAndBin  BimM        = Refl
 
 -- sub_succ_r
-subSuccR : (a, b: Bin) -> a-(binSucc b) = binPred (a-b)
+subSuccR : (a, b : Bin) -> a-(binSucc b) = binPred (a-b)
 subSuccR  BinO         BinO     = Refl
 subSuccR (BinP  U   )  BinO     = Refl
 subSuccR (BinP (O _))  BinO     = Refl
@@ -119,16 +119,16 @@ subSuccR (BinP  a'  ) (BinP b') =
 
 -- mul_0_l
 
-mulZeroL : (a: Bin) -> BinO * a = BinO
+mulZeroL : (a : Bin) -> BinO * a = BinO
 mulZeroL  BinO    = Refl
 mulZeroL (BinP _) = Refl
 
 -- mul_succ_l
 
-mulSuccL : (a, b: Bin) -> (binSucc a) * b = b + a * b
-mulSuccL  BinO      BinO      = Refl
-mulSuccL  BinO     (BinP _)   = Refl
-mulSuccL (BinP _)   BinO      = Refl
+mulSuccL : (a, b : Bin) -> (binSucc a) * b = b + a * b
+mulSuccL  BinO      BinO     = Refl
+mulSuccL  BinO     (BinP _ ) = Refl
+mulSuccL (BinP _ )  BinO     = Refl
 mulSuccL (BinP a') (BinP b') = cong $ mulSuccL a' b'
 
 -- Specification of boolean comparisons (using <->)
@@ -191,16 +191,35 @@ lebLeFro p q pleq with (p `compare` q)
 -- compare_eq_iff
 -- TODO split into `to` and `fro`
 
--- compare_lt_iff
--- compare_le_iff
+compareEqIffTo : (p, q : Bin) -> p `compare` q = EQ -> p = q
+compareEqIffTo  BinO     BinO    = const Refl
+compareEqIffTo  BinO    (BinP _) = absurd
+compareEqIffTo (BinP _)  BinO    = absurd
+compareEqIffTo (BinP a) (BinP b) = cong . compareEqIffTo a b
+
+compareEqIffFro : (p, q : Bin) -> p = q -> p `compare` q = EQ
+compareEqIffFro  BinO     BinO    = const Refl
+compareEqIffFro  BinO    (BinP _) = absurd
+compareEqIffFro (BinP _)  BinO    = absurd
+compareEqIffFro (BinP a) (BinP b) = compareEqIffFro a b . binPInj
+
+-- compare_lt_iff is trivial
+
+-- compare_le_iff is trivial
+
 -- compare_antisym
--- TODO
+
+compareAntisym : (p, q : Bin) -> q `compare` p = compareOp (p `compare` q)
+compareAntisym  BinO     BinO    = Refl
+compareAntisym  BinO    (BinP _) = Refl
+compareAntisym (BinP _)  BinO    = Refl
+compareAntisym (BinP a) (BinP b) = compareAntisym a b
 
 -- Some more advanced properties of comparison and orders
 
 -- add_0_r
 
-addZeroR : (a, b: Bin) -> a + BinO = a
+addZeroR : (a, b : Bin) -> a + BinO = a
 addZeroR  BinO     BinO    = Refl
 addZeroR  BinO    (BinP _) = Refl
 addZeroR (BinP _)  BinO    = Refl
@@ -208,7 +227,7 @@ addZeroR (BinP _) (BinP _) = Refl
 
 -- add_comm
 
-addComm : (a, b: Bin) -> a + b = b + a
+addComm : (a, b : Bin) -> a + b = b + a
 addComm  BinO     BinO      = Refl
 addComm  BinO    (BinP _)   = Refl
 addComm (BinP _)  BinO      = Refl
@@ -216,7 +235,7 @@ addComm (BinP a') (BinP b') = cong $ addComm a' b'
 
 -- add_assoc
 
-addAssoc : (a, b, c: Bin) -> a + (b + c) = a + b + c
+addAssoc : (a, b, c : Bin) -> a + (b + c) = a + b + c
 addAssoc  BinO      BinO      BinO     = Refl
 addAssoc  BinO      BinO     (BinP _)  = Refl
 addAssoc  BinO     (BinP _)   BinO     = Refl
@@ -227,11 +246,22 @@ addAssoc (BinP _)  (BinP _)   BinO     = Refl
 addAssoc (BinP a') (BinP b') (BinP c') = cong $ addAssoc a' b' c'
 
 -- sub_add
--- TODO
+
+subAdd : (p, q : Bin) -> p `Lt` q -> (q-p)+p = q
+subAdd  BinO     BinO    pltq = absurd pltq
+subAdd  BinO    (BinP _) Refl = Refl
+subAdd (BinP _)  BinO    pltq = absurd pltq
+subAdd (BinP a) (BinP b) pltq = case subMaskSpec a b of
+  SubIsNul     Refl _ => rewrite subMaskDiag a in
+                         Refl
+  SubIsPos {r} Refl _ => absurd $ ltNotAddL b r pltq
+  SubIsNeg {r} Refl _ => rewrite subMaskAddDiagL a r in
+                         rewrite addComm a r in
+                         Refl
 
 -- mul_comm
 
-mulComm : (a, b: Bin) -> a * b = b * a
+mulComm : (a, b : Bin) -> a * b = b * a
 mulComm  BinO     BinO      = Refl
 mulComm  BinO    (BinP _)   = Refl
 mulComm (BinP _)  BinO      = Refl
@@ -239,12 +269,46 @@ mulComm (BinP a') (BinP b') = cong $ mulComm a' b'
 
 -- le_0_l
 
-leZeroL : (a: Bin) ->
+leZeroL : (a : Bin) ->
   Either (BinO `compare` a = EQ) (BinO `compare` a = LT)
 leZeroL  BinO    = Left Refl
 leZeroL (BinP _) = Right Refl
 
 -- leb_spec
+
+-- TODO contribute to Prelude.Bool?
+
+data BoolSpec : (p, q : Type) -> Bool -> Type where
+  BoolSpecT : p -> BoolSpec p q True
+  BoolSpecF : q -> BoolSpec p q False
+
+gtNotEqP : (p, q : Bip) -> p `Gt` q -> p == q = False
+gtNotEqP  U     U    = absurd
+gtNotEqP  U    (O _) = absurd
+gtNotEqP  U    (I _) = absurd
+gtNotEqP (O _)  U    = const Refl
+gtNotEqP (O a) (O b) = gtNotEqP a b
+gtNotEqP (O a) (I b) = const Refl
+gtNotEqP (I _)  U    = const Refl
+gtNotEqP (I a) (O b) = const Refl
+gtNotEqP (I a) (I b) = gtNotEqP a b
+
+gtNotEqN : (p, q : Bin) -> p `Gt` q -> p == q = False
+gtNotEqN  BinO     BinO    = absurd
+gtNotEqN  BinO    (BinP _) = absurd
+gtNotEqN (BinP _)  BinO    = const Refl
+gtNotEqN (BinP a) (BinP b) = gtNotEqP a b
+
+lebSpec : (p, q : Bin) -> BoolSpec (p `Le` q) (q `Lt` p) (p <= q)
+lebSpec p q with (p `compare` q) proof pq
+  | LT = BoolSpecT uninhabited
+  | EQ = rewrite eqbEqFro p q $ compareEqIffTo p q $ sym pq in
+         BoolSpecT uninhabited
+  | GT = rewrite gtNotEqN p q $ sym pq in
+         BoolSpecF $ rewrite compareAntisym p q in
+                     rewrite sym pq in
+                     Refl
+
 -- add_lt_cancel_l
 -- TODO
 
@@ -257,19 +321,19 @@ leZeroL (BinP _) = Right Refl
 
 -- double_spec
 
-doubleSpec : (a: Bin) -> binD a = 2 * a
+doubleSpec : (a : Bin) -> binD a = 2 * a
 doubleSpec  BinO    = Refl
 doubleSpec (BinP _) = Refl
 
 -- succ_double_spec
 
-succDoubleSpec : (a: Bin) -> binDPO a = 2 * a + 1
+succDoubleSpec : (a : Bin) -> binDPO a = 2 * a + 1
 succDoubleSpec  BinO    = Refl
 succDoubleSpec (BinP _) = Refl
 
 -- double_add
 
-doubleAdd : (a, b: Bin) -> binD (a + b) = binD a + binD b
+doubleAdd : (a, b : Bin) -> binD (a + b) = binD a + binD b
 doubleAdd  BinO     BinO    = Refl
 doubleAdd  BinO    (BinP _) = Refl
 doubleAdd (BinP _)  BinO    = Refl
@@ -277,7 +341,7 @@ doubleAdd (BinP _) (BinP _) = Refl
 
 -- succ_double_add
 
-succDoubleAdd : (a, b: Bin) -> binDPO (a + b) = binD a + binDPO b
+succDoubleAdd : (a, b : Bin) -> binDPO (a + b) = binD a + binDPO b
 succDoubleAdd  BinO     BinO    = Refl
 succDoubleAdd  BinO    (BinP _) = Refl
 succDoubleAdd (BinP _)  BinO    = Refl
@@ -285,7 +349,7 @@ succDoubleAdd (BinP _) (BinP _) = Refl
 
 -- double_mul
 
-doubleMul : (a, b: Bin) -> binD (a * b) = binD a * b
+doubleMul : (a, b : Bin) -> binD (a * b) = binD a * b
 doubleMul  BinO     BinO    = Refl
 doubleMul  BinO    (BinP _) = Refl
 doubleMul (BinP _)  BinO    = Refl
@@ -293,7 +357,7 @@ doubleMul (BinP _) (BinP _) = Refl
 
 -- succ_double_mul
 
-succDoubleMul : (a, b: Bin) -> binDPO a * b = binD a * b + b
+succDoubleMul : (a, b : Bin) -> binDPO a * b = binD a * b + b
 succDoubleMul  BinO      BinO     = Refl
 succDoubleMul  BinO     (BinP _)  = Refl
 succDoubleMul (BinP _)   BinO     = Refl
@@ -302,13 +366,13 @@ succDoubleMul (BinP a') (BinP b') =
 
 -- div2_double
 
-divTwoDouble : (a: Bin) -> binDivTwo (binD a) = a
+divTwoDouble : (a : Bin) -> binDivTwo (binD a) = a
 divTwoDouble  BinO    = Refl
 divTwoDouble (BinP _) = Refl
 
 -- div2_succ_double
 
-divTwoSuccDouble : (a: Bin) -> binDivTwo (binDPO a) = a
+divTwoSuccDouble : (a : Bin) -> binDivTwo (binDPO a) = a
 divTwoSuccDouble  BinO    = Refl
 divTwoSuccDouble (BinP _) = Refl
 
