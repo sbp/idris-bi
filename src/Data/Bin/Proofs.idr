@@ -219,30 +219,28 @@ compareAntisym (BinP a) (BinP b) = compareAntisym a b
 
 -- add_0_r
 
-addZeroR : (a, b : Bin) -> a + BinO = a
-addZeroR  BinO     BinO    = Refl
-addZeroR  BinO    (BinP _) = Refl
-addZeroR (BinP _)  BinO    = Refl
-addZeroR (BinP _) (BinP _) = Refl
+addZeroR : (a : Bin) -> a + BinO = a
+addZeroR  BinO    = Refl
+addZeroR (BinP _) = Refl
 
 -- add_comm
 
 addComm : (a, b : Bin) -> a + b = b + a
-addComm  BinO     BinO      = Refl
-addComm  BinO    (BinP _)   = Refl
-addComm (BinP _)  BinO      = Refl
+addComm  BinO      BinO     = Refl
+addComm  BinO     (BinP _ ) = Refl
+addComm (BinP _ )  BinO     = Refl
 addComm (BinP a') (BinP b') = cong $ addComm a' b'
 
 -- add_assoc
 
 addAssoc : (a, b, c : Bin) -> a + (b + c) = a + b + c
 addAssoc  BinO      BinO      BinO     = Refl
-addAssoc  BinO      BinO     (BinP _)  = Refl
-addAssoc  BinO     (BinP _)   BinO     = Refl
-addAssoc  BinO     (BinP _)  (BinP _)  = Refl
-addAssoc (BinP _)   BinO      BinO     = Refl
-addAssoc (BinP _)   BinO     (BinP _)  = Refl
-addAssoc (BinP _)  (BinP _)   BinO     = Refl
+addAssoc  BinO      BinO     (BinP _ ) = Refl
+addAssoc  BinO     (BinP _ )  BinO     = Refl
+addAssoc  BinO     (BinP _ ) (BinP _ ) = Refl
+addAssoc (BinP _ )  BinO      BinO     = Refl
+addAssoc (BinP _ )  BinO     (BinP _ ) = Refl
+addAssoc (BinP _ ) (BinP _ )  BinO     = Refl
 addAssoc (BinP a') (BinP b') (BinP c') = cong $ addAssoc a' b' c'
 
 -- sub_add
@@ -262,9 +260,9 @@ subAdd (BinP a) (BinP b) pltq = case subMaskSpec a b of
 -- mul_comm
 
 mulComm : (a, b : Bin) -> a * b = b * a
-mulComm  BinO     BinO      = Refl
-mulComm  BinO    (BinP _)   = Refl
-mulComm (BinP _)  BinO      = Refl
+mulComm  BinO      BinO     = Refl
+mulComm  BinO     (BinP _ ) = Refl
+mulComm (BinP _ )  BinO     = Refl
 mulComm (BinP a') (BinP b') = cong $ mulComm a' b'
 
 -- le_0_l
@@ -276,11 +274,7 @@ leZeroL (BinP _) = Right Refl
 
 -- leb_spec
 
--- TODO contribute to Prelude.Bool?
-
-data BoolSpec : (p, q : Type) -> Bool -> Type where
-  BoolSpecT : p -> BoolSpec p q True
-  BoolSpecF : q -> BoolSpec p q False
+-- TODO move to Bip.Proofs?
 
 gtNotEqP : (p, q : Bip) -> p `Gt` q -> p == q = False
 gtNotEqP  U     U    = absurd
@@ -299,6 +293,12 @@ gtNotEqN  BinO    (BinP _) = absurd
 gtNotEqN (BinP _)  BinO    = const Refl
 gtNotEqN (BinP a) (BinP b) = gtNotEqP a b
 
+-- TODO contribute to Prelude.Bool?
+
+data BoolSpec : (p, q : Type) -> Bool -> Type where
+  BoolSpecT : p -> BoolSpec p q True
+  BoolSpecF : q -> BoolSpec p q False
+
 lebSpec : (p, q : Bin) -> BoolSpec (p `Le` q) (q `Lt` p) (p <= q)
 lebSpec p q with (p `compare` q) proof pq
   | LT = BoolSpecT uninhabited
@@ -310,12 +310,34 @@ lebSpec p q with (p `compare` q) proof pq
                      Refl
 
 -- add_lt_cancel_l
--- TODO
+
+addLtCancelL : (p, q, r : Bin) -> r+p `Lt` r+q -> p `Lt` q
+addLtCancelL  p        q        BinO    = rewrite addZeroL p in
+                                          rewrite addZeroL q in
+                                          id
+addLtCancelL  BinO     BinO    (BinP c) = rewrite compareContRefl c EQ in
+                                          absurd
+addLtCancelL  BinO    (BinP _) (BinP _) = const Refl
+addLtCancelL (BinP a)  BinO    (BinP c) = absurd . ltNotAddL c a
+addLtCancelL (BinP a) (BinP b) (BinP c) = addLtMonoLFro c a b
 
 -- Specification of lt and le
 
 -- lt_succ_r
--- TODO
+
+-- TODO split into `to` and `fro`
+
+ltSuccRTo : (p, q : Bin) -> p `Lt` binSucc q -> p `Le` q
+ltSuccRTo  BinO     BinO    Refl  = uninhabited
+ltSuccRTo  BinO    (BinP _) Refl  = uninhabited
+ltSuccRTo (BinP a)  BinO    pltsq = absurd $ nlt1R a pltsq
+ltSuccRTo (BinP a) (BinP b) pltsq = ltSuccRTo a b pltsq
+
+ltSuccRFro : (p, q : Bin) -> p `Le` q -> p `Lt` binSucc q
+ltSuccRFro  BinO     BinO    pleq = Refl
+ltSuccRFro  BinO    (BinP _) pleq = Refl
+ltSuccRFro (BinP _)  BinO    pleq = absurd $ pleq Refl
+ltSuccRFro (BinP a) (BinP b) pleq = ltSuccRFro a b pleq
 
 -- Properties of double and succ_double
 
