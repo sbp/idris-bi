@@ -10,11 +10,20 @@ import Data.Bip.Proofs
 
 -- Peano induction
 
--- peano_rect_base
+-- peano_rect
+
+peanoRect : (P : Bin -> Type) -> (f0 : P BinO) ->
+            (f: (n : Bin) -> P n -> P (binSucc n)) ->
+            (n : Bin) -> P n
+peanoRect _ f0 _  BinO    = f0
+peanoRect P f0 f (BinP a) = peanoRect (P . BinP) (f BinO f0) (\p => f $ BinP p) a
+
+-- peano_rect_base is trivial
+
+-- TODO
 -- peano_rect_succ
 -- peano_rec_base
 -- peano_rec_succ
--- TODO
 
 -- Properties of mixed successor and predecessor
 
@@ -38,7 +47,7 @@ posPredSucc (BinP a') = rewrite predBinSucc a' in Refl
 succPosPred : (a: Bip) -> binSucc (bipPredBin a) = BinP a
 succPosPred  U     = Refl
 succPosPred (O a') = rewrite succPredDouble a' in Refl
-succPosPred (I _)  = Refl
+succPosPred (I _ ) = Refl
 
 -- Properties of successor and predecessor
 
@@ -48,9 +57,9 @@ predSucc  BinO     = Refl
 predSucc (BinP a') = rewrite predBinSucc a' in Refl
 
 -- pred_sub
-predSub : (a: Bin) -> binPred a = binMinus a (BinP U)
+predSub : (a: Bin) -> binPred a = a-(BinP U)
 predSub  BinO         = Refl
-predSub (BinP U)      = Refl
+predSub (BinP  U    ) = Refl
 predSub (BinP (O a')) = Refl
 predSub (BinP (I a')) = Refl
 
@@ -62,23 +71,23 @@ succZeroDiscr (BinP a') = uninhabited
 -- Specification of addition
 
 -- add_0_l
-addZeroL : (a: Bin) -> binPlus BinO a = a
+addZeroL : (a: Bin) -> BinO + a = a
 addZeroL  BinO    = Refl
 addZeroL (BinP _) = Refl
 
 -- add_succ_l
-addSuccL : (a, b: Bin) -> binPlus (binSucc a) b = binSucc (binPlus a b)
-addSuccL  BinO     BinO        = Refl
-addSuccL  BinO    (BinP U)     = Refl
-addSuccL  BinO    (BinP (O _)) = Refl
-addSuccL  BinO    (BinP (I _)) = Refl
-addSuccL (BinP _)  BinO        = Refl
-addSuccL (BinP a') (BinP b')   = rewrite addSuccL a' b' in Refl
+addSuccL : (a, b: Bin) -> (binSucc a) + b = binSucc (a+b)
+addSuccL  BinO      BinO        = Refl
+addSuccL  BinO     (BinP  U   ) = Refl
+addSuccL  BinO     (BinP (O _)) = Refl
+addSuccL  BinO     (BinP (I _)) = Refl
+addSuccL (BinP _ )  BinO        = Refl
+addSuccL (BinP a') (BinP  b'  ) = rewrite addSuccL a' b' in Refl
 
 -- Specification of subtraction
 
 -- sub_0_r
-subZeroR : (a: Bin) -> binMinus a 0 = a
+subZeroR : (a: Bin) -> a-0 = a
 subZeroR  BinO    = Refl
 subZeroR (BinP _) = Refl
 
@@ -89,20 +98,20 @@ subSuccPred a b = rewrite subMaskSuccR a b in
 
 -- Helper for sub_succ_r
 bimAndBin : (a: Bim) -> bimToBin (bimPred a) = binPred (bimToBin a)
-bimAndBin (BimP U)     = Refl
+bimAndBin (BimP  U   ) = Refl
 bimAndBin (BimP (O _)) = Refl
 bimAndBin (BimP (I _)) = Refl
 bimAndBin  BimO        = Refl
 bimAndBin  BimM        = Refl
 
 -- sub_succ_r
-subSuccR : (a, b: Bin) -> binMinus a (binSucc b) = binPred (binMinus a b)
+subSuccR : (a, b: Bin) -> a-(binSucc b) = binPred (a-b)
 subSuccR  BinO         BinO     = Refl
-subSuccR (BinP U)      BinO     = Refl
+subSuccR (BinP  U   )  BinO     = Refl
 subSuccR (BinP (O _))  BinO     = Refl
 subSuccR (BinP (I _))  BinO     = Refl
-subSuccR  BinO        (BinP _)  = Refl
-subSuccR (BinP a')    (BinP b') =
+subSuccR  BinO        (BinP _ ) = Refl
+subSuccR (BinP  a'  ) (BinP b') =
   rewrite subSuccPred a' b' in
   rewrite bimAndBin (bimMinus a' b') in Refl
 
@@ -110,28 +119,78 @@ subSuccR (BinP a')    (BinP b') =
 
 -- mul_0_l
 
-mulZeroL : (a: Bin) -> binMult BinO a = BinO
+mulZeroL : (a: Bin) -> BinO * a = BinO
 mulZeroL  BinO    = Refl
 mulZeroL (BinP _) = Refl
 
 -- mul_succ_l
 
 mulSuccL : (a, b: Bin) -> (binSucc a) * b = b + a * b
-mulSuccL  BinO     BinO      = Refl
-mulSuccL  BinO    (BinP _)   = Refl
-mulSuccL (BinP _)  BinO      = Refl
+mulSuccL  BinO      BinO      = Refl
+mulSuccL  BinO     (BinP _)   = Refl
+mulSuccL (BinP _)   BinO      = Refl
 mulSuccL (BinP a') (BinP b') = cong $ mulSuccL a' b'
 
 -- Specification of boolean comparisons (using <->)
 
 -- eqb_eq
+-- TODO split into `to` and `fro`
+eqbEqTo : (p, q : Bin) -> (p == q = True) -> p=q
+eqbEqTo  BinO     BinO    = const Refl
+eqbEqTo  BinO    (BinP a) = absurd
+eqbEqTo (BinP a)  BinO    = absurd
+eqbEqTo (BinP a) (BinP b) = cong . eqbEqTo a b
+
+eqbEqFro : (p, q : Bin) -> p=q -> (p == q = True)
+eqbEqFro  BinO     BinO    _   = Refl
+eqbEqFro  BinO    (BinP _) Refl impossible
+eqbEqFro (BinP _)  BinO    Refl impossible
+eqbEqFro (BinP a) (BinP b) prf = eqbEqFro a b (binPInj prf)
+
+Lt : (x, y : Bin) -> Type
+Lt x y = x `compare` y = LT
+
+Gt : (x, y : Bin) -> Type
+Gt x y = x `compare` y = GT
+
+Le : (x, y : Bin) -> Type
+Le x y = Not (x `compare` y = GT)
+
+Ge : (x, y : Bin) -> Type
+Ge x y = Not (x `compare` y = LT)
+
 -- ltb_lt
+-- TODO split into `to` and `fro`
+
+ltbLtTo : (p, q : Bin) -> p < q = True -> p `Lt` q
+ltbLtTo p q prf with (p `compare` q)
+  | LT = Refl
+  | EQ = absurd prf
+  | GT = absurd prf
+
+ltbLtFro : (p, q : Bin) -> p `Lt` q -> p < q = True
+ltbLtFro _ _ pltq = rewrite pltq in Refl
+
 -- leb_le
--- TODO
+-- TODO split into `to` and `fro`
+
+lebLeTo : (p, q : Bin) -> p > q = False -> p `Le` q
+lebLeTo p q prf pq with (p `compare` q)
+  | LT = absurd pq
+  | EQ = absurd pq
+  | GT = absurd prf
+
+lebLeFro : (p, q : Bin) -> p `Le` q -> p > q = False
+lebLeFro p q pleq with (p `compare` q)
+  | LT = Refl
+  | EQ = Refl
+  | GT = absurd $ pleq Refl
 
 -- Basic properties of comparison (using <->)
 
 -- compare_eq_iff
+-- TODO split into `to` and `fro`
+
 -- compare_lt_iff
 -- compare_le_iff
 -- compare_antisym
@@ -181,7 +240,7 @@ mulComm (BinP a') (BinP b') = cong $ mulComm a' b'
 -- le_0_l
 
 leZeroL : (a: Bin) ->
-  Either (binCompare BinO a = EQ) (binCompare BinO a = LT)
+  Either (BinO `compare` a = EQ) (BinO `compare` a = LT)
 leZeroL  BinO    = Left Refl
 leZeroL (BinP _) = Right Refl
 

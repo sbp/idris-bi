@@ -288,6 +288,20 @@ Num Bin where
   (*)         = binMult
   fromInteger = fromIntegerBin
 
+-- negate and abs don't make much sense here, but it's syntactically convenient
+Neg Bin where
+  negate = const BinO
+  (-) = binMinus
+  abs = id
+
+DecEq Bin where
+  decEq  BinO     BinO    = Yes Refl
+  decEq  BinO    (BinP _) = No absurd
+  decEq (BinP _)  BinO    = No absurd
+  decEq (BinP a) (BinP b) = case decEq a b of
+    Yes prf => Yes $ cong prf
+    No contra => No $ contra . binPInj
+
 -- TODO: Where does this come from?
 ||| Modulo
 binMod : (a: Bip) -> (b: Bip) -> Bin
