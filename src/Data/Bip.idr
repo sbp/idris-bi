@@ -302,11 +302,18 @@ mutual
   -- Helper for bipGGCDN, to work around #4001
   bipGGCDNHelp : Nat -> (a, b: Bip) -> Ordering -> (Bip, (Bip, Bip))
   bipGGCDNHelp _ a _ EQ = (I a, (U, U))
+  -- we can't use let-destructuring, because it desugars to case -> #4001
   bipGGCDNHelp n a b LT = let a' = bipMinus b a
-                              (g, (ba, aa)) = bipGGCDN n a' (I a) in
+                              gbaaa = bipGGCDN n a' (I a)
+                              g = fst gbaaa
+                              ba = fst $ snd gbaaa
+                              aa = snd $ snd gbaaa in
                             (g, (aa, bipPlus aa (O ba)))
   bipGGCDNHelp n a b GT = let a' = bipMinus a b
-                              (g, (ab, bb)) = bipGGCDN n a' (I b) in
+                              gabbb = bipGGCDN n a' (I b)
+                              g = fst gabbb
+                              ab = fst $ snd gabbb
+                              bb = snd $ snd gabbb in
                             (g, (bipPlus bb (O ab), bb))
 
   ||| Generalised GCD, with Nat of total combined digits
@@ -314,11 +321,20 @@ mutual
   bipGGCDN  Z      a      b     = (U, (a, b))
   bipGGCDN (S _ )  U      b     = (U, (U, b))
   bipGGCDN (S _ )  a      U     = (U, (a, U))
-  bipGGCDN (S n') (O a') (O b') = let (g, p) = bipGGCDN n' a' b' in
+  -- we can't use let-destructuring, because it desugars to case -> #4001
+  bipGGCDN (S n') (O a') (O b') = let gp = bipGGCDN n' a' b'
+                                      g = fst gp
+                                      p = snd gp in
                                     (O g, p)
-  bipGGCDN (S n')  a     (O b') = let (g, (aa, bb)) = bipGGCDN n' a b' in
+  bipGGCDN (S n')  a     (O b') = let gaabb = bipGGCDN n' a b'
+                                      g = fst gaabb
+                                      aa = fst $ snd gaabb
+                                      bb = snd $ snd gaabb in
                                     (g, (aa, O bb))
-  bipGGCDN (S n') (O a')  b     = let (g, (aa, bb)) = bipGGCDN n' a' b in
+  bipGGCDN (S n') (O a')  b     = let gaabb = bipGGCDN n' a' b
+                                      g = fst gaabb
+                                      aa = fst $ snd gaabb
+                                      bb = snd $ snd gaabb in
                                     (g, (O aa, bb))
   bipGGCDN (S n') (I a') (I b') = bipGGCDNHelp n' a' b' (bipCompare a' b' EQ)
 
