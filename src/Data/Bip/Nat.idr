@@ -141,7 +141,7 @@ toNatBipInj p q prf =
 
 -- inj_iff: `fro` is just `cong`
 
--- Nat comparison proofs
+------------------------------ Nat utility proofs ------------------------------
 -- TODO add to Prelude?
 
 ltPlusNZ : (a,b : Nat) -> a `compare` (a+(S b)) = LT
@@ -165,6 +165,42 @@ plusMinus (S k)  Z    blta = rewrite plusZeroRightNeutral k in Refl
 plusMinus (S k) (S j) blta = rewrite sym $ plusSuccRightSucc (k `minus` j) j in
                              cong $ plusMinus k j blta
 
+minusNeg : (p, q : Nat) -> p `compare` q = LT -> p `minus` q = Z
+minusNeg  Z     Z    = absurd
+minusNeg  Z    (S _) = const Refl
+minusNeg (S _)  Z    = absurd
+minusNeg (S k) (S j) = minusNeg k j
+
+minusPos : (p, q : Nat) -> q `compare` p = LT -> 1 `LTE` (p `minus` q)
+minusPos  Z     Z    = absurd
+minusPos  Z    (S _) = absurd
+minusPos (S _)  Z    = const $ LTESucc LTEZero
+minusPos (S k) (S j) = minusPos k j
+
+maxLTE : (p, q : Nat) -> p `LTE` q -> maximum p q = q
+maxLTE  Z     Z    = const Refl
+maxLTE  Z    (S _) = const Refl
+maxLTE (S _)  Z    = absurd
+maxLTE (S k) (S j) = cong . maxLTE k j . fromLteSucc
+
+sub1R : (p : Nat) -> p `minus` 1 = pred p
+sub1R  Z    = Refl
+sub1R (S k) = minusZeroRight k
+
+maxLt : (p, q : Nat) -> q `compare` p = LT -> maximum p q = p
+maxLt  Z     Z    = absurd
+maxLt  Z    (S _) = absurd
+maxLt (S _)  Z    = const Refl
+maxLt (S k) (S j) = cong . maxLt k j
+
+minLt : (p, q : Nat) -> p `compare` q = LT -> minimum p q = p
+minLt  Z     Z    = absurd
+minLt  Z    (S _) = const Refl
+minLt (S _)  Z    = absurd
+minLt (S k) (S j) = cong . minLt k j
+
+--------------------------------------------------------------------------------
+
 -- inj_lt
 
 injLt : (p, q : Bip) -> p `Lt` q -> toNatBip p `compare` toNatBip q = LT
@@ -180,8 +216,8 @@ injLt p q pltq =
 
 injGt : (p, q : Bip) -> p `Gt` q -> toNatBip p `compare` toNatBip q = GT
 injGt p q pgtq = ltGt (toNatBip q) (toNatBip p) $
-                  injLt q p $
-                  gtLt p q pgtq
+                 injLt q p $
+                 gtLt p q pgtq
 
 -- inj_compare
 
@@ -213,3 +249,58 @@ injSub p q qltp =
   rewrite sym $ injAdd (p-q) q in
   rewrite subAdd p q qltp in
   Refl
+
+-- inj_sub_max
+
+injSubMax : (p, q : Bip) -> toNatBip (p-q) = maximum 1 (toNatBip p `minus` toNatBip q)
+injSubMax p q = case ltTotal p q of
+  Left $ Left pltq =>
+    rewrite subMaskNeg p q pltq in
+    rewrite minusNeg (toNatBip p) (toNatBip q) $ injLt p q pltq in
+    Refl
+  Left $ Right qltp =>
+    rewrite injSub p q qltp in
+    sym $ maxLTE 1 (toNatBip p `minus` toNatBip q) $
+          minusPos (toNatBip p) (toNatBip q) $
+          injLt q p qltp
+  Right eq =>
+    rewrite eq in
+    rewrite subMaskDiag q in
+    rewrite sym $ minusZeroN (toNatBip q) in
+    Refl
+
+-- inj_pred
+
+injPred : (p : Bip) -> (U `Lt` p) -> toNatBip (bipPred p) = pred (toNatBip p)
+injPred p ultp =
+  rewrite sym $ sub1R p in
+  rewrite injSub p U ultp in
+  sub1R (toNatBip p)
+
+-- inj_pred_max
+
+injPredMax : (p : Bip) -> toNatBip (bipPred p) = maximum 1 (pred $ toNatBip p)
+injPredMax p =
+  rewrite sym $ sub1R p in
+  rewrite sym $ sub1R (toNatBip p) in
+  injSubMax p U
+
+-- inj_min
+
+injMin : (p, q : Bip) -> toNatBip (p `min` q) = minimum (toNatBip p) (toNatBip q)
+injMin p q with (p `compare` q) proof pq
+  | LT = sym $ minLt (toNatBip p) (toNatBip q) $ injLt p q $ sym pq
+  | EQ = rewrite compareEqIffTo p q $ sym pq in
+         sym $ minimumIdempotent (toNatBip q)
+  | GT = rewrite minimumCommutative (toNatBip p) (toNatBip q) in
+         sym $ minLt (toNatBip q) (toNatBip p) $ injLt q p $ gtLt p q $ sym pq
+
+-- inj_max
+
+injMax : (p, q : Bip) -> toNatBip (p `max` q) = maximum (toNatBip p) (toNatBip q)
+injMax p q with (p `compare` q) proof pq
+  | LT = rewrite maximumCommutative (toNatBip p) (toNatBip q) in
+         sym $ maxLt (toNatBip q) (toNatBip p) $ injLt p q $ sym pq
+  | EQ = rewrite compareEqIffTo p q $ sym pq in
+         sym $ maximumIdempotent $ toNatBip q
+  | GT = sym $ maxLt (toNatBip p) (toNatBip q) $ injLt q p $ gtLt p q $ sym pq
