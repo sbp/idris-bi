@@ -2,4 +2,4 @@
 
 (i.e., ones without zero)
 
-Following `PArith/BinPos.v`.
+Following `PArith/BinPos.v` and `PArith/Pnat.v`.
