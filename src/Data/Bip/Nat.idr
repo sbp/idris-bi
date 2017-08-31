@@ -81,13 +81,12 @@ minLt (S k) (S j) = cong . minLt k j
 natIter : (f : a -> a) -> (x : a) -> (n : Nat) -> a
 natIter _ x  Z    = x
 natIter f x (S k) = f (natIter f x k)
-
 --------------------------------------------------------------------------------
 
 -- Properties of the injection from binary positive numbers to Peano natural
 -- numbers
 
--- Bip -> Nat
+-- Pos2Nat
 
 -- inj_succ
 
@@ -314,7 +313,7 @@ injIter f x =
      cong prf
    )
 
--- Nat -> Bip
+-- Nat2Pos
 
 -- id
 
@@ -479,3 +478,66 @@ predOfSuccNat (S k) = rewrite predSucc (toBipNatSucc k) in
 succOfNat : (n : Nat) -> Not (n=Z) -> bipSucc (toBipNat n) = toBipNatSucc n
 succOfNat  Z    nz = absurd $ nz Refl
 succOfNat (S k) _  = cong $ sym $ ofNatSucc k
+
+-- Pos2SuccNat
+
+-- id_succ
+
+toBipIdSucc : (p : Bip) -> toBipNatSucc $ toNatBip p = bipSucc p
+toBipIdSucc p =
+  rewrite ofNatSucc (toNatBip p) in
+  rewrite toBipInjSucc (toNatBip p) $
+          rewrite snd $ isSucc p in
+          uninhabited . sym
+          in
+  cong $ toNatId p
+
+-- pred_id
+
+toBipPredId : (p : Bip) -> bipPred $ toBipNatSucc $ toNatBip p = p
+toBipPredId p = rewrite toBipIdSucc p in
+                predSucc p
+
+-- SuccNat2Pos
+
+-- id_succ
+
+toNatIdSucc : (n : Nat) -> toNatBip $ toBipNatSucc n = S n
+toNatIdSucc n = rewrite ofNatSucc n in
+                toBipId (S n) (uninhabited . sym)
+
+-- pred_id
+
+toNatPredId : (n : Nat) -> pred $ toNatBip $ toBipNatSucc n = n
+toNatPredId n = rewrite toNatIdSucc n in
+                Refl
+
+-- inj
+
+toBipSuccInj : (n, m : Nat) -> toBipNatSucc n = toBipNatSucc m -> n = m
+toBipSuccInj n m snsm =
+  succInjective n m $
+  rewrite sym $ toNatIdSucc n in
+  rewrite sym $ toNatIdSucc m in
+  cong {f=toNatBip} snsm
+
+-- inj_iff: `fro` is again just `cong`
+
+-- inv
+
+toBipSuccInv : (n : Nat) -> (p : Bip) -> toNatBip p = S n -> toBipNatSucc n = p
+toBipSuccInv n p prf =
+  toNatInj (toBipNatSucc n) p $
+  rewrite prf in
+  toNatIdSucc n
+
+-- inj_succ is trivial
+
+-- inj_compare
+
+toBipSuccInjCompare : (n, m : Nat) -> n `compare` m = toBipNatSucc n `compare` toBipNatSucc m
+toBipSuccInjCompare n m =
+  rewrite toNatInjCompare (toBipNatSucc n) (toBipNatSucc m) in
+  rewrite toNatIdSucc n in
+  rewrite toNatIdSucc m in
+  Refl
