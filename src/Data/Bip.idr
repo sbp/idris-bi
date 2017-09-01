@@ -427,14 +427,14 @@ bipTestBit (I a') (BinP b') = bipTestBit a' (bipPredBin b')
 
 -- Defined in a different way in Coq.PArith.BinPosDef
 -- iter_op and to_nat
+bipMultNat : (a: Bip) -> (pow2: Nat) -> Nat
+bipMultNat  U     pow2 = pow2
+bipMultNat (O a') pow2 = bipMultNat a' (pow2 + pow2)
+bipMultNat (I a') pow2 = pow2 + (bipMultNat a' (pow2 + pow2))
+
 ||| From Bip to Nat
 toNatBip : (a: Bip) -> Nat
 toNatBip a = bipMultNat a 1
-  where
-    bipMultNat : (a: Bip) -> (pow2: Nat) -> Nat
-    bipMultNat  U     pow2 = pow2
-    bipMultNat (O a') pow2 = bipMultNat a' (pow2 + pow2)
-    bipMultNat (I a') pow2 = pow2 + (bipMultNat a' (pow2 + pow2))
 
 ||| From Nat to Bip, with Z mapping to O
 toBipNat : (n: Nat) -> Bip

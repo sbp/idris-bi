@@ -1,7 +1,9 @@
 module Data.Bin.Proofs
 
 import Data.Bin
-import Data.Bip.Proofs
+import Data.Bip.AddMul
+import Data.Bip.IterPow
+import Data.Bip.OrdSub
 
 %access public export
 %default total

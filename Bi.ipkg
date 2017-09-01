@@ -2,11 +2,19 @@ package Bi
 
 sourcedir = src
 modules = Data.Bi
+
         , Data.Bip
-        , Data.Bip.Proofs
+        , Data.Bip.AddMul
+        , Data.Bip.IterPow
+        , Data.Bip.OrdSub
+        , Data.Bip.SqrtDiv
+        , Data.Bip.Nat
+        , Data.Bip.Compat
         , Data.Bip.ProofsPruv
+
         , Data.Bin
         , Data.Bin.Proofs
+
         , Data.Biz
 
 opts = "-p pruviloj"
