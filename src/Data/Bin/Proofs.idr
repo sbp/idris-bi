@@ -493,22 +493,87 @@ powSuccR (BinP a) (BinP b) = cong $ powSuccR a b
 -- Specification of square
 
 -- square_spec
--- TODO
+
+squareSpec : (n : Bin) -> binSquare n = n * n
+squareSpec  BinO    = Refl
+squareSpec (BinP a) = cong $ squareSpec a
 
 -- Specification of Base-2 logarithm
 
 -- size_log2
+
+sizeLog2 : (n : Bin) -> Not (n=0) -> binDigits n = binSucc (binLogTwo n)
+sizeLog2  BinO        nz = absurd $ nz Refl
+sizeLog2 (BinP  U   ) _  = Refl
+sizeLog2 (BinP (O _)) _  = Refl
+sizeLog2 (BinP (I _)) _  = Refl
+
 -- size_gt
+
+sizeGt : (n : Bin) -> n `Lt` binPow 2 (binDigits n)
+sizeGt  BinO    = Refl
+sizeGt (BinP a) = sizeGt a
+
 -- size_le
+
+sizeLe : (n : Bin) -> binPow 2 (binDigits n) `Le` binDPO n
+sizeLe BinO = uninhabited
+sizeLe (BinP a) =
+  ltLeIncl (bipPow 2 (bipDigits a)) (I a) $
+  ltSuccRFro (bipPow 2 (bipDigits a)) (O a) $
+  sizeLe a
+
 -- log2_spec
--- log2_nonpos
--- TODO
+-- TODO replace requirement with `Not (n=0)`?
+log2Spec : (n : Bin) -> 0 `Lt` n -> ( binPow 2 (binLogTwo n) `Le` n
+                                    , n `Lt` binPow 2 (binSucc (binLogTwo n))
+                                    )
+log2Spec  BinO        zltn = absurd zltn
+log2Spec (BinP  U   ) _    = (uninhabited, Refl)
+log2Spec (BinP (O a)) _    = (sizeLe a, sizeGt $ BinP $ O a)
+log2Spec (BinP (I a)) _    = (sizeLe $ BinP a, sizeGt $ BinP $ I a)
+
+-- log2_nonpos doesn't make sense too (and is trivial when n=0)
 
 -- Specification of parity functions
 
 -- even_spec
+-- TODO split into `to` and `fro`
+-- TODO make a synonym for Even?
+evenSpecTo : (n : Bin) -> binEven n = True -> (m ** n = 2*m)
+evenSpecTo  BinO        _   = (0 ** Refl)
+evenSpecTo (BinP  U   ) prf = absurd prf
+evenSpecTo (BinP (O a)) _   = (BinP a ** Refl)
+evenSpecTo (BinP (I _)) prf = absurd prf
+
+evenSpecFro : (n : Bin) -> (m ** n = 2*m) -> binEven n = True
+evenSpecFro  BinO         _         = Refl
+evenSpecFro (BinP  U   ) (m ** prf) = case m of
+  BinO   => absurd prf
+  BinP _ => absurd $ binPInj prf
+evenSpecFro (BinP (O _))  _         = Refl
+evenSpecFro (BinP (I _)) (m ** prf) = case m of
+  BinO   => absurd prf
+  BinP _ => absurd $ binPInj prf
+
 -- odd_spec
--- TODO
+-- TODO split into `to` and `fro`
+-- TODO make a synonym for Odd?
+oddSpecTo : (n : Bin) -> binOdd n = True -> (m ** n = 2*m+1)
+oddSpecTo  BinO        prf = absurd prf
+oddSpecTo (BinP  U   ) _   = (0 ** Refl)
+oddSpecTo (BinP (O _)) prf = absurd prf
+oddSpecTo (BinP (I a)) _   = (BinP a ** Refl)
+
+oddSpecFro : (n : Bin) -> (m ** n = 2*m+1) -> binOdd n = True
+oddSpecFro  BinO        (m ** prf) = case m of
+  BinO   => absurd prf
+  BinP _ => absurd prf
+oddSpecFro (BinP  U   )  _ = Refl
+oddSpecFro (BinP (O _)) (m ** prf) = case m of
+  BinO   => absurd $ binPInj prf
+  BinP _ => absurd $ binPInj prf
+oddSpecFro (BinP (I _))  _ = Refl
 
 -- Specification of the euclidean division
 
