@@ -111,8 +111,8 @@ binOdd = not . binEven
 
 ||| Power
 binPow : (a: Bin) -> (b: Bin) -> Bin
-binPow  BinO      _        = BinP U
-binPow  _         BinO     = BinO
+binPow  _         BinO     = BinP U
+binPow  BinO      _        = BinO
 binPow (BinP a') (BinP b') = BinP (bipPow a' b')
 
 ||| Square

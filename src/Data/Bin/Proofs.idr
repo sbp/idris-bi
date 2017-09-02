@@ -478,10 +478,17 @@ compare0R (BinP _) = uninhabited
 
 -- Specifications of power
 
--- pow_0_r
+-- pow_0_r is trivial
+
 -- pow_succ_r
--- pow_neg_r
--- TODO
+-- dropped the `0<=p` requirement as it's trivial
+powSuccR : (n, p : Bin) -> binPow n (binSucc p) = n * binPow n p
+powSuccR  BinO     BinO    = Refl
+powSuccR (BinP _)  BinO    = Refl
+powSuccR  BinO    (BinP _) = Refl
+powSuccR (BinP a) (BinP b) = cong $ powSuccR a b
+
+-- pow_neg_r doesn't make sense: as Bin, p can't ever be <0
 
 -- Specification of square
 
