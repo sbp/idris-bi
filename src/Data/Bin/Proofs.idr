@@ -401,22 +401,80 @@ divTwoSuccDouble  BinO    = Refl
 divTwoSuccDouble (BinP _) = Refl
 
 -- double_inj
+
+doubleInj : (n, m : Bin) -> binD n = binD m -> n = m
+doubleInj n m prf =
+  rewrite sym $ divTwoDouble n in
+  rewrite sym $ divTwoDouble m in
+  rewrite prf in
+  Refl
+
 -- succ_double_inj
+
+succDoubleInj : (n, m : Bin) -> binDPO n = binDPO m -> n = m
+succDoubleInj n m prf =
+  rewrite sym $ divTwoSuccDouble n in
+  rewrite sym $ divTwoSuccDouble m in
+  rewrite prf in
+  Refl
+
 -- succ_double_lt
--- TODO
+
+succDoubleLt : (n, m : Bin) -> n `Lt` m -> binDPO n `Lt` binD m
+succDoubleLt  BinO     BinO    = absurd
+succDoubleLt  BinO    (BinP _) = const Refl
+succDoubleLt (BinP _)  BinO    = absurd
+succDoubleLt (BinP a) (BinP b) = compareContGtLtFro a b
 
 -- Specification of minimum and maximum
 
 -- min_l
+
+minL : (n, m : Bin) -> n `Le` m -> min n m = n
+minL n m nlem with (n `compare` m) proof nm
+  | LT = Refl
+  | EQ = sym $ compareEqIffTo n m $ sym nm
+  | GT = absurd $ nlem Refl
+
 -- min_r
+
+minR : (n, m : Bin) -> m `Le` n -> min n m = m
+minR n m mlen with (m `compare` n) proof mn
+  | LT = rewrite compareAntisym m n in
+         rewrite sym mn in
+         Refl
+  | EQ = rewrite compareAntisym m n in
+         rewrite sym mn in
+         Refl
+  | GT = absurd $ mlen Refl
+
 -- max_l
+
+maxL : (n, m : Bin) -> m `Le` n -> max n m = n
+maxL n m mlen with (m `compare` n) proof mn
+  | LT = rewrite compareAntisym m n in
+         rewrite sym mn in
+         Refl
+  | EQ = rewrite compareAntisym m n in
+         rewrite sym mn in
+         compareEqIffTo m n $ sym mn
+  | GT = absurd $ mlen Refl
+
 -- max_r
--- TODO
+
+maxR : (n, m : Bin) -> n `Le` m -> max n m = m
+maxR n m nlem with (n `compare` m) proof nm
+  | LT = Refl
+  | EQ = Refl
+  | GT = absurd $ nlem Refl
 
 -- 0 is the least natural number
 
 -- compare_0_r
--- TODO
+
+compare0R : (n : Bin) -> Not (n `Lt` 0)
+compare0R  BinO    = uninhabited
+compare0R (BinP _) = uninhabited
 
 -- Specifications of power
 
