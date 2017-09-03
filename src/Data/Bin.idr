@@ -188,13 +188,16 @@ binGGCD (BinP a') (BinP b') =
   let (g, (aa, bb)) = bipGGCD a' b' in
       (BinP g, (BinP aa, BinP bb))
 
+-- Helper for binSqrtRem, to work around #4001
+bipSqrtRemHelp : Bip -> Bim -> (Bin, Bin)
+bipSqrtRemHelp s (BimP r) = (BinP s, BinP r)
+bipSqrtRemHelp s  _       = (BinP s, BinO)
+
 ||| Square root with remainder
 binSqrtRem : (a : Bin) -> (Bin, Bin)
 binSqrtRem  BinO     = (BinO, BinO)
-binSqrtRem (BinP a') =
-  case bipSqrtRem a' of
-    (s, BimP r) => (BinP s, BinP r)
-    (s, _)      => (BinP s, BinO)
+binSqrtRem (BinP a') = let qr = bipSqrtRem a' in 
+                       bipSqrtRemHelp (fst qr) (snd qr)
 
 ||| Square root
 binSqrt : (a : Bin) -> Bin

@@ -4,6 +4,7 @@ import Data.Bin
 import Data.Bip.AddMul
 import Data.Bip.IterPow
 import Data.Bip.OrdSub
+import Data.Bip.SqrtDiv
 
 %access public export
 %default total
@@ -729,10 +730,37 @@ modLt (BinP a) (BinP b) bz = posDivEuclRemainder a (BinP b) bz
 -- Specification of square root
 
 -- sqrtrem_sqrt
+
+sqrtremSqrt : (n : Bin) -> fst (binSqrtRem n) = binSqrt n
+sqrtremSqrt  BinO    = Refl
+sqrtremSqrt (BinP a) with (snd $ bipSqrtRem a)
+  | BimP _ = Refl
+  | BimO   = Refl
+  | BimM   = Refl
+
 -- sqrtrem_spec
+
+sqrtremSpec : (n : Bin) -> let sr = binSqrtRem n
+                               s = fst sr
+                               r = snd sr
+                           in (n = s*s + r, r `Le` 2*s)
+sqrtremSpec  BinO    = (Refl, uninhabited)
+sqrtremSpec (BinP a) = case sqrtremSpec a of
+  SqrtExact  prf     srprf =>
+    rewrite srprf in
+    (cong prf, uninhabited)
+  SqrtApprox prf rle srprf =>
+    rewrite srprf in
+    (cong prf, rle)
+
 -- sqrt_spec
--- sqrt_neg
--- TODO
+-- removed redundant constraint on `n`
+sqrtSpec : (n : Bin) -> let s = binSqrt n in
+  (s*s `Le` n, n `Lt` (binSucc s)*(binSucc s))
+sqrtSpec BinO = (uninhabited, Refl)
+sqrtSpec (BinP a) = sqrtSpec a
+
+-- sqrt_neg doesn't make sense
 
 -- Specification of gcd
 
