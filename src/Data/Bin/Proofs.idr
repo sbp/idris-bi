@@ -245,6 +245,11 @@ addAssoc (BinP _ )  BinO     (BinP _ ) = Refl
 addAssoc (BinP _ ) (BinP _ )  BinO     = Refl
 addAssoc (BinP a') (BinP b') (BinP c') = cong $ addAssoc a' b' c'
 
+subDiag : (n : Bin) -> n-n = 0
+subDiag  BinO    = Refl
+subDiag (BinP a) = rewrite subMaskDiag a in
+                   Refl
+
 -- sub_add
 
 subAdd : (p, q : Bin) -> p `Lt` q -> (q-p)+p = q
@@ -578,9 +583,86 @@ oddSpecFro (BinP (I _))  _ = Refl
 -- Specification of the euclidean division
 
 -- pos_div_eucl_spec
+
+posDivEuclSpec : (a : Bip) -> (b : Bin) -> let qr = bipDivEuclid a b
+                                               q = fst qr
+                                               r = snd qr
+                                           in
+                                           BinP a = q * b + r
+posDivEuclSpec  U     BinO        = Refl
+posDivEuclSpec  U    (BinP  U   ) = Refl
+posDivEuclSpec  U    (BinP (O _)) = Refl
+posDivEuclSpec  U    (BinP (I _)) = Refl
+posDivEuclSpec (O a)  b           =
+  -- BUG? can't directly rewrite with cong ..
+  let ih = cong {f=binD} $ posDivEuclSpec a b
+      qr = bipDivEuclid a b
+      q = fst qr
+      r = snd qr
+    in
+  rewrite ih in
+  rewrite doubleAdd (q*b) r in
+  rewrite doubleMul q b in
+  aux q r
+  where
+  aux : (q, r : Bin) -> let res = bipDivEuclidHelp q (binD r) b (b `compare` binD r)
+                       in ((binD q)*b)+(binD r) = ((fst res)*b)+(snd res)
+  aux q r with (b `compare` binD r) proof cmp
+    | LT = rewrite succDoubleMul q b in
+           rewrite sym $ addAssoc ((binD q)*b) b ((binD r)-b) in
+           rewrite addComm b ((binD r)-b) in
+           rewrite subAdd b (binD r) $ sym cmp in
+           Refl
+    | EQ = rewrite sym $ compareEqIffTo b (binD r) $ sym cmp in
+           rewrite subDiag b in
+           rewrite addZeroR ((binDPO q)*b) in
+           sym $ succDoubleMul q b
+    | GT = Refl
+posDivEuclSpec (I a)  b           =
+  let ih = cong {f=binDPO} $ posDivEuclSpec a b
+      qr = bipDivEuclid a b
+      q = fst qr
+      r = snd qr
+   in
+  rewrite ih in
+  rewrite succDoubleAdd (q*b) r in
+  rewrite doubleMul q b in
+  aux q r
+  where
+  aux : (q, r : Bin) -> let res = bipDivEuclidHelp q (binDPO r) b (b `compare` binDPO r)
+                       in ((binD q)*b)+(binDPO r) = ((fst res)*b)+(snd res)
+  aux q r with (b `compare` binDPO r) proof cmp
+    | LT = rewrite succDoubleMul q b in
+           rewrite sym $ addAssoc ((binD q)*b) b ((binDPO r)-b) in
+           rewrite addComm b ((binDPO r)-b) in
+           rewrite subAdd b (binDPO r) $ sym cmp in
+           Refl
+    | EQ = rewrite sym $ compareEqIffTo b (binDPO r) $ sym cmp in
+           rewrite subDiag b in
+           rewrite addZeroR ((binDPO q)*b) in
+           sym $ succDoubleMul q b
+    | GT = Refl
+
 -- div_eucl_spec
+-- why is q*b flipped here?
+divEuclSpec : (a, b : Bin) -> let qr = binDivEuclid a b
+                                  q = fst qr
+                                  r = snd qr
+                              in a = b * q + r
+divEuclSpec  BinO     BinO    = Refl
+divEuclSpec  BinO    (BinP _) = Refl
+divEuclSpec (BinP _)  BinO    = Refl
+divEuclSpec (BinP a) (BinP b) =
+  rewrite mulComm (BinP b) (fst (bipDivEuclid a (BinP b))) in
+  posDivEuclSpec a (BinP b)
+
 -- div_mod'
--- div_mod
+-- this looks redundant
+divMod' : (a, b : Bin) -> a = b * (a `div` b) + (a `mod` b)
+divMod' = divEuclSpec
+
+-- div_mod looks even more redundant
+
 -- pos_div_eucl_remainder
 -- mod_lt
 -- mod_bound_pos
