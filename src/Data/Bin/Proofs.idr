@@ -219,6 +219,24 @@ compareAntisym (BinP a) (BinP b) = compareAntisym a b
 
 -- Some more advanced properties of comparison and orders
 
+dpoLt : (a, b : Bin) -> binDPO a `Lt` b -> binD a `Lt` b
+dpoLt  BinO     BinO    = absurd
+dpoLt  BinO    (BinP _) = const Refl
+dpoLt (BinP _)  BinO    = absurd
+dpoLt (BinP a) (BinP b) = leSuccLTo (O a) b . ltLeIncl (I a) b
+
+ltGt : (p, q : Bin) -> p `Lt` q -> q `Gt` p
+ltGt p q pltq =
+  rewrite compareAntisym p q in
+  rewrite pltq in
+  Refl
+
+gtLt : (p, q : Bin) -> p `Gt` q -> q `Lt` p
+gtLt p q pgtq =
+  rewrite compareAntisym p q in
+  rewrite pgtq in
+  Refl
+
 -- add_0_r
 
 addZeroR : (a : Bin) -> a + BinO = a
@@ -274,10 +292,9 @@ mulComm (BinP a') (BinP b') = cong $ mulComm a' b'
 
 -- le_0_l
 
-leZeroL : (a : Bin) ->
-  Either (BinO `compare` a = EQ) (BinO `compare` a = LT)
-leZeroL  BinO    = Left Refl
-leZeroL (BinP _) = Right Refl
+leZeroL : (a : Bin) -> BinO `Le` a
+leZeroL  BinO    = uninhabited
+leZeroL (BinP _) = uninhabited
 
 -- leb_spec
 
@@ -664,9 +681,50 @@ divMod' = divEuclSpec
 -- div_mod looks even more redundant
 
 -- pos_div_eucl_remainder
+
+posDivEuclRemainder : (a : Bip) -> (b : Bin) -> Not (b=0) -> (snd $ bipDivEuclid a b) `Lt` b
+posDivEuclRemainder  _     BinO        bz = absurd $ bz Refl
+posDivEuclRemainder  U    (BinP  U   ) _  = Refl
+posDivEuclRemainder  U    (BinP (O _)) _  = Refl
+posDivEuclRemainder  U    (BinP (I _)) _  = Refl
+posDivEuclRemainder (O a) (BinP  y   ) bz with ((BinP y) `compare` (binD $ snd $ bipDivEuclid a (BinP y))) proof cmp
+  | LT = let b = BinP y
+             r = snd $ bipDivEuclid a b
+         in
+         addLtCancelL ((binD r)-b) b b $
+         rewrite addComm b ((binD r)-b) in
+         rewrite subAdd b (binD r) $ sym cmp in
+         rewrite addDiag y in
+         let ih = posDivEuclRemainder a b bz in
+         dpoLt (snd $ bipDivEuclid a b) (BinP (O y)) $
+         succDoubleLt r b ih
+  | EQ = rewrite sym $ compareEqIffTo (BinP y) (binD $ snd $ bipDivEuclid a (BinP y)) $ sym cmp in
+         rewrite subDiag (BinP y) in
+         Refl
+  | GT = gtLt (BinP y) (binD $ snd $ bipDivEuclid a (BinP y)) $ sym cmp
+posDivEuclRemainder (I a) (BinP  y   ) bz with ((BinP y) `compare` (binDPO $ snd $ bipDivEuclid a (BinP y))) proof cmp
+  | LT = let b = BinP y
+             r = snd $ bipDivEuclid a b
+         in
+         addLtCancelL ((binDPO r)-b) b b $
+         rewrite addComm b ((binDPO r)-b) in
+         rewrite subAdd b (binDPO r) $ sym cmp in
+         rewrite addDiag y in
+         let ih = posDivEuclRemainder a b bz in
+         succDoubleLt r b ih
+  | EQ = rewrite sym $ compareEqIffTo (BinP y) (binDPO $ snd $ bipDivEuclid a (BinP y)) $ sym cmp in
+         rewrite subDiag (BinP y) in
+         Refl
+  | GT = gtLt (BinP y) (binDPO $ snd $ bipDivEuclid a (BinP y)) $ sym cmp
+
 -- mod_lt
--- mod_bound_pos
--- TODO
+
+modLt : (a, b : Bin) -> Not (b=0) -> (a `mod` b) `Lt` b
+modLt  _        BinO    bz = absurd $ bz Refl
+modLt  BinO    (BinP _) _  = Refl
+modLt (BinP a) (BinP b) bz = posDivEuclRemainder a (BinP b) bz
+
+-- mod_bound_pos is just mod_lt + le_0_l
 
 -- Specification of square root
 
