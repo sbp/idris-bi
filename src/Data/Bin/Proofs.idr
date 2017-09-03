@@ -126,6 +126,10 @@ mulZeroL : (a : Bin) -> BinO * a = BinO
 mulZeroL  BinO    = Refl
 mulZeroL (BinP _) = Refl
 
+mulZeroR : (a : Bin) -> a * BinO = BinO
+mulZeroR  BinO    = Refl
+mulZeroR (BinP _) = Refl
+
 -- mul_succ_l
 
 mulSuccL : (a, b : Bin) -> (binSucc a) * b = b + a * b
@@ -765,12 +769,72 @@ sqrtSpec (BinP a) = sqrtSpec a
 -- Specification of gcd
 
 -- ggcd_gcd
+-- The first component of binGGCD is binGCD
+ggcdGcd : (a, b : Bin) -> fst (binGGCD a b) = binGCD a b
+ggcdGcd  BinO     BinO    = Refl
+ggcdGcd  BinO    (BinP _) = Refl
+ggcdGcd (BinP _)  BinO    = Refl
+ggcdGcd (BinP a) (BinP b) = cong $ ggcdGcd a b
+
 -- ggcd_correct_divisors
+-- The other components of binGGCD are indeed the correct factors
+ggcdCorrectDivisors : (a, b : Bin) -> let gaabb = binGGCD a b
+                                          g = fst gaabb
+                                          aa = fst $ snd gaabb
+                                          bb = snd $ snd gaabb in
+                                        (a=g*aa, b=g*bb)
+ggcdCorrectDivisors  BinO     BinO    = (Refl, Refl)
+ggcdCorrectDivisors  BinO    (BinP b) = (Refl, rewrite mul1R b in
+                                               Refl)
+ggcdCorrectDivisors (BinP a)  BinO    = (rewrite mul1R a in
+                                         Refl, Refl)
+ggcdCorrectDivisors (BinP a) (BinP b) = let (prf1, prf2) = ggcdCorrectDivisors a b in
+                                        (cong prf1, cong prf2)
+
+binDivides : (a, b : Bin) -> Type
+binDivides a b = (c ** b = c*a)
+
 -- gcd_divide_l
+
+gcdDivideL : (a, b : Bin) -> binDivides (binGCD a b) a
+gcdDivideL a b =
+  let (aprf, _) = ggcdCorrectDivisors a b
+      x = binGGCD a b in
+  rewrite sym $ ggcdGcd a b in
+  (fst $ snd x **
+    rewrite mulComm (fst $ snd x) (fst x) in
+    aprf)
+
 -- gcd_divide_r
+
+gcdDivideR : (a, b : Bin) -> binDivides (binGCD a b) b
+gcdDivideR a b =
+  let (_, bprf) = ggcdCorrectDivisors a b
+      x = binGGCD a b in
+  rewrite sym $ ggcdGcd a b in
+  (snd $ snd x **
+    rewrite mulComm (snd $ snd x) (fst x) in
+    bprf)
+
 -- gcd_greatest
--- gcd_nonneg
--- TODO
+
+gcdGreatest : (a, b, c : Bin) -> binDivides c a -> binDivides c b
+                              -> binDivides c (binGCD a b)
+gcdGreatest  BinO     BinO     c       _        _  = (0 ** rewrite mulZeroL c in Refl)
+gcdGreatest  BinO    (BinP _)  _       _        cb = cb
+gcdGreatest (BinP _)  BinO     _       ca       _  = ca
+gcdGreatest (BinP _) (BinP _)  BinO    (d**pca) _  = absurd $ replace (mulZeroR d) pca
+gcdGreatest (BinP a) (BinP b) (BinP c) (d**pca) (e**pcb) = aux d e pca pcb
+  where
+  aux : (d, e : Bin) -> BinP a = binMult d (BinP c) -> BinP b = binMult e (BinP c) -> (z ** BinP (bipGCD a b) = z*(BinP c))
+  aux  BinO     _       pca _   = absurd pca
+  aux  _        BinO    _   pcb = absurd pcb
+  aux (BinP x) (BinP y) pca pcb =
+    let (r**prf) = gcdGreatest a b c (x**binPInj pca) (y**binPInj pcb)
+    in
+    (BinP r ** cong prf)
+
+-- gcd_nonneg is just le_0_l
 
 -- Specification of bitwise functions
 

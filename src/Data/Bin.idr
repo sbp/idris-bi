@@ -185,7 +185,11 @@ binGGCD : (a, b: Bin) -> (Bin, (Bin, Bin))
 binGGCD  BinO      b        = (b, (BinO, BinP U))
 binGGCD  a         BinO     = (a, (BinP U, BinO))
 binGGCD (BinP a') (BinP b') =
-  let (g, (aa, bb)) = bipGGCD a' b' in
+  let gaabb = bipGGCD a' b' 
+      g = fst gaabb
+      aa = fst $ snd gaabb
+      bb = snd $ snd gaabb
+  in
       (BinP g, (BinP aa, BinP bb))
 
 -- Helper for binSqrtRem, to work around #4001
