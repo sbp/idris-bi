@@ -820,13 +820,14 @@ gcdDivideR a b =
 
 gcdGreatest : (a, b, c : Bin) -> binDivides c a -> binDivides c b
                               -> binDivides c (binGCD a b)
-gcdGreatest  BinO     BinO     c       _        _  = (0 ** rewrite mulZeroL c in Refl)
-gcdGreatest  BinO    (BinP _)  _       _        cb = cb
-gcdGreatest (BinP _)  BinO     _       ca       _  = ca
-gcdGreatest (BinP _) (BinP _)  BinO    (d**pca) _  = absurd $ replace (mulZeroR d) pca
+gcdGreatest  BinO     BinO     c       _        _        = (0 ** rewrite mulZeroL c in Refl)
+gcdGreatest  BinO    (BinP _)  _       _        cb       = cb
+gcdGreatest (BinP _)  BinO     _       ca       _        = ca
+gcdGreatest (BinP _) (BinP _)  BinO    (d**pca) _        = absurd $ replace (mulZeroR d) pca
 gcdGreatest (BinP a) (BinP b) (BinP c) (d**pca) (e**pcb) = aux d e pca pcb
   where
-  aux : (d, e : Bin) -> BinP a = binMult d (BinP c) -> BinP b = binMult e (BinP c) -> (z ** BinP (bipGCD a b) = z*(BinP c))
+  aux : (d, e : Bin) -> BinP a = binMult d (BinP c) -> BinP b = binMult e (BinP c)
+                     -> (z ** BinP (bipGCD a b) = z*(BinP c))
   aux  BinO     _       pca _   = absurd pca
   aux  _        BinO    _   pcb = absurd pcb
   aux (BinP x) (BinP y) pca pcb =
@@ -839,17 +840,62 @@ gcdGreatest (BinP a) (BinP b) (BinP c) (d**pca) (e**pcb) = aux d e pca pcb
 -- Specification of bitwise functions
 
 -- testbit_even_0
+
+testbitEven0 : (a : Bin) -> binTestBit (2*a) 0 = False
+testbitEven0  BinO    = Refl
+testbitEven0 (BinP _) = Refl
+
 -- testbit_odd_0
+
+testbitOdd0 : (a : Bin) -> binTestBit (2*a+1) 0 = True
+testbitOdd0  BinO    = Refl
+testbitOdd0 (BinP _) = Refl
+
 -- testbit_succ_r_div2
+
+-- removed redundant constraint on `n`
+testbitSuccRDiv2 : (a, n : Bin) -> binTestBit a (binSucc n) = binTestBit (binDivTwo a) n
+testbitSuccRDiv2  BinO         _       = Refl
+testbitSuccRDiv2 (BinP  U   )  BinO    = Refl
+testbitSuccRDiv2 (BinP  U   ) (BinP _) = Refl
+testbitSuccRDiv2 (BinP (O _))  BinO    = Refl
+testbitSuccRDiv2 (BinP (O a)) (BinP b) = cong {f=bipTestBit a} $ predBinSucc b
+testbitSuccRDiv2 (BinP (I _))  BinO    = Refl
+testbitSuccRDiv2 (BinP (I a)) (BinP b) = cong {f=bipTestBit a} $ predBinSucc b
+
 -- testbit_odd_succ
+-- removed redundant constraint on `n`
+testbitOddSucc : (a, n : Bin) -> binTestBit (2*a+1) (binSucc n) = binTestBit a n
+testbitOddSucc a n = rewrite testbitSuccRDiv2 (2*a+1) n in
+                     rewrite sym $ succDoubleSpec a in
+                     rewrite divTwoSuccDouble a in
+                     Refl
+
 -- testbit_even_succ
--- testbit_neg_r
--- TODO
+-- removed redundant constraint on `n`
+testbitEvenSucc : (a, n : Bin) -> binTestBit (2*a) (binSucc n) = binTestBit a n
+testbitEvenSucc a n = rewrite testbitSuccRDiv2 (2*a) n in
+                      rewrite sym $ doubleSpec a in
+                      rewrite divTwoDouble a in
+                      Refl
+
+-- testbit_neg_r doesn't make sense
 
 -- Correctness proofs for shifts
 
 -- shiftr_succ_r
+
+shiftrSuccR : (a, n : Bin) -> binShiftR a (binSucc n) = binDivTwo (binShiftR a n)
+shiftrSuccR _  BinO    = Refl
+shiftrSuccR a (BinP b) = iterSucc binDivTwo a b
+
 -- shiftl_succ_r
+
+shiftlSuccR : (a, n : Bin) -> binShiftL a (binSucc n) = binD (binShiftL a n)
+shiftlSuccR BinO _ = Refl
+shiftlSuccR (BinP a) BinO = Refl
+shiftlSuccR (BinP a) (BinP b) = cong $ iterSucc O a b
+
 -- shiftr_spec
 -- shiftl_spec_high
 -- shiftl_spec_low

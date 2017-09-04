@@ -234,12 +234,12 @@ binXor (BinP a') (BinP b') = bipXor a' b'
 
 ||| Shift left
 binShiftL : (a, b : Bin) -> Bin
-binShiftL  BinO     b = BinO
+binShiftL  BinO     _ = BinO
 binShiftL (BinP a') b = BinP (bipShiftL a' b)
 
 ||| Shift right
 binShiftR : (a, b : Bin) -> Bin
-binShiftR _  BinO     = BinO
+binShiftR a  BinO     = a
 binShiftR a (BinP b') = bipIter binDivTwo a b'
 
 ||| Checking whether a bit is set
