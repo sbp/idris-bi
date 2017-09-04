@@ -230,6 +230,12 @@ dpoLt  BinO    (BinP _) = const Refl
 dpoLt (BinP _)  BinO    = absurd
 dpoLt (BinP a) (BinP b) = leSuccLTo (O a) b . ltLeIncl (I a) b
 
+ltLeIncl : (n, m : Bin) -> n `Lt` m -> n `Le` m
+ltLeIncl n m nltm ngtm with (n `compare` m)
+  | LT = uninhabited ngtm
+  | EQ = uninhabited ngtm
+  | GT = uninhabited nltm
+
 ltGt : (p, q : Bin) -> p `Lt` q -> q `Gt` p
 ltGt p q pltq =
   rewrite compareAntisym p q in
@@ -275,14 +281,14 @@ subDiag (BinP a) = rewrite subMaskDiag a in
 
 -- sub_add
 
-subAdd : (p, q : Bin) -> p `Lt` q -> (q-p)+p = q
-subAdd  BinO     BinO    pltq = absurd pltq
-subAdd  BinO    (BinP _) Refl = Refl
-subAdd (BinP _)  BinO    pltq = absurd pltq
-subAdd (BinP a) (BinP b) pltq = case subMaskSpec a b of
+subAdd : (p, q : Bin) -> p `Le` q -> (q-p)+p = q
+subAdd  BinO     BinO    _    = Refl
+subAdd  BinO    (BinP _) _    = Refl
+subAdd (BinP _)  BinO    pleq = absurd $ pleq Refl
+subAdd (BinP a) (BinP b) pleq = case subMaskSpec a b of
   SubIsNul     Refl _ => rewrite subMaskDiag a in
                          Refl
-  SubIsPos {r} Refl _ => absurd $ ltNotAddL b r pltq
+  SubIsPos {r} Refl _ => absurd $ pleq $ ltGt b (b+r) $ ltAddDiagR b r
   SubIsNeg {r} Refl _ => rewrite subMaskAddDiagL a r in
                          rewrite addComm a r in
                          Refl
@@ -633,7 +639,7 @@ posDivEuclSpec (O a)  b           =
     | LT = rewrite succDoubleMul q b in
            rewrite sym $ addAssoc ((binD q)*b) b ((binD r)-b) in
            rewrite addComm b ((binD r)-b) in
-           rewrite subAdd b (binD r) $ sym cmp in
+           rewrite subAdd b (binD r) $ ltLeIncl b (binD r) $ sym cmp in
            Refl
     | EQ = rewrite sym $ compareEqIffTo b (binD r) $ sym cmp in
            rewrite subDiag b in
@@ -657,7 +663,7 @@ posDivEuclSpec (I a)  b           =
     | LT = rewrite succDoubleMul q b in
            rewrite sym $ addAssoc ((binD q)*b) b ((binDPO r)-b) in
            rewrite addComm b ((binDPO r)-b) in
-           rewrite subAdd b (binDPO r) $ sym cmp in
+           rewrite subAdd b (binDPO r) $ ltLeIncl b (binDPO r) $ sym cmp in
            Refl
     | EQ = rewrite sym $ compareEqIffTo b (binDPO r) $ sym cmp in
            rewrite subDiag b in
@@ -698,7 +704,7 @@ posDivEuclRemainder (O a) (BinP  y   ) bz with ((BinP y) `compare` (binD $ snd $
          in
          addLtCancelL ((binD r)-b) b b $
          rewrite addComm b ((binD r)-b) in
-         rewrite subAdd b (binD r) $ sym cmp in
+         rewrite subAdd b (binD r) $ ltLeIncl b (binD r) $ sym cmp in
          rewrite addDiag y in
          let ih = posDivEuclRemainder a b bz in
          dpoLt (snd $ bipDivEuclid a b) (BinP (O y)) $
@@ -713,7 +719,7 @@ posDivEuclRemainder (I a) (BinP  y   ) bz with ((BinP y) `compare` (binDPO $ snd
          in
          addLtCancelL ((binDPO r)-b) b b $
          rewrite addComm b ((binDPO r)-b) in
-         rewrite subAdd b (binDPO r) $ sym cmp in
+         rewrite subAdd b (binDPO r) $ ltLeIncl b (binDPO r) $ sym cmp in
          rewrite addDiag y in
          let ih = posDivEuclRemainder a b bz in
          succDoubleLt r b ih
@@ -900,20 +906,20 @@ shiftlSuccR (BinP a) (BinP b) = cong $ iterSucc O a b
 -- removed redundant constraint on `m`
 shiftrSpec : (a, n, m : Bin) -> binTestBit (binShiftR a n) m = binTestBit a (m+n)
 shiftrSpec a n =
-  Proofs.peanoRect
-   -- a trick to emulate Coq's `revert`, otherwise you get stuck on `binSucc m`
-   (\x => ((y : Bin) -> binTestBit (binShiftR a x) y = binTestBit a (y+x)))
-   (\y => rewrite addZeroR y in Refl)
-   (\n',fprf,y =>
-    rewrite shiftrSuccR a n' in
-    rewrite sym $ testbitSuccRDiv2 (binShiftR a n') y in
-    rewrite fprf (binSucc y) in
-    rewrite addComm y (binSucc n') in
-    rewrite addSuccL n' y in
-    rewrite addSuccL y n' in
-    rewrite addComm n' y in
-    Refl)
-   n
+  peanoRect
+    -- a trick to emulate Coq's `revert`, otherwise you get stuck on `binSucc m`
+    (\x => ((y : Bin) -> binTestBit (binShiftR a x) y = binTestBit a (y+x)))
+    (\y => rewrite addZeroR y in Refl)
+    (\n',fprf,y =>
+     rewrite shiftrSuccR a n' in
+     rewrite sym $ testbitSuccRDiv2 (binShiftR a n') y in
+     rewrite fprf (binSucc y) in
+     rewrite addComm y (binSucc n') in
+     rewrite addSuccL n' y in
+     rewrite addSuccL y n' in
+     rewrite addComm n' y in
+     Refl)
+    n
 
 -- shiftl_spec_high
 -- shiftl_spec_low
