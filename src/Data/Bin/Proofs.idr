@@ -897,6 +897,24 @@ shiftlSuccR (BinP a) BinO = Refl
 shiftlSuccR (BinP a) (BinP b) = cong $ iterSucc O a b
 
 -- shiftr_spec
+-- removed redundant constraint on `m`
+shiftrSpec : (a, n, m : Bin) -> binTestBit (binShiftR a n) m = binTestBit a (m+n)
+shiftrSpec a n =
+  Proofs.peanoRect
+   -- a trick to emulate Coq's `revert`, otherwise you get stuck on `binSucc m`
+   (\x => ((y : Bin) -> binTestBit (binShiftR a x) y = binTestBit a (y+x)))
+   (\y => rewrite addZeroR y in Refl)
+   (\n',fprf,y =>
+    rewrite shiftrSuccR a n' in
+    rewrite sym $ testbitSuccRDiv2 (binShiftR a n') y in
+    rewrite fprf (binSucc y) in
+    rewrite addComm y (binSucc n') in
+    rewrite addSuccL n' y in
+    rewrite addSuccL y n' in
+    rewrite addComm n' y in
+    Refl)
+   n
+
 -- shiftl_spec_high
 -- shiftl_spec_low
 -- div2_spec
