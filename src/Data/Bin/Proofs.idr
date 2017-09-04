@@ -1000,12 +1000,85 @@ shiftlSpecLow a (BinP b) m mltn =
   zeroLt1  BinO    Refl = Refl
   zeroLt1 (BinP a) nlt1 = absurd $ nlt1R a $ nlt1
 
--- div2_spec
--- TODO
+-- div2_spec is trivial
 
 -- Semantics of bitwise operations
 
+------- TODO contribute to Prelude.Bool ------
+xor : Bool -> Bool -> Bool
+xor False False = False
+xor False True  = True
+xor True  False = True
+xor True  True  = False
+
+xorDiag : (b : Bool) -> xor b b = False
+xorDiag False = Refl
+xorDiag True = Refl
+
+xorComm : (a, b : Bool) -> xor a b = xor b a
+xorComm False False = Refl
+xorComm False True  = Refl
+xorComm True  False = Refl
+xorComm True  True  = Refl
+
+xorFalse : (b : Bool) -> xor False b = b
+xorFalse False = Refl
+xorFalse True = Refl
+----------------------------------------------
+
+-- some unfortunate duplication, see idris-bi/16
+doubleSpec2 : (a : Bin) -> binDouble a = 2 * a
+doubleSpec2  BinO    = Refl
+doubleSpec2 (BinP _) = Refl
+
+succDoubleSpec2 : (a : Bin) -> binDoubleSucc a = 2 * a + 1
+succDoubleSpec2  BinO    = Refl
+succDoubleSpec2 (BinP _) = Refl
+
 -- pos_lxor_spec
+
+-- TODO there's a lot of repetition here, most likely it can be broken into lemmas and simplified
+posLxorSpec : (p, p1: Bip) -> (n : Bin) -> binTestBit (bipXor p p1) n = xor (bipTestBit p n) (bipTestBit p1 n)
+posLxorSpec  U     U     n       = sym $ xorDiag (bipTestBit U n)
+posLxorSpec  U    (O _)  BinO    = Refl
+posLxorSpec  U    (O a) (BinP b) = sym $ xorFalse (bipTestBit a (bipPredBin b))
+posLxorSpec  U    (I _)  BinO    = Refl
+posLxorSpec  U    (I a) (BinP b) = sym $ xorFalse (bipTestBit a (bipPredBin b))
+posLxorSpec (O _)  U     BinO    = Refl
+posLxorSpec (O a)  U    (BinP b) = rewrite xorComm (bipTestBit a (bipPredBin b)) False in
+                                   sym $ xorFalse (bipTestBit a (bipPredBin b))
+posLxorSpec (I _)  U     BinO    = Refl
+posLxorSpec (I a)  U    (BinP b) = rewrite xorComm (bipTestBit a (bipPredBin b)) False in
+                                   sym $ xorFalse (bipTestBit a (bipPredBin b))
+posLxorSpec (O a) (O b)  BinO    = rewrite doubleSpec2 (bipXor a b) in
+                                   testbitEven0 (bipXor a b)
+posLxorSpec (O a) (O b) (BinP c) =
+  rewrite doubleSpec2 (bipXor a b) in
+  rewrite sym $ succPosPred c in
+  rewrite testbitEvenSucc (bipXor a b) (bipPredBin c) in
+  posLxorSpec a b (bipPredBin c)
+posLxorSpec (O a) (I b)  BinO    = rewrite succDoubleSpec2 (bipXor a b) in
+                                   testbitOdd0 (bipXor a b)
+posLxorSpec (O a) (I b) (BinP c) =
+  rewrite succDoubleSpec2 (bipXor a b) in
+  rewrite sym $ succPosPred c in
+  rewrite testbitOddSucc (bipXor a b) (bipPredBin c) in
+  posLxorSpec a b (bipPredBin c)
+posLxorSpec (I a) (O b)  BinO    = rewrite succDoubleSpec2 (bipXor a b) in
+                                   testbitOdd0 (bipXor a b)
+posLxorSpec (I a) (O b) (BinP c) =
+  rewrite succDoubleSpec2 (bipXor a b) in
+  rewrite sym $ succPosPred c in
+  rewrite testbitOddSucc (bipXor a b) (bipPredBin c) in
+  posLxorSpec a b (bipPredBin c)
+posLxorSpec (I a) (I b)  BinO    = rewrite doubleSpec2 (bipXor a b) in
+                                   testbitEven0 (bipXor a b)
+posLxorSpec (I a) (I b) (BinP c) =
+  rewrite doubleSpec2 (bipXor a b) in
+  rewrite sym $ succPosPred c in
+  rewrite testbitEvenSucc (bipXor a b) (bipPredBin c) in
+  posLxorSpec a b (bipPredBin c)
+
 -- lxor_spec
 -- pos_lor_spec
 -- lor_spec

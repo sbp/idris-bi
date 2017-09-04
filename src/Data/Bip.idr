@@ -388,7 +388,7 @@ bipXor : (a, b: Bip) -> Bin
 bipXor  U      U     = BinO
 bipXor  U     (O b') = BinP (I b')
 bipXor  U     (I b') = BinP (O b')
-bipXor (O a')  U     = BinP (O a')
+bipXor (O a')  U     = BinP (I a')
 bipXor (O a') (O b') = binDouble (bipXor a' b')
 bipXor (O a') (I b') = binDoubleSucc (bipXor a' b')
 bipXor (I a')  U     = BinP (O a')
