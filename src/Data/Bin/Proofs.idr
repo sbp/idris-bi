@@ -54,6 +54,10 @@ succPosPred (I _ ) = Refl
 
 -- Properties of successor and predecessor
 
+succPred : (a : Bin) -> Not (a=0) -> binSucc (binPred a) = a
+succPred  BinO    az = absurd $ az Refl
+succPred (BinP a) _  = succPosPred a
+
 -- pred_succ
 predSucc : (a : Bin) -> binPred (binSucc a) = a
 predSucc  BinO     = Refl
@@ -195,6 +199,12 @@ lebLeFro p q pleq with (p `compare` q)
 
 -- Basic properties of comparison (using <->)
 
+compareSuccSucc : (n, m : Bin) -> binSucc n `compare` binSucc m = n `compare` m
+compareSuccSucc  BinO     BinO    = Refl
+compareSuccSucc  BinO    (BinP a) = lt1Succ a
+compareSuccSucc (BinP a)  BinO    = ltGt U (bipSucc a) $ lt1Succ a
+compareSuccSucc (BinP a) (BinP b) = compareSuccSucc a b
+
 -- compare_eq_iff
 -- TODO split into `to` and `fro`
 
@@ -292,6 +302,17 @@ subAdd (BinP a) (BinP b) pleq = case subMaskSpec a b of
   SubIsNeg {r} Refl _ => rewrite subMaskAddDiagL a r in
                          rewrite addComm a r in
                          Refl
+
+addSub : (p, q : Bin) -> (p+q)-q = p
+addSub BinO BinO = Refl
+addSub BinO (BinP a) = rewrite subMaskDiag a in
+                       Refl
+addSub (BinP _) BinO = Refl
+addSub (BinP a) (BinP b) =
+  rewrite addComm a b in
+  rewrite subMaskAddDiagL b a in
+  Refl
+
 
 -- mul_comm
 
@@ -889,6 +910,10 @@ testbitEvenSucc a n = rewrite testbitSuccRDiv2 (2*a) n in
 
 -- Correctness proofs for shifts
 
+shiftlZero : (a : Bin) -> binShiftL a 0 = a
+shiftlZero  BinO    = Refl
+shiftlZero (BinP _) = Refl
+
 -- shiftr_succ_r
 
 shiftrSuccR : (a, n : Bin) -> binShiftR a (binSucc n) = binDivTwo (binShiftR a n)
@@ -908,7 +933,7 @@ shiftrSpec : (a, n, m : Bin) -> binTestBit (binShiftR a n) m = binTestBit a (m+n
 shiftrSpec a n =
   peanoRect
     -- a trick to emulate Coq's `revert`, otherwise you get stuck on `binSucc m`
-    (\x => ((y : Bin) -> binTestBit (binShiftR a x) y = binTestBit a (y+x)))
+    (\x => (y : Bin) -> binTestBit (binShiftR a x) y = binTestBit a (y+x))
     (\y => rewrite addZeroR y in Refl)
     (\n',fprf,y =>
      rewrite shiftrSuccR a n' in
@@ -922,7 +947,59 @@ shiftrSpec a n =
     n
 
 -- shiftl_spec_high
+-- removed redundant constraint on `m`
+shiftlSpecHigh : (a, n, m : Bin) -> n `Le` m -> binTestBit (binShiftL a n) m = binTestBit a (m-n)
+shiftlSpecHigh a n m nlem =
+  rewrite sym $ subAdd n m nlem in
+  rewrite addSub (m-n) n in
+  Proofs.peanoRect
+    (\x => (y : Bin) -> binTestBit (binShiftL a x) (y+x) = binTestBit a y)
+    (\y => rewrite addZeroR y in
+           rewrite shiftlZero a in
+           Refl)
+    (\n',fprf,y =>
+      rewrite shiftlSuccR a n' in
+      rewrite addComm y (binSucc n') in
+      rewrite addSuccL n' y in
+      rewrite doubleSpec (binShiftL a n') in
+      rewrite testbitEvenSucc (binShiftL a n') (n'+y) in
+      rewrite addComm n' y in
+      fprf y)
+    n
+    (m-n)
+
 -- shiftl_spec_low
+
+shiftlSpecLow : (a, n, m : Bin) -> m `Lt` n -> binTestBit (binShiftL a n) m = False
+shiftlSpecLow a BinO m mltn = absurd $ leZeroL m $ ltGt m 0 mltn
+shiftlSpecLow a (BinP b) m mltn =
+  peanoRect
+    (\x => (y : Bin) -> y `Lt` (BinP x) -> binTestBit (binShiftL a (BinP x)) y = False)
+    (\y,yltx => rewrite zeroLt1 y yltx in
+                rewrite shiftlSuccR a 0 in
+                rewrite doubleSpec (binShiftL a 0) in
+                testbitEven0 (binShiftL a 0)
+    )
+    (\b',prf,y,yltx =>
+      rewrite shiftlSuccR a (BinP b') in
+      case y of
+        BinO   => rewrite doubleSpec (binShiftL a (BinP b')) in
+                  testbitEven0 (binShiftL a (BinP b'))
+        BinP z => rewrite sym $ succPred (BinP z) uninhabited in
+                  rewrite doubleSpec (binShiftL a (BinP b')) in
+                  rewrite testbitEvenSucc (binShiftL a (BinP b')) (bipPredBin z) in
+                  prf (bipPredBin z) $
+                    rewrite sym $ compareSuccSucc (bipPredBin z) (BinP b') in
+                    rewrite succPosPred z in
+                    yltx
+      )
+    b
+    m mltn
+  where
+  zeroLt1 : (n : Bin) -> n `Lt` 1 -> n = 0
+  zeroLt1  BinO    Refl = Refl
+  zeroLt1 (BinP a) nlt1 = absurd $ nlt1R a $ nlt1
+
 -- div2_spec
 -- TODO
 
