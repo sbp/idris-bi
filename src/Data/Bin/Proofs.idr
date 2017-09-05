@@ -1080,6 +1080,14 @@ posLxorSpec (I a) (I b) (BinP c) =
   posLxorSpec a b (bipPredBin c)
 
 -- lxor_spec
+
+lxorSpec : (a, a1, n : Bin) -> binTestBit (binXor a a1) n = xor (binTestBit a n) (binTestBit a1 n)
+lxorSpec  BinO     BinO     _ = Refl
+lxorSpec  BinO    (BinP b1) n = sym $ xorFalse (bipTestBit b1 n)
+lxorSpec (BinP b)  BinO     n = rewrite xorComm (bipTestBit b n) False in
+                                sym $ xorFalse (bipTestBit b n)
+lxorSpec (BinP b) (BinP b1) n = posLxorSpec b b1 n
+
 -- pos_lor_spec
 -- lor_spec
 -- pos_land_spec
