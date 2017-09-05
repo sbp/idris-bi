@@ -380,8 +380,8 @@ bipDiff (O a')  U     = BinP (O a')
 bipDiff (I a')  U     = BinP (O a')
 bipDiff (O a') (O b') = binDouble (bipDiff a' b')
 bipDiff (O a') (I b') = binDouble (bipDiff a' b')
-bipDiff (I a') (O b') = binDouble (bipDiff a' b')
-bipDiff (I a') (I b') = binDoubleSucc (bipDiff a' b')
+bipDiff (I a') (O b') = binDoubleSucc (bipDiff a' b')
+bipDiff (I a') (I b') = binDouble (bipDiff a' b')
 
 ||| Logical XOR
 bipXor : (a, b: Bip) -> Bin

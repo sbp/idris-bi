@@ -1037,6 +1037,14 @@ andDiag True = Refl
 andFalse : (b : Bool) -> b && False = False
 andFalse False = Refl
 andFalse True = Refl
+
+andTrue : (b : Bool) -> b && True = b
+andTrue False = Refl
+andTrue True = Refl
+
+andNot : (b : Bool) -> b && not b = False
+andNot False = Refl
+andNot True = Refl
 ----------------------------------------------
 
 -- some unfortunate duplication, see idris-bi/16
@@ -1178,8 +1186,52 @@ landSpec (BinP b)  BinO     n = sym $ andFalse $ bipTestBit b n
 landSpec (BinP b) (BinP b1) n = posLandSpec b b1 n
 
 -- pos_ldiff_spec
+
+posLdiffSpec : (p, p1 : Bip) -> (n : Bin) -> binTestBit (bipDiff p p1) n = (bipTestBit p n) && not (bipTestBit p1 n)
+posLdiffSpec  U     U     n       = sym $ andNot $ bipTestBit U n
+posLdiffSpec  U    (O _)  BinO    = Refl
+posLdiffSpec  U    (O _) (BinP _) = Refl
+posLdiffSpec  U    (I _)  BinO    = Refl
+posLdiffSpec  U    (I _) (BinP _) = Refl
+posLdiffSpec (O _)  U     BinO    = Refl
+posLdiffSpec (O a)  U    (BinP c) = sym $ andTrue $ bipTestBit a (bipPredBin c)
+posLdiffSpec (O a) (O b)  BinO    = rewrite doubleSpec2 (bipDiff a b) in
+                                    testbitEven0 (bipDiff a b)
+posLdiffSpec (O a) (O b) (BinP c) =
+  rewrite doubleSpec2 (bipDiff a b) in
+  rewrite sym $ succPosPred c in
+  rewrite testbitEvenSucc (bipDiff a b) (bipPredBin c) in
+  posLdiffSpec a b (bipPredBin c)
+posLdiffSpec (O a) (I b)  BinO    = rewrite doubleSpec2 (bipDiff a b) in
+                                    testbitEven0 (bipDiff a b)
+posLdiffSpec (O a) (I b) (BinP c) =
+  rewrite doubleSpec2 (bipDiff a b) in
+  rewrite sym $ succPosPred c in
+  rewrite testbitEvenSucc (bipDiff a b) (bipPredBin c) in
+  posLdiffSpec a b (bipPredBin c)
+posLdiffSpec (I a)  U     BinO    = Refl
+posLdiffSpec (I a)  U    (BinP c) = sym $ andTrue $ bipTestBit a (bipPredBin c)
+posLdiffSpec (I a) (O b)  BinO    = rewrite succDoubleSpec2 (bipDiff a b) in
+                                    testbitOdd0 (bipDiff a b)
+posLdiffSpec (I a) (O b) (BinP c) =
+  rewrite succDoubleSpec2 (bipDiff a b) in
+  rewrite sym $ succPosPred c in
+  rewrite testbitOddSucc (bipDiff a b) (bipPredBin c) in
+  posLdiffSpec a b (bipPredBin c)
+posLdiffSpec (I a) (I b)  BinO    = rewrite doubleSpec2 (bipDiff a b) in
+                                    testbitEven0 (bipDiff a b)
+posLdiffSpec (I a) (I b) (BinP c) =
+  rewrite doubleSpec2 (bipDiff a b) in
+  rewrite sym $ succPosPred c in
+  rewrite testbitEvenSucc (bipDiff a b) (bipPredBin c) in
+  posLdiffSpec a b (bipPredBin c)
+
 -- ldiff_spec
--- TODO
+
+ldiffSpec : (a, a1, n : Bin) -> binTestBit (binDiff a a1) n = (binTestBit a n) && not (binTestBit a1 n)
+ldiffSpec  BinO     _        _ = Refl
+ldiffSpec (BinP b)  BinO     n = sym $ andTrue $ bipTestBit b n
+ldiffSpec (BinP b) (BinP b1) n = posLdiffSpec b b1 n
 
 -- Specification of constants
 
