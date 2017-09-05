@@ -1006,10 +1006,7 @@ shiftlSpecLow a (BinP b) m mltn =
 
 ------- TODO contribute to Prelude.Bool ------
 xor : Bool -> Bool -> Bool
-xor False False = False
-xor False True  = True
-xor True  False = True
-xor True  True  = False
+xor = (/=)
 
 xorDiag : (b : Bool) -> xor b b = False
 xorDiag False = Refl
@@ -1024,6 +1021,22 @@ xorComm True  True  = Refl
 xorFalse : (b : Bool) -> xor False b = b
 xorFalse False = Refl
 xorFalse True = Refl
+
+orDiag : (b : Bool) -> b || b = b
+orDiag False = Refl
+orDiag True = Refl
+
+orFalse : (b : Bool) -> b || False = b
+orFalse False = Refl
+orFalse True = Refl
+
+andDiag : (b : Bool) -> b && b = b
+andDiag False = Refl
+andDiag True = Refl
+
+andFalse : (b : Bool) -> b && False = False
+andFalse False = Refl
+andFalse True = Refl
 ----------------------------------------------
 
 -- some unfortunate duplication, see idris-bi/16
@@ -1089,9 +1102,81 @@ lxorSpec (BinP b)  BinO     n = rewrite xorComm (bipTestBit b n) False in
 lxorSpec (BinP b) (BinP b1) n = posLxorSpec b b1 n
 
 -- pos_lor_spec
+
+posLorSpec : (p, p1: Bip) -> (n : Bin) -> bipTestBit (bipOr p p1) n = (bipTestBit p n) || (bipTestBit p1 n)
+posLorSpec  U     U     n       = sym $ orDiag $ bipTestBit U n
+posLorSpec  U    (O _)  BinO    = Refl
+posLorSpec  U    (O _) (BinP _) = Refl
+posLorSpec  U    (I _)  BinO    = Refl
+posLorSpec  U    (I _) (BinP _) = Refl
+posLorSpec (O _)  U     BinO    = Refl
+posLorSpec (O a)  U    (BinP c) = sym $ orFalse $ bipTestBit a (bipPredBin c)
+posLorSpec (O _) (O _)  BinO    = Refl
+posLorSpec (O a) (O b) (BinP c) = posLorSpec a b (bipPredBin c)
+posLorSpec (O a) (I b)  BinO    = Refl
+posLorSpec (O a) (I b) (BinP c) = posLorSpec a b (bipPredBin c)
+posLorSpec (I a)  U     BinO    = Refl
+posLorSpec (I a)  U    (BinP c) = sym $ orFalse $ bipTestBit a (bipPredBin c)
+posLorSpec (I a) (O b)  BinO    = Refl
+posLorSpec (I a) (O b) (BinP c) = posLorSpec a b (bipPredBin c)
+posLorSpec (I a) (I b)  BinO    = Refl
+posLorSpec (I a) (I b) (BinP c) = posLorSpec a b (bipPredBin c)
+
 -- lor_spec
+
+lorSpec : (a, a1, n : Bin) -> binTestBit (binOr a a1) n = (binTestBit a n) || (binTestBit a1 n)
+lorSpec  BinO     _        _ = Refl
+lorSpec (BinP b)  BinO     n = sym $ orFalse $ bipTestBit b n
+lorSpec (BinP b) (BinP b1) n = posLorSpec b b1 n
+
 -- pos_land_spec
+
+posLandSpec : (p, p1 : Bip) -> (n : Bin) -> binTestBit (bipAnd p p1) n = (bipTestBit p n) && (bipTestBit p1 n)
+posLandSpec  U     U     n       = sym $ andDiag $ bipTestBit U n
+posLandSpec  U    (O _)  BinO    = Refl
+posLandSpec  U    (O _) (BinP _) = Refl
+posLandSpec  U    (I _)  BinO    = Refl
+posLandSpec  U    (I _) (BinP _) = Refl
+posLandSpec (O _)  U     BinO    = Refl
+posLandSpec (O a)  U    (BinP c) = sym $ andFalse $ bipTestBit a (bipPredBin c)
+posLandSpec (O a) (O b)  BinO    = rewrite doubleSpec2 (bipAnd a b) in
+                                   testbitEven0 (bipAnd a b)
+posLandSpec (O a) (O b) (BinP c) =
+  rewrite doubleSpec2 (bipAnd a b) in
+  rewrite sym $ succPosPred c in
+  rewrite testbitEvenSucc (bipAnd a b) (bipPredBin c) in
+  posLandSpec a b (bipPredBin c)
+posLandSpec (O a) (I b)  BinO    = rewrite doubleSpec2 (bipAnd a b) in
+                                   testbitEven0 (bipAnd a b)
+posLandSpec (O a) (I b) (BinP c) =
+  rewrite doubleSpec2 (bipAnd a b) in
+  rewrite sym $ succPosPred c in
+  rewrite testbitEvenSucc (bipAnd a b) (bipPredBin c) in
+  posLandSpec a b (bipPredBin c)
+posLandSpec (I a)  U     BinO    = Refl
+posLandSpec (I a)  U    (BinP c) = sym $ andFalse $ bipTestBit a (bipPredBin c)
+posLandSpec (I a) (O b)  BinO    = rewrite doubleSpec2 (bipAnd a b) in
+                                   testbitEven0 (bipAnd a b)
+posLandSpec (I a) (O b) (BinP c) =
+  rewrite doubleSpec2 (bipAnd a b) in
+  rewrite sym $ succPosPred c in
+  rewrite testbitEvenSucc (bipAnd a b) (bipPredBin c) in
+  posLandSpec a b (bipPredBin c)
+posLandSpec (I a) (I b)  BinO    = rewrite succDoubleSpec2 (bipAnd a b) in
+                                   testbitOdd0 (bipAnd a b)
+posLandSpec (I a) (I b) (BinP c) =
+  rewrite succDoubleSpec2 (bipAnd a b) in
+  rewrite sym $ succPosPred c in
+  rewrite testbitOddSucc (bipAnd a b) (bipPredBin c) in
+  posLandSpec a b (bipPredBin c)
+
 -- land_spec
+
+landSpec : (a, a1, n : Bin) -> binTestBit (binAnd a a1) n = (binTestBit a n) && (binTestBit a1 n)
+landSpec  BinO     _        _ = Refl
+landSpec (BinP b)  BinO     n = sym $ andFalse $ bipTestBit b n
+landSpec (BinP b) (BinP b1) n = posLandSpec b b1 n
+
 -- pos_ldiff_spec
 -- ldiff_spec
 -- TODO
