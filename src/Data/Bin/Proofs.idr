@@ -23,10 +23,10 @@ peanoRect P f0 f (BinP a) = peanoRect (P . BinP) (f BinO f0) (\p => f $ BinP p) 
 
 -- peano_rect_base is trivial
 
--- TODO
 -- peano_rect_succ
 -- peano_rec_base
 -- peano_rec_succ
+-- TODO
 
 -- Properties of mixed successor and predecessor
 
@@ -349,7 +349,7 @@ gtNotEqN  BinO    (BinP _) = absurd
 gtNotEqN (BinP _)  BinO    = const Refl
 gtNotEqN (BinP a) (BinP b) = gtNotEqP a b
 
--- TODO contribute to Prelude.Bool?
+-- TODO contribute to Prelude.Bool or remove? We're not really using it anywhere
 
 data BoolSpec : (p, q : Type) -> Bool -> Type where
   BoolSpecT : p -> BoolSpec p q True
@@ -1235,28 +1235,60 @@ ldiffSpec (BinP b) (BinP b1) n = posLdiffSpec b b1 n
 
 -- Specification of constants
 
+-- all of the following are trivial:
+
 -- one_succ
 -- two_succ
 -- pred_0
--- TODO
 
 -- Generic induction / recursion
 
 -- bi_induction
+-- TODO without setoids this is essentially `peanoRect` with an additional
+-- constraint `(n : Bin) -> A (binSucc n) -> A n`, so I'm not sure how useful
+-- it is here
+
+binRecursion : a -> (Bin -> a -> a) -> Bin -> a
+binRecursion {a} = peanoRect (\_ => a)
+
 -- recursion_wd
--- recursion_0
+-- TODO
+
+-- recursion_0 is trivial
+
 -- recursion_succ
 -- TODO
 
 -- Instantiation of generic properties of natural numbers
 
--- gt_lt_iff
 -- gt_lt
 -- lt_gt
--- ge_le_iff
+
+-- TODO had to define these two earlier, will regroup into smaller files
+
 -- ge_le
+
+geLe : (n, m : Bin) -> n `Ge` m -> m `Le` n
+geLe n m ngem = rewrite compareAntisym n m in
+                aux
+  where
+  aux : Not (compareOp (n `compare` m) = GT)
+  aux prf with (n `compare` m)
+    | LT = ngem Refl
+    | EQ = uninhabited prf
+    | GT = ngem $ sym prf
+
 -- le_ge
--- TODO
+
+leGe : (n, m : Bin) -> n `Le` m -> m `Ge` n
+leGe n m nlem = rewrite compareAntisym n m in
+                aux
+  where
+  aux : Not (compareOp (n `compare` m) = LT)
+  aux prf with (n `compare` m)
+    | LT = nlem $ sym prf
+    | EQ = uninhabited prf
+    | GT = nlem Refl
 
 -- Auxiliary results about right shift on positive numbers
 
