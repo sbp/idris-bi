@@ -170,6 +170,10 @@ Le x y = Not (x `compare` y = GT)
 Ge : (x, y : Bin) -> Type
 Ge x y = Not (x `compare` y = LT)
 
+zeroLt1 : (n : Bin) -> n `Lt` 1 -> n = 0
+zeroLt1  BinO    Refl = Refl
+zeroLt1 (BinP a) nlt1 = absurd $ nlt1R a $ nlt1
+
 -- ltb_lt
 -- TODO split into `to` and `fro`
 
@@ -995,10 +999,6 @@ shiftlSpecLow a (BinP b) m mltn =
       )
     b
     m mltn
-  where
-  zeroLt1 : (n : Bin) -> n `Lt` 1 -> n = 0
-  zeroLt1  BinO    Refl = Refl
-  zeroLt1 (BinP a) nlt1 = absurd $ nlt1R a $ nlt1
 
 -- div2_spec is trivial
 
@@ -1293,6 +1293,40 @@ leGe n m nlem = rewrite compareAntisym n m in
 -- Auxiliary results about right shift on positive numbers
 
 -- pos_pred_shiftl_low
+
+posPredShiftlLow : (p : Bip) -> (n, m : Bin) -> m `Lt` n -> binTestBit (bipPredBin (bipShiftL p n)) m = True
+posPredShiftlLow _  BinO    m mltn = absurd $ compare0R m mltn
+posPredShiftlLow p (BinP a) m mltn =
+  peanoRect
+    (\x => (y : Bin) -> y `Lt` (BinP x) -> binTestBit (bipPredBin (bipIter O p x)) y = True)
+    (\y, yltx =>
+     rewrite zeroLt1 y yltx in
+     zeroBitDMO p)
+    (\x',prf,y,yltx =>
+      case y of
+        BinO   => rewrite iterSucc O p x' in
+                  zeroBitDMO (bipIter O p x')
+        BinP z => rewrite sym $ succPred (BinP z) uninhabited in
+                  rewrite testbitSuccRDiv2 (bipPredBin (bipIter O p (bipSucc x'))) (bipPredBin z) in
+                  rewrite iterSucc O p x' in
+                  rewrite dmoDiv2 (bipIter O p x') in
+                  prf (bipPredBin z) $
+                     rewrite sym $ compareSuccSucc (bipPredBin z) (BinP x') in
+                     rewrite succPosPred z in
+                     yltx
+    )
+    a
+    m mltn
+  where
+  dmoDiv2 : (x : Bip) -> binDivTwo $ BinP $ bipDMO x = bipPredBin x
+  dmoDiv2 U = Refl
+  dmoDiv2 (O _) = Refl
+  dmoDiv2 (I _) = Refl
+  zeroBitDMO : (p : Bip) -> bipTestBit (bipDMO p) 0 = True
+  zeroBitDMO U = Refl
+  zeroBitDMO (O a) = Refl
+  zeroBitDMO (I a) = Refl
+
 -- pos_pred_shiftl_high
 -- pred_div2_up
 -- TODO
