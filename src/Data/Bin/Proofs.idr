@@ -52,6 +52,11 @@ succPosPred  U     = Refl
 succPosPred (O a') = rewrite succPredDouble a' in Refl
 succPosPred (I _ ) = Refl
 
+dmoDiv2 : (a : Bip) -> bipPredBin a = binDivTwo (BinP $ bipDMO a)
+dmoDiv2  U    = Refl
+dmoDiv2 (O _) = Refl
+dmoDiv2 (I _) = Refl
+
 -- Properties of successor and predecessor
 
 succPred : (a : Bin) -> Not (a=0) -> binSucc (binPred a) = a
@@ -1314,7 +1319,7 @@ posPredShiftlLow p (BinP a) m mltn =
         BinP z => rewrite sym $ succPred (BinP z) uninhabited in
                   rewrite testbitSuccRDiv2 (bipPredBin (bipIter O p (bipSucc x'))) (bipPredBin z) in
                   rewrite iterSucc O p x' in
-                  rewrite dmoDiv2 (bipIter O p x') in
+                  rewrite sym $ dmoDiv2 (bipIter O p x') in
                   prf (bipPredBin z) $
                      rewrite sym $ compareSuccSucc (bipPredBin z) (BinP x') in
                      rewrite succPosPred z in
@@ -1323,10 +1328,6 @@ posPredShiftlLow p (BinP a) m mltn =
     a
     m mltn
   where
-  dmoDiv2 : (x : Bip) -> binDivTwo $ BinP $ bipDMO x = bipPredBin x
-  dmoDiv2  U    = Refl
-  dmoDiv2 (O _) = Refl
-  dmoDiv2 (I _) = Refl
   zeroBitDMO : (p : Bip) -> bipTestBit (bipDMO p) 0 = True
   zeroBitDMO  U    = Refl
   zeroBitDMO (O _) = Refl
@@ -1369,7 +1370,11 @@ posPredShiftlHigh p n m nlem =
                    dmoPredDPO (bipIter O a b)
 
 -- pred_div2_up
--- TODO
+
+predDiv2Up : (p : Bip) -> bipPredBin (bipDivTwoCeil p) = binDivTwo (bipPredBin p)
+predDiv2Up  U    = Refl
+predDiv2Up (O a) = dmoDiv2 a
+predDiv2Up (I a) = predBinSucc a
 
 -- More complex compatibility facts
 
