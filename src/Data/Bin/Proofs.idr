@@ -399,6 +399,11 @@ ltSuccRFro  BinO    (BinP _) pleq = Refl
 ltSuccRFro (BinP _)  BinO    pleq = absurd $ pleq Refl
 ltSuccRFro (BinP a) (BinP b) pleq = ltSuccRFro a b pleq
 
+succLePos : (x, y : Bin) -> binSucc x `Le` y -> (a ** y = BinP a)
+succLePos x  BinO    sxley = absurd $ sxley $ ltGt 0 (binSucc x) $ ltSuccRFro 0 x $ leZeroL x
+succLePos _ (BinP a) _     = (a**Refl)
+
+
 -- Properties of double and succ_double
 
 -- double_spec
@@ -956,7 +961,7 @@ shiftlSpecHigh : (a, n, m : Bin) -> n `Le` m -> binTestBit (binShiftL a n) m = b
 shiftlSpecHigh a n m nlem =
   rewrite sym $ subAdd n m nlem in
   rewrite addSub (m-n) n in
-  Proofs.peanoRect
+  peanoRect
     (\x => (y : Bin) -> binTestBit (binShiftL a x) (y+x) = binTestBit a y)
     (\y => rewrite addZeroR y in
            rewrite shiftlZero a in
@@ -975,7 +980,7 @@ shiftlSpecHigh a n m nlem =
 -- shiftl_spec_low
 
 shiftlSpecLow : (a, n, m : Bin) -> m `Lt` n -> binTestBit (binShiftL a n) m = False
-shiftlSpecLow a BinO m mltn = absurd $ leZeroL m $ ltGt m 0 mltn
+shiftlSpecLow _  BinO    m mltn = absurd $ leZeroL m $ ltGt m 0 mltn
 shiftlSpecLow a (BinP b) m mltn =
   peanoRect
     (\x => (y : Bin) -> y `Lt` (BinP x) -> binTestBit (binShiftL a (BinP x)) y = False)
@@ -1319,15 +1324,50 @@ posPredShiftlLow p (BinP a) m mltn =
     m mltn
   where
   dmoDiv2 : (x : Bip) -> binDivTwo $ BinP $ bipDMO x = bipPredBin x
-  dmoDiv2 U = Refl
+  dmoDiv2  U    = Refl
   dmoDiv2 (O _) = Refl
   dmoDiv2 (I _) = Refl
   zeroBitDMO : (p : Bip) -> bipTestBit (bipDMO p) 0 = True
-  zeroBitDMO U = Refl
-  zeroBitDMO (O a) = Refl
-  zeroBitDMO (I a) = Refl
+  zeroBitDMO  U    = Refl
+  zeroBitDMO (O _) = Refl
+  zeroBitDMO (I _) = Refl
 
 -- pos_pred_shiftl_high
+
+posPredShiftlHigh  : (p : Bip) -> (n, m : Bin) -> n `Le` m -> binTestBit (bipPredBin (bipShiftL p n)) m = binTestBit (binShiftL (bipPredBin p) n) m
+posPredShiftlHigh p n m nlem =
+  peanoRect
+    (\x => (y : Bin) -> x `Le` y -> binTestBit (bipPredBin (bipShiftL p x)) y = binTestBit (binShiftL (bipPredBin p) x) y)
+    (\_,_ => rewrite shiftlZero (bipPredBin p) in
+     Refl)
+    (\n',prf,y,xley =>
+     let (a**prfa) = succLePos n' y xley in
+     rewrite prfa in
+     rewrite sym $ succPred (BinP a) uninhabited in
+     rewrite shiftlSuccR (bipPredBin p) n' in
+     rewrite aux p n' in
+     rewrite doubleSpec (binShiftL (bipPredBin p) n') in
+     rewrite succDoubleSpec (bipPredBin (bipShiftL p n')) in
+     rewrite testbitEvenSucc (binShiftL (bipPredBin p) n') (bipPredBin a) in
+     rewrite testbitOddSucc (bipPredBin (bipShiftL p n')) (bipPredBin a) in
+     prf (bipPredBin a) $
+       rewrite sym $ compareSuccSucc n' (bipPredBin a) in
+       rewrite succPosPred a in
+       rewrite sym prfa in
+       xley
+    )
+    n
+    m nlem
+  where
+  dmoPredDPO : (a : Bip) -> BinP (bipDMO a) = binDPO (bipPredBin a)
+  dmoPredDPO U = Refl
+  dmoPredDPO (O a) = Refl
+  dmoPredDPO (I a) = Refl
+  aux : (a : Bip) -> (n : Bin) -> bipPredBin $ bipShiftL a (binSucc n) = binDPO $ bipPredBin (bipShiftL a n)
+  aux a BinO = dmoPredDPO a
+  aux a (BinP b) = rewrite iterSucc O a b in
+                   dmoPredDPO (bipIter O a b)
+
 -- pred_div2_up
 -- TODO
 
