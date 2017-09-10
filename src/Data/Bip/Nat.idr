@@ -1,4 +1,4 @@
-module Data.Bin.Nat
+module Data.Bip.Nat
 
 import Data.Bip
 import Data.Bip.AddMul

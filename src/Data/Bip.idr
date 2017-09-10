@@ -436,7 +436,7 @@ bipMultNat (I a') pow2 = pow2 + (bipMultNat a' (pow2 + pow2))
 toNatBip : (a: Bip) -> Nat
 toNatBip a = bipMultNat a 1
 
-||| From Nat to Bip, with Z mapping to O
+||| From Nat to Bip, with Z mapping to U
 toBipNat : (n: Nat) -> Bip
 toBipNat  Z     = U
 toBipNat (S Z)  = U

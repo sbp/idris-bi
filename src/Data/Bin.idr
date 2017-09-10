@@ -159,7 +159,7 @@ bipDivEuclid (I a')  b       =
       r = snd qr
       r' = binDPO r in
      bipDivEuclidHelp q r' b (binCompare b r')
-        
+
 ||| Euclidean division into remainder and modulo
 binDivEuclid : (a, b : Bin) -> (Bin, Bin)
 binDivEuclid  BinO     _    = (BinO, BinO)
@@ -185,7 +185,7 @@ binGGCD : (a, b: Bin) -> (Bin, (Bin, Bin))
 binGGCD  BinO      b        = (b, (BinO, BinP U))
 binGGCD  a         BinO     = (a, (BinP U, BinO))
 binGGCD (BinP a') (BinP b') =
-  let gaabb = bipGGCD a' b' 
+  let gaabb = bipGGCD a' b'
       g = fst gaabb
       aa = fst $ snd gaabb
       bb = snd $ snd gaabb
@@ -200,7 +200,7 @@ bipSqrtRemHelp s  _       = (BinP s, BinO)
 ||| Square root with remainder
 binSqrtRem : (a : Bin) -> (Bin, Bin)
 binSqrtRem  BinO     = (BinO, BinO)
-binSqrtRem (BinP a') = let qr = bipSqrtRem a' in 
+binSqrtRem (BinP a') = let qr = bipSqrtRem a' in
                        bipSqrtRemHelp (fst qr) (snd qr)
 
 ||| Square root
@@ -260,7 +260,7 @@ toNatBin (BinP a') = toNatBip a'
 ||| Nat to Bin
 toBinNat : (a : Nat) -> Bin
 toBinNat  Z     = BinO
-toBinNat (S a') = BinP (toBipNat a')
+toBinNat (S a') = BinP (toBipNatSucc a')
 
 -- Seems to be reversed from bipIter for no reason
 ||| Iteration of a function
@@ -305,7 +305,7 @@ Neg Bin where
 
 Integral Bin where
   div = binDiv
-  mod = binModulo  
+  mod = binModulo
 
 DecEq Bin where
   decEq  BinO     BinO    = Yes Refl
