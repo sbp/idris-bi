@@ -1,10 +1,14 @@
 module Data.Bin.Nat
 
-import Data.Bin
-
 import Data.Bip.AddMul
 import Data.Bip.OrdSub
 import Data.Bip.Nat
+
+import Data.Bin
+import Data.Bin.Proofs
+
+%access public export
+%default total
 
 -- N2Nat
 -- Conversions from [N] to [nat]
@@ -81,28 +85,66 @@ injSub (BinP a) (BinP b) =
   case ltTotal a b of
     Left $ Left altb =>
       rewrite subMaskNeg a b altb in
-      sym $ help (toNatBip a) (toNatBip b) (injLt a b altb)
+      sym $ minusLtZ (toNatBip a) (toNatBip b) (injLt a b altb)
     Left $ Right blta =>
       let (r**(prf, prf1)) = subMaskPos' a b blta in
       rewrite prf in
       plusRightCancel (toNatBip r) ((toNatBip a) `minus` (toNatBip b)) (toNatBip b) $
-      rewrite help2 (toNatBip a) (toNatBip b) (injLt b a blta) in
+      rewrite minusPlus (toNatBip a) (toNatBip b) (injLt b a blta) in
       rewrite sym prf1 in
       rewrite addComm b r in
       sym $ toNatInjAdd r b
     Right aeqb =>
       rewrite aeqb in
       rewrite subMaskDiag b in
-      minusZeroN (toNatBip b)
+      minusZeroN $ toNatBip b
   where
-  help : (a,b : Nat) -> a `compare` b = LT -> a `minus` b = Z
-  help  Z     Z    = absurd
-  help  Z    (S _) = const Refl
-  help (S _)  Z    = absurd
-  help (S k) (S j) = help k j
-  help2 : (a, b : Nat) -> b `compare` a = LT -> (a `minus` b)+b = a
-  help2  Z     Z    prf = absurd prf
-  help2  Z    (S _) prf = absurd prf
-  help2 (S k)  Z    prf = cong $ plusZeroRightNeutral k
-  help2 (S k) (S j) prf = rewrite sym $ plusSuccRightSucc (k `minus` j) j in
-                          cong $ help2 k j prf
+  minusLtZ : (a, b : Nat) -> a `compare` b = LT -> a `minus` b = Z
+  minusLtZ  Z     Z    = absurd
+  minusLtZ  Z    (S _) = const Refl
+  minusLtZ (S _)  Z    = absurd
+  minusLtZ (S k) (S j) = minusLtZ k j
+  minusPlus : (a, b : Nat) -> b `compare` a = LT -> (a `minus` b)+b = a
+  minusPlus  Z     Z    prf = absurd prf
+  minusPlus  Z    (S _) prf = absurd prf
+  minusPlus (S k)  Z    prf = cong $ plusZeroRightNeutral k
+  minusPlus (S k) (S j) prf = rewrite sym $ plusSuccRightSucc (k `minus` j) j in
+                              cong $ minusPlus k j prf
+
+-- inj_pred
+
+-- TODO add to Prelude.Nat ?
+predOfMinus : (n : Nat) -> pred n = n `minus` 1
+predOfMinus  Z    = Refl
+predOfMinus (S k) = sym $ minusZeroRight k
+
+injPred : (a : Bin) -> toNatBin (binPred a) = pred (toNatBin a)
+injPred a = rewrite predOfMinus (toNatBin a) in
+            rewrite predSub a in
+            injSub a 1
+
+-- inj_div2
+-- TODO there's no div2 on Nats, use divNatNZ?
+
+-- inj_compare
+
+injCompare : (a, a1 : Bin) -> a `compare` a1 = (toNatBin a) `compare` (toNatBin a1)
+injCompare  BinO     BinO    = Refl
+injCompare  BinO    (BinP b) = rewrite snd $ isSucc b in
+                               Refl
+injCompare (BinP a)  BinO    = rewrite snd $ isSucc a in
+                               Refl
+injCompare (BinP a) (BinP b) = toNatInjCompare a b
+
+-- inj_max
+-- inj_min
+-- TODO can't figure out signatures for aux after rewriting with injCompare
+
+-- inj_iter
+
+injIter : (f : a -> a) -> (x : a) -> (n : Bin) -> binIter f n x = natIter f x (toNatBin n)
+injIter _ _ BinO = Refl
+injIter f x (BinP a) = injIter f x a
+
+
+
