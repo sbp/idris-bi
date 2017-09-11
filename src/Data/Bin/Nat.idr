@@ -17,9 +17,9 @@ import Data.Bin.Proofs
 
 -- id
 
-id : (a : Bin) -> toBinNat (toNatBin a) = a
-id  BinO    = Refl
-id (BinP a) =
+toNatId : (a : Bin) -> toBinNat (toNatBin a) = a
+toNatId  BinO    = Refl
+toNatId (BinP a) =
   let (n**prf) = isSucc a in
   rewrite prf in
   cong $
@@ -31,10 +31,10 @@ id (BinP a) =
 
 -- inj
 
-inj : (a, a1 : Bin) -> toNatBin a = toNatBin a1 -> a = a1
-inj a a1 prf =
-  rewrite sym $ id a in
-  rewrite sym $ id a1 in
+toNatInj : (a, a1 : Bin) -> toNatBin a = toNatBin a1 -> a = a1
+toNatInj a a1 prf =
+  rewrite sym $ toNatId a in
+  rewrite sym $ toNatId a1 in
   cong prf
 
 -- inj_iff is just inj + cong
@@ -43,45 +43,45 @@ inj a a1 prf =
 
 -- inj_double
 
-injDouble : (a : Bin) -> toNatBin (binD a) = 2*(toNatBin a)
-injDouble  BinO    = Refl
-injDouble (BinP a) = injXO a
+toNatInjDouble : (a : Bin) -> toNatBin (binD a) = 2*(toNatBin a)
+toNatInjDouble  BinO    = Refl
+toNatInjDouble (BinP a) = injXO a
 
 -- inj_succ_double
 
-injSuccDouble : (a : Bin) -> toNatBin (binDPO a) = S (2*(toNatBin a))
-injSuccDouble BinO = Refl
-injSuccDouble (BinP a) = injXI a
+toNatInjSuccDouble : (a : Bin) -> toNatBin (binDPO a) = S (2*(toNatBin a))
+toNatInjSuccDouble BinO = Refl
+toNatInjSuccDouble (BinP a) = injXI a
 
 -- inj_succ
 
-injSucc : (a : Bin) -> toNatBin (binSucc a) = S (toNatBin a)
-injSucc BinO = Refl
-injSucc (BinP a) = toNatInjSucc a
+toNatInjSucc : (a : Bin) -> toNatBin (binSucc a) = S (toNatBin a)
+toNatInjSucc BinO = Refl
+toNatInjSucc (BinP a) = toNatInjSucc a
 
 -- inj_add
 
-injAdd : (a, a1 : Bin) -> toNatBin (a + a1) = toNatBin a + toNatBin a1
-injAdd  BinO     BinO    = Refl
-injAdd  BinO    (BinP _) = Refl
-injAdd (BinP a)  BinO    = sym $ plusZeroRightNeutral (toNatBip a)
-injAdd (BinP a) (BinP b) = toNatInjAdd a b
+toNatInjAdd : (a, a1 : Bin) -> toNatBin (a + a1) = toNatBin a + toNatBin a1
+toNatInjAdd  BinO     BinO    = Refl
+toNatInjAdd  BinO    (BinP _) = Refl
+toNatInjAdd (BinP a)  BinO    = sym $ plusZeroRightNeutral (toNatBip a)
+toNatInjAdd (BinP a) (BinP b) = toNatInjAdd a b
 
 -- inj_mul
 
-injMul : (a, a1 : Bin) -> toNatBin (a * a1) = toNatBin a * toNatBin a1
-injMul  BinO     BinO    = Refl
-injMul  BinO    (BinP _) = Refl
-injMul (BinP a)  BinO    = sym $ multZeroRightZero (toNatBip a)
-injMul (BinP a) (BinP b) = toNatInjMul a b
+toNatInjMul : (a, a1 : Bin) -> toNatBin (a * a1) = toNatBin a * toNatBin a1
+toNatInjMul  BinO     BinO    = Refl
+toNatInjMul  BinO    (BinP _) = Refl
+toNatInjMul (BinP a)  BinO    = sym $ multZeroRightZero (toNatBip a)
+toNatInjMul (BinP a) (BinP b) = toNatInjMul a b
 
 -- inj_sub
 
-injSub : (a, a1 : Bin) -> toNatBin (a - a1) = toNatBin a `minus` toNatBin a1
-injSub  BinO     BinO    = Refl
-injSub  BinO    (BinP _) = Refl
-injSub (BinP a)  BinO    = sym $ minusZeroRight (toNatBip a)
-injSub (BinP a) (BinP b) =
+toNatInjSub : (a, a1 : Bin) -> toNatBin (a - a1) = toNatBin a `minus` toNatBin a1
+toNatInjSub  BinO     BinO    = Refl
+toNatInjSub  BinO    (BinP _) = Refl
+toNatInjSub (BinP a)  BinO    = sym $ minusZeroRight (toNatBip a)
+toNatInjSub (BinP a) (BinP b) =
   case ltTotal a b of
     Left $ Left altb =>
       rewrite subMaskNeg a b altb in
@@ -118,23 +118,23 @@ predOfMinus : (n : Nat) -> pred n = n `minus` 1
 predOfMinus  Z    = Refl
 predOfMinus (S k) = sym $ minusZeroRight k
 
-injPred : (a : Bin) -> toNatBin (binPred a) = pred (toNatBin a)
-injPred a = rewrite predOfMinus (toNatBin a) in
-            rewrite predSub a in
-            injSub a 1
+toNatInjPred : (a : Bin) -> toNatBin (binPred a) = pred (toNatBin a)
+toNatInjPred a = rewrite predOfMinus (toNatBin a) in
+                 rewrite predSub a in
+                  toNatInjSub a 1
 
 -- inj_div2
 -- TODO there's no div2 on Nats, use divNatNZ?
 
 -- inj_compare
 
-injCompare : (a, a1 : Bin) -> a `compare` a1 = (toNatBin a) `compare` (toNatBin a1)
-injCompare  BinO     BinO    = Refl
-injCompare  BinO    (BinP b) = rewrite snd $ isSucc b in
-                               Refl
-injCompare (BinP a)  BinO    = rewrite snd $ isSucc a in
-                               Refl
-injCompare (BinP a) (BinP b) = toNatInjCompare a b
+toNatInjCompare : (a, a1 : Bin) -> a `compare` a1 = toNatBin a `compare` toNatBin a1
+toNatInjCompare  BinO     BinO    = Refl
+toNatInjCompare  BinO    (BinP b) = rewrite snd $ isSucc b in
+                                    Refl
+toNatInjCompare (BinP a)  BinO    = rewrite snd $ isSucc a in
+                                    Refl
+toNatInjCompare (BinP a) (BinP b) = toNatInjCompare a b
 
 -- inj_max
 -- inj_min
@@ -142,9 +142,116 @@ injCompare (BinP a) (BinP b) = toNatInjCompare a b
 
 -- inj_iter
 
-injIter : (f : a -> a) -> (x : a) -> (n : Bin) -> binIter f n x = natIter f x (toNatBin n)
-injIter _ _ BinO = Refl
-injIter f x (BinP a) = injIter f x a
+toNatInjIter : (f : a -> a) -> (x : a) -> (n : Bin) -> binIter f n x = natIter f x (toNatBin n)
+toNatInjIter _ _  BinO    = Refl
+toNatInjIter f x (BinP a) = injIter f x a
 
+-- Nat2N
+-- Conversions from [nat] to [N]
 
+-- id
 
+toBinId : (n : Nat) -> toNatBin (toBinNat n) = n
+toBinId  Z    = Refl
+toBinId (S k) = toNatIdSucc k
+
+-- [N.of_nat] is hence injective
+-- inj
+
+toBinInj : (n, n1 : Nat) -> toBinNat n = toBinNat n1 -> n = n1
+toBinInj n n1 prf =
+  rewrite sym $ toBinId n in
+  rewrite sym $ toBinId n1 in
+  cong prf
+
+-- inj_iff is just inj + cong
+
+-- Interaction of this translation and usual operations.
+
+-- inj_double
+
+toBinInjDouble : (n : Nat) -> toBinNat (2*n) = binD (toBinNat n)
+toBinInjDouble n = toNatInj (toBinNat $ 2*n) (binD $ toBinNat n) $
+                   rewrite toBinId (2*n) in
+                   rewrite toNatInjDouble (toBinNat n) in
+                   rewrite toBinId n in
+                   Refl
+
+-- inj_succ_double
+
+toBinInjSuccDouble : (n : Nat) -> toBinNat (S (2*n)) = binDPO (toBinNat n)
+toBinInjSuccDouble n = toNatInj (toBinNat $ S (2*n)) (binDPO $ toBinNat n) $
+                       rewrite toBinId $ S (2*n) in
+                       rewrite toNatInjSuccDouble (toBinNat n) in
+                       rewrite toBinId n in
+                       Refl
+
+-- inj_succ
+
+toBinInjSucc : (n : Nat) -> toBinNat (S n) = binSucc (toBinNat n)
+toBinInjSucc n = toNatInj (toBinNat $ S n) (binSucc $ toBinNat n) $
+                 rewrite toBinId $ S n in
+                 rewrite toNatInjSucc (toBinNat n) in
+                 rewrite toBinId n in
+                 Refl
+
+-- inj_pred
+
+toBinInjPred : (n : Nat) -> toBinNat (pred n) = binPred (toBinNat n)
+toBinInjPred n = toNatInj (toBinNat $ pred n) (binPred $ toBinNat n) $
+                 rewrite toBinId $ pred n in
+                 rewrite toNatInjPred (toBinNat n) in
+                 rewrite toBinId n in
+                 Refl
+
+-- inj_add
+
+toBinInjAdd : (n, n1 : Nat) -> toBinNat (n + n1) = toBinNat n + toBinNat n1
+toBinInjAdd n n1 = toNatInj (toBinNat $ n + n1) (toBinNat n + toBinNat n1) $
+                   rewrite toBinId $ n + n1 in
+                   rewrite toNatInjAdd (toBinNat n) (toBinNat n1) in
+                   rewrite toBinId n in
+                   rewrite toBinId n1 in
+                   Refl
+
+-- inj_sub
+
+toBinInjSub : (n, n1 : Nat) -> toBinNat (n `minus` n1) = toBinNat n - toBinNat n1
+toBinInjSub n n1 = toNatInj (toBinNat $ n `minus` n1) (toBinNat n - toBinNat n1) $
+                   rewrite toBinId $ n `minus` n1 in
+                   rewrite toNatInjSub (toBinNat n) (toBinNat n1) in
+                   rewrite toBinId n in
+                   rewrite toBinId n1 in
+                   Refl
+
+-- inj_mul
+
+toBinInjMul : (n, n1 : Nat) -> toBinNat (n * n1) = toBinNat n * toBinNat n1
+toBinInjMul n n1 = toNatInj (toBinNat $ n * n1) (toBinNat n * toBinNat n1) $
+                   rewrite toBinId $ n * n1 in
+                   rewrite toNatInjMul (toBinNat n) (toBinNat n1) in
+                   rewrite toBinId n in
+                   rewrite toBinId n1 in
+                   Refl
+
+-- inj_div2
+-- TODO see above
+
+-- inj_compare
+
+toBinInjCompare : (n, n1 : Nat) -> n `compare` n1 = toBinNat n `compare` toBinNat n1
+toBinInjCompare n n1 = rewrite toNatInjCompare (toBinNat n) (toBinNat n1) in
+                       rewrite toBinId n in
+                       rewrite toBinId n1 in
+                       Refl
+
+-- inj_min
+-- inj_max
+-- TODO see above
+
+-- inj_iter
+
+toBinInjIter : (f : a -> a) -> (x : a) -> (n : Nat) -> natIter f x n = binIter f (toBinNat n) x
+toBinInjIter f x n = rewrite toNatInjIter f x (toBinNat n) in
+                     rewrite toBinId n in
+                     Refl
