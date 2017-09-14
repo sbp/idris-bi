@@ -5,6 +5,32 @@ import public Data.Bin
 %default total
 %access public export
 
+-- Basic properties of constructors
+
+Uninhabited (BizO = BizP _) where
+  uninhabited Refl impossible
+
+Uninhabited (BizP _ = BizO) where
+  uninhabited Refl impossible
+
+Uninhabited (BizO = BizM _) where
+  uninhabited Refl impossible
+  
+Uninhabited (BizM _ = BizO) where
+  uninhabited Refl impossible
+
+Uninhabited (BizM _ = BizP _) where
+  uninhabited Refl impossible
+  
+Uninhabited (BizP _ = BizM _) where
+  uninhabited Refl impossible
+    
+bizPInj : BizP p = BizP q -> p = q
+bizPInj Refl = Refl
+
+bizMInj : BizM p = BizM q -> p = q
+bizMInj Refl = Refl
+
 -- Following Coq.ZArith.BinIntDef
 
 ||| Double
@@ -44,7 +70,7 @@ bizPlus  BizO      b        = b
 bizPlus  a         BizO     = a
 bizPlus (BizP a') (BizP b') = BizP (bipPlus a' b')
 bizPlus (BizP a') (BizM b') = bipMinusBiz a' b'
-bizPlus (BizM a') (BizP b') = bipMinusBiz a' b'
+bizPlus (BizM a') (BizP b') = bipMinusBiz b' a'
 bizPlus (BizM a') (BizM b') = BizM (bipPlus a' b')
 
 ||| Opposite
@@ -438,3 +464,23 @@ Num Biz where
   (+)         = bizPlus
   (*)         = bizMult
   fromInteger = fromIntegerBiz
+
+Neg Biz where
+  negate = bizOpp
+  abs    = bizAbs
+  (-)    = bizMinus
+
+DecEq Biz where
+  decEq  BizO     BizO    = Yes Refl
+  decEq  BizO    (BizP _) = No uninhabited
+  decEq  BizO    (BizM _) = No uninhabited
+  decEq (BizP _)  BizO    = No uninhabited
+  decEq (BizP a) (BizP b) = case decEq a b of
+    Yes prf   => Yes $ cong prf
+    No contra => No $ contra . bizPInj
+  decEq (BizP _) (BizM _) = No uninhabited
+  decEq (BizM _)  BizO    = No uninhabited
+  decEq (BizM _) (BizP _) = No uninhabited
+  decEq (BizM a) (BizM b) = case decEq a b of
+    Yes prf   => Yes $ cong prf
+    No contra => No $ contra . bizMInj
