@@ -105,17 +105,17 @@ posSubGt p q qltp = rewrite posSubSpec p q in
 
 -- The opposite of [pos_sub] is [pos_sub] with reversed arguments
 -- pos_sub_opp
-oppD : (z : Biz) -> bizOpp (bizD z) = bizD (bizOpp z)
+oppD : (z : Biz) -> -(bizD z) = bizD (-z)
 oppD  BizO    = Refl
 oppD (BizP _) = Refl
 oppD (BizM _) = Refl
 
-oppDMODPO : (z : Biz) -> bizOpp (bizDMO z) = bizDPO (bizOpp z)
+oppDMODPO : (z : Biz) -> -(bizDMO z) = bizDPO (-z)
 oppDMODPO  BizO    = Refl
 oppDMODPO (BizP _) = Refl
 oppDMODPO (BizM _) = Refl
 
-oppDPODMO : (z : Biz) -> bizOpp (bizDPO z) = bizDMO (bizOpp z)
+oppDPODMO : (z : Biz) -> -(bizDPO z) = bizDMO (-z)
 oppDPODMO  BizO    = Refl
 oppDPODMO (BizP _) = Refl
 oppDPODMO (BizM _) = Refl
@@ -195,6 +195,11 @@ addComm (BizP _) (BizM _) = Refl
 addComm (BizM _)  BizO    = Refl
 addComm (BizM _) (BizP _) = Refl
 addComm (BizM a) (BizM b) = cong $ addComm a b
+
+oppDouble : (n : Biz) -> -(-n) = n
+oppDouble  BizO    = Refl
+oppDouble (BizP _) = Refl
+oppDouble (BizM _) = Refl
 
 -- Opposite distributes over addition
 
@@ -302,3 +307,168 @@ addAssoc n@(BizM a) m p =
   rewrite oppAddDistr (n+m) p in
   rewrite oppAddDistr n m in
   addPAssoc a (-m) (-p)
+
+-- Subtraction and successor
+
+-- sub_succ_l
+
+subSuccL : (n, m : Biz) -> bizSucc n - m = bizSucc (n - m)
+subSuccL n m = rewrite sym $ addAssoc n 1 (-m) in
+               rewrite sym $ addAssoc n (-m) 1 in
+               rewrite addComm 1 (-m) in
+               Refl
+
+-- Opposite is inverse for additio
+
+-- add_opp_diag_r
+
+addOppDiagR : (n : Biz) -> n + (-n) = 0
+addOppDiagR  BizO    = Refl
+addOppDiagR (BizP a) = posSubDiag a
+addOppDiagR (BizM a) = posSubDiag a
+
+-- add_opp_diag_l
+
+addOppDiagL : (n : Biz) -> (-n) + n = 0
+addOppDiagL n = rewrite addComm (-n) n in
+                addOppDiagR n
+
+-- Multiplication and constants
+
+-- mul_1_l
+
+mul1L : (n : Biz) -> 1 * n = n
+mul1L  BizO    = Refl
+mul1L (BizP _) = Refl
+mul1L (BizM _) = Refl
+
+-- mul_1_r
+
+mul1R : (n : Biz) -> n * 1 = n
+mul1R  BizO    = Refl
+mul1R (BizP a) = cong $ mul1R a
+mul1R (BizM a) = cong $ mul1R a
+
+mul0R : (n : Biz) -> n * 0 = 0
+mul0R  BizO    = Refl
+mul0R (BizP _) = Refl
+mul0R (BizM _) = Refl
+
+-- Commutativity of multiplication
+
+-- mul_comm
+
+mulComm : (n, m : Biz) -> n * m = m * n
+mulComm  BizO     BizO    = Refl
+mulComm  BizO    (BizP _) = Refl
+mulComm  BizO    (BizM _) = Refl
+mulComm (BizP _)  BizO    = Refl
+mulComm (BizP a) (BizP b) = cong $ mulComm a b
+mulComm (BizP a) (BizM b) = cong $ mulComm a b
+mulComm (BizM _)  BizO    = Refl
+mulComm (BizM a) (BizP b) = cong $ mulComm a b
+mulComm (BizM a) (BizM b) = cong $ mulComm a b
+
+-- Associativity of multiplication
+
+-- mul_assoc
+
+mulAssoc : (n, m, p : Biz) -> n * (m * p) = n * m * p
+mulAssoc  BizO     _        _       = Refl
+mulAssoc  n        BizO     _       = rewrite mul0R n in
+                                      Refl
+mulAssoc  n        m        BizO    =
+  rewrite mul0R m in
+  rewrite mul0R n in
+  rewrite mul0R (n*m) in
+  Refl
+mulAssoc (BizP a) (BizP b) (BizP c) = cong $ mulAssoc a b c
+mulAssoc (BizP a) (BizP b) (BizM c) = cong $ mulAssoc a b c
+mulAssoc (BizP a) (BizM b) (BizP c) = cong $ mulAssoc a b c
+mulAssoc (BizP a) (BizM b) (BizM c) = cong $ mulAssoc a b c
+mulAssoc (BizM a) (BizP b) (BizP c) = cong $ mulAssoc a b c
+mulAssoc (BizM a) (BizP b) (BizM c) = cong $ mulAssoc a b c
+mulAssoc (BizM a) (BizM b) (BizP c) = cong $ mulAssoc a b c
+mulAssoc (BizM a) (BizM b) (BizM c) = cong $ mulAssoc a b c
+
+-- Multiplication and Opposite
+
+-- mul_opp_l
+
+mulOppL : (n, m : Biz) -> (-n) * m = -(n * m)
+mulOppL  BizO     _       = Refl
+mulOppL  n        BizO    = rewrite mul0R n in
+                            mul0R (-n)
+mulOppL (BizP _) (BizP _) = Refl
+mulOppL (BizP _) (BizM _) = Refl
+mulOppL (BizM _) (BizP _) = Refl
+mulOppL (BizM _) (BizM _) = Refl
+
+-- mul_opp_r
+
+mulOppR : (n, m : Biz) -> n * (-m) = -(n * m)
+mulOppR n m = rewrite mulComm n (-m) in
+              rewrite mulComm n m in
+              mulOppL m n
+
+-- mul_opp_opp
+
+mulOppOpp : (n, m : Biz) -> (-n) * (-m) = n * m
+mulOppOpp n m = rewrite mulOppL n (-m) in
+                rewrite mulOppR n m in
+                oppDouble (n*m)
+
+-- mul_opp_comm
+
+mulOppComm : (n, m : Biz) -> (-n) * m = n * (-m)
+mulOppComm n m = rewrite mulOppR n m in
+                 mulOppL n m
+
+-- Distributivity of multiplication over addition
+
+-- mul_add_distr_pos
+
+mulAddDistrPosHelp : (p, q, r : Bip) -> (BizP p)*(bipMinusBiz q r) = bipMinusBiz (p*q) (p*r)
+mulAddDistrPosHelp p q r =
+  rewrite posSubSpec q r in
+  rewrite posSubSpec (p*q) (p*r) in
+  rewrite mulCompareMonoL p q r in
+  aux
+  where
+  aux : (BizP p)*(posSubSpecHelp q r (q `compare` r)) = posSubSpecHelp (p*q) (p*r) (q `compare` r)
+  aux with (q `compare` r) proof qr
+    | EQ = Refl
+    | LT = cong $ mulSubDistrL p r q $ sym qr
+    | GT = cong $ mulSubDistrL p q r $ gtLt q r $ sym qr
+
+mulAddDistrPos : (p : Bip) -> (n, m : Biz) -> (BizP p) * (n + m) = (BizP p) * n + (BizP p) * m
+mulAddDistrPos _  BizO     _       = Refl
+mulAddDistrPos p  n        BizO    = rewrite add0R n in
+                                     rewrite add0R ((BizP p)*n) in
+                                     Refl
+mulAddDistrPos p (BizP a) (BizP b) = cong $ mulAddDistrL p a b
+mulAddDistrPos p (BizP a) (BizM b) = mulAddDistrPosHelp p a b
+mulAddDistrPos p (BizM a) (BizP b) = mulAddDistrPosHelp p b a
+mulAddDistrPos p (BizM a) (BizM b) = cong $ mulAddDistrL p a b
+
+-- mul_add_distr_l
+
+mulAddDistrL : (n, m, p : Biz) -> n * (m + p) = n * m + n * p
+mulAddDistrL  BizO    _ _ = Refl
+mulAddDistrL (BizP a) m p = mulAddDistrPos a m p
+mulAddDistrL (BizM a) m p =
+  rewrite mulOppL (BizP a) (m+p) in
+  rewrite mulAddDistrPos a m p in
+  rewrite oppAddDistr ((BizP a)*m) ((BizP a)*p) in
+  rewrite sym $ mulOppL (BizP a) m in
+  rewrite sym $ mulOppL (BizP a) p in
+  Refl
+
+-- mul_add_distr_r
+
+mulAddDistrR : (n, m, p : Biz) -> (n + m) * p = n * p + m * p
+mulAddDistrR n m p =
+  rewrite mulComm (n+m) p in
+  rewrite mulComm n p in
+  rewrite mulComm m p in
+  mulAddDistrL p n m
