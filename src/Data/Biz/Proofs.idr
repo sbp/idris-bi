@@ -169,3 +169,57 @@ powZpos p q = sym $ iterSwapGen {f=BizP} {g = bipMult p} {h = bizMult $ BizP p} 
 -- pos_xO is trivial
 -- neg_xI is trivial
 -- neg_xO is trivial
+
+-- Properties of addition
+
+-- Zero is neutral for addition
+
+-- add_0_r
+
+add0R : (n : Biz) -> n + 0 = n
+add0R  BizO    = Refl
+add0R (BizP _) = Refl
+add0R (BizM _) = Refl
+
+-- Addition is commutative
+
+-- add_comm
+
+addComm : (n, m : Biz) -> n + m = m + n
+addComm  BizO     BizO    = Refl
+addComm  BizO    (BizP _) = Refl
+addComm  BizO    (BizM _) = Refl
+addComm (BizP _)  BizO    = Refl
+addComm (BizP a) (BizP b) = cong $ addComm a b
+addComm (BizP _) (BizM _) = Refl
+addComm (BizM _)  BizO    = Refl
+addComm (BizM _) (BizP _) = Refl
+addComm (BizM a) (BizM b) = cong $ addComm a b
+
+-- Opposite distributes over addition
+
+-- opp_add_distr
+
+oppAddDistr : (n, m : Biz) -> -(n + m) = (-n) + (-m)
+oppAddDistr  BizO     _       = Refl
+oppAddDistr (BizP _)  BizO    = Refl
+oppAddDistr (BizP _) (BizP _) = Refl
+oppAddDistr (BizP a) (BizM b) = posSubOpp a b
+oppAddDistr (BizM _)  BizO    = Refl
+oppAddDistr (BizM a) (BizP b) = posSubOpp b a
+oppAddDistr (BizM _) (BizM _) = Refl
+
+-- Opposite is injective
+
+-- opp_inj
+
+oppInj : (n, m : Biz) -> -n = -m -> n = m
+oppInj  BizO     BizO    = id
+oppInj  BizO    (BizP _) = absurd
+oppInj  BizO    (BizM _) = absurd
+oppInj (BizP _)  BizO    = absurd
+oppInj (BizP _) (BizP _) = cong . bizMInj
+oppInj (BizP _) (BizM _) = absurd
+oppInj (BizM _)  BizO    = absurd
+oppInj (BizM _) (BizP _) = absurd
+oppInj (BizM _) (BizM _) = cong . bizPInj
