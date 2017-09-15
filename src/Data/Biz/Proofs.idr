@@ -223,3 +223,82 @@ oppInj (BizP _) (BizM _) = absurd
 oppInj (BizM _)  BizO    = absurd
 oppInj (BizM _) (BizP _) = absurd
 oppInj (BizM _) (BizM _) = cong . bizPInj
+
+-- Addition is associative
+
+-- pos_sub_add
+
+posSubAdd : (p, q, r : Bip) -> bipMinusBiz (p+q) r = (BizP p) + bipMinusBiz q r
+posSubAdd p q r = rewrite posSubSpec q r in
+                  aux
+  where
+  aux : bipMinusBiz (p+q) r = (BizP p) + (posSubSpecHelp q r (q `compare` r))
+  aux with (q `compare` r) proof qr
+    | EQ = rewrite compareEqIffTo q r $ sym qr in
+           rewrite posSubGt (p+r) r $
+              rewrite addComm p r in
+              ltAddDiagR r p
+             in
+           cong $ addSub p r
+    | LT = rewrite sym $ subAdd r q $ sym qr in
+           rewrite posSubSpec (p+q) ((r-q)+q) in
+           rewrite addCompareMonoR q p (r-q) in
+           rewrite subAdd r q $ sym qr in     -- revert the second instance of `r`, pity you can't rewrite at specific site
+           aux2
+      where
+        aux2 : posSubSpecHelp (p+q) r (p `compare` (r-q)) = bipMinusBiz p (r-q)
+        aux2 with (p `compare` (r-q)) proof prq
+          | EQ = rewrite compareEqIffTo p (r-q) $ sym prq in
+                 sym $ posSubDiag (r-q)
+          | LT = rewrite posSubLt p (r-q) $ sym prq in
+                 rewrite addComm p q in
+                 cong $ subAddDistr r q p $
+                   rewrite sym $ subAdd r q $ sym qr in
+                   rewrite addComm q p in
+                   addLtMonoRTo q p (r-q) $ sym prq
+          | GT = let rqp = gtLt p (r-q) $ sym prq in
+                 rewrite posSubGt p (r-q) rqp in
+                 cong $ sym $ subSubDistr p r q (sym qr) rqp
+    | GT = let rq = gtLt q r $ sym qr
+               rltpq = ltTrans r q (p+q) rq $
+                 rewrite addComm p q in ltAddDiagR q p
+             in
+           rewrite posSubGt (p+q) r rltpq in
+           cong $ sym $ addSubAssoc p q r rq
+
+-- add_assoc
+
+addPAssoc : (x : Bip) -> (y, z : Biz) -> (BizP x) + (y + z) = (BizP x) + y + z
+addPAssoc _  BizO     BizO    = Refl
+addPAssoc _  BizO    (BizP _) = Refl
+addPAssoc _  BizO    (BizM _) = Refl
+addPAssoc _ (BizP _)  BizO    = Refl
+addPAssoc x (BizP a) (BizP b) = cong $ addAssoc x a b
+addPAssoc x (BizP a) (BizM b) = sym $ posSubAdd x a b
+addPAssoc x (BizM a)  BizO    = sym $ add0R $ bipMinusBiz x a
+addPAssoc x (BizM a) (BizP b) =
+  rewrite sym $ posSubAdd x b a in
+  rewrite addComm (bipMinusBiz x a) (BizP b) in
+  rewrite sym $ posSubAdd b x a in
+  rewrite addComm x b in
+  Refl
+addPAssoc x (BizM a) (BizM b) =
+  oppInj (bipMinusBiz x (a+b)) ((bipMinusBiz x a)+(BizM b)) $
+  rewrite posSubOpp x (a+b) in
+  rewrite oppAddDistr (bipMinusBiz x a) (BizM b) in
+  rewrite posSubOpp x a in
+  rewrite addComm (bipMinusBiz a x) (BizP b) in
+  rewrite sym $ posSubAdd b a x in
+  rewrite addComm a b in
+  Refl
+
+addAssoc : (n, m, p : Biz) -> n + (m + p) = n + m + p
+addAssoc    BizO    _ _ = Refl
+addAssoc   (BizP a) m p = addPAssoc a m p
+addAssoc n@(BizM a) m p =
+  oppInj (n+(m+p)) (n+m+p) $
+  rewrite oppAddDistr n (m+p) in
+  rewrite oppAddDistr m p in
+  rewrite oppAddDistr (n+m) p in
+  rewrite oppAddDistr n m in
+  addPAssoc a (-m) (-p)

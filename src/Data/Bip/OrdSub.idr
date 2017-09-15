@@ -889,7 +889,7 @@ addCompareMonoL p q r =
                 sqsr)
     p
   where
-    base : ((U+q) `compare` (U+r)) = (q `compare` r)
+    base : (U+q) `compare` (U+r) = q `compare` r
     base =
       rewrite add1L q in
       rewrite add1L r in
