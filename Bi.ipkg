@@ -17,5 +17,6 @@ modules = Data.Bi
         , Data.Bin.Nat
 
         , Data.Biz
+        , Data.Biz.Proofs
 
 opts = "-p pruviloj"
