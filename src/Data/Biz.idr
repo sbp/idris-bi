@@ -15,16 +15,16 @@ Uninhabited (BizP _ = BizO) where
 
 Uninhabited (BizO = BizM _) where
   uninhabited Refl impossible
-  
+
 Uninhabited (BizM _ = BizO) where
   uninhabited Refl impossible
 
 Uninhabited (BizM _ = BizP _) where
   uninhabited Refl impossible
-  
+
 Uninhabited (BizP _ = BizM _) where
   uninhabited Refl impossible
-    
+
 bizPInj : BizP p = BizP q -> p = q
 bizPInj Refl = Refl
 
@@ -418,7 +418,7 @@ bizXor (BizM a') (BizM b') =
 fromIntegerBiz : Integer -> Biz
 fromIntegerBiz 0 = BizO
 fromIntegerBiz n =
-  if (n > 1)
+  if (n > 0)
     then BizP (fromIntegerBip n)
     else BizM (fromIntegerBip (-n))
 
