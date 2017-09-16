@@ -289,8 +289,11 @@ Cast Bin Nat where
 Cast Bin Integer where
   cast = (cast {to=Integer}) . toNatBin
 
+-- TODO uncomment and fix proofs  
 Ord Bin where
   compare = binCompare
+  --min = binMin
+  --max = binMax
 
 Num Bin where
   (+)         = binPlus

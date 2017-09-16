@@ -4,6 +4,7 @@ import Data.Bip
 import Data.Bip.AddMul
 import Data.Bip.IterPow
 import Data.Bip.OrdSub
+import Data.Bip.SqrtDiv
 
 import Data.Biz
 
@@ -39,7 +40,7 @@ posSubSpec (O a) (O b) = rewrite posSubSpec a b in
            Refl
 posSubSpec (O a) (I b) = rewrite posSubSpec a b in
                          rewrite compareContSpec a b LT in
-                         ?asdaux
+                         aux
   where
   aux : bizDMO (posSubSpecHelp a b (a `compare` b)) = posSubSpecHelp (O a) (I b) (switchEq LT (a `compare` b))
   aux with (a `compare` b) proof ab
@@ -69,7 +70,7 @@ posSubSpec (I a) (O b) = rewrite posSubSpec a b in
     | GT = rewrite snd $ subMaskPos a b $ gtLt a b $ sym ab in
            Refl
 posSubSpec (I a) (I b) = rewrite posSubSpec a b in
-                         ?posSubSpec_rhs_6
+                         aux
   where
   aux : bizD (posSubSpecHelp a b (a `compare` b)) = posSubSpecHelp (I a) (I b) (a `compare` b)
   aux with (a `compare` b) proof ab
@@ -84,24 +85,27 @@ posSubSpec (I a) (I b) = rewrite posSubSpec a b in
 -- pos_sub_diag
 
 posSubDiag : (p : Bip) -> bipMinusBiz p p = 0
-posSubDiag p = rewrite posSubSpec p p in
-               rewrite compareContRefl p EQ in
-               Refl
+posSubDiag p =
+  rewrite posSubSpec p p in
+  rewrite compareContRefl p EQ in
+  Refl
 
 -- pos_sub_lt
 
 posSubLt : (p, q : Bip) -> p `Lt` q -> bipMinusBiz p q = BizM (q - p)
-posSubLt p q pltq = rewrite posSubSpec p q in
-                    rewrite pltq in
-                    Refl
+posSubLt p q pltq =
+  rewrite posSubSpec p q in
+  rewrite pltq in
+  Refl
 
 -- pos_sub_gt
 
 posSubGt : (p, q : Bip) -> q `Lt` p -> bipMinusBiz p q = BizP (p - q)
-posSubGt p q qltp = rewrite posSubSpec p q in
-                    rewrite compareAntisym q p in
-                    rewrite qltp in
-                    Refl
+posSubGt p q qltp =
+  rewrite posSubSpec p q in
+  rewrite compareAntisym q p in
+  rewrite qltp in
+  Refl
 
 -- The opposite of [pos_sub] is [pos_sub] with reversed arguments
 -- pos_sub_opp
@@ -313,10 +317,11 @@ addAssoc n@(BizM a) m p =
 -- sub_succ_l
 
 subSuccL : (n, m : Biz) -> bizSucc n - m = bizSucc (n - m)
-subSuccL n m = rewrite sym $ addAssoc n 1 (-m) in
-               rewrite sym $ addAssoc n (-m) 1 in
-               rewrite addComm 1 (-m) in
-               Refl
+subSuccL n m =
+  rewrite sym $ addAssoc n 1 (-m) in
+  rewrite sym $ addAssoc n (-m) 1 in
+  rewrite addComm 1 (-m) in
+  Refl
 
 -- Opposite is inverse for additio
 
@@ -407,16 +412,18 @@ mulOppL (BizM _) (BizM _) = Refl
 -- mul_opp_r
 
 mulOppR : (n, m : Biz) -> n * (-m) = -(n * m)
-mulOppR n m = rewrite mulComm n (-m) in
-              rewrite mulComm n m in
-              mulOppL m n
+mulOppR n m =
+  rewrite mulComm n (-m) in
+  rewrite mulComm n m in
+  mulOppL m n
 
 -- mul_opp_opp
 
 mulOppOpp : (n, m : Biz) -> (-n) * (-m) = n * m
-mulOppOpp n m = rewrite mulOppL n (-m) in
-                rewrite mulOppR n m in
-                oppInvolutive (n*m)
+mulOppOpp n m =
+  rewrite mulOppL n (-m) in
+  rewrite mulOppR n m in
+  oppInvolutive (n*m)
 
 -- mul_opp_comm
 
@@ -443,9 +450,10 @@ mulAddDistrPosHelp p q r =
 
 mulAddDistrPos : (p : Bip) -> (n, m : Biz) -> (BizP p) * (n + m) = (BizP p) * n + (BizP p) * m
 mulAddDistrPos _  BizO     _       = Refl
-mulAddDistrPos p  n        BizO    = rewrite add0R n in
-                                     rewrite add0R ((BizP p)*n) in
-                                     Refl
+mulAddDistrPos p  n        BizO    =
+  rewrite add0R n in
+  rewrite add0R ((BizP p)*n) in
+  Refl
 mulAddDistrPos p (BizP a) (BizP b) = cong $ mulAddDistrL p a b
 mulAddDistrPos p (BizP a) (BizM b) = mulAddDistrPosHelp p a b
 mulAddDistrPos p (BizM a) (BizP b) = mulAddDistrPosHelp p b a
@@ -487,11 +495,11 @@ mulAddDistrR n m p =
 -- add_succ_l
 
 addSuccL : (n, m : Biz) -> bizSucc n + m = bizSucc (n + m)
-addSuccL n m = rewrite sym $ addAssoc n 1 m in
-               rewrite sym $ addAssoc n m 1 in
-               rewrite addComm 1 m in
-               Refl
-
+addSuccL n m =
+  rewrite sym $ addAssoc n 1 m in
+  rewrite sym $ addAssoc n m 1 in
+  rewrite addComm 1 m in
+  Refl
 
 -- Specification of opposite
 
@@ -536,9 +544,10 @@ subSuccR n m = rewrite oppAddDistr m 1 in
 -- mul_succ_l
 
 mulSuccL : (n, m : Biz) -> bizSucc n * m = n * m + m
-mulSuccL n m = rewrite mulAddDistrR n 1 m in
-               rewrite mul1L m in
-               Refl
+mulSuccL n m =
+  rewrite mulAddDistrR n 1 m in
+  rewrite mul1L m in
+  Refl
 
 -- Specification of comparisons and order
 
@@ -677,3 +686,195 @@ compareAntisym (BizM a) (BizM b) = compareAntisym b a
 
 -- compare_lt_iff is trivial
 -- compare_le_iff is trivial
+
+-- Some more advanced properties of comparison and orders, including
+-- [compare_spec] and [lt_irrefl] and [lt_eq_cases].
+
+-- Remaining specification of [lt] and [le]
+
+-- lt_succ_r
+-- TODO split into `to` and `fro`
+
+ltSuccRTo : (n, m : Biz) -> n `Lt` bizSucc m -> n `Le` m
+ltSuccRTo n m =
+  rewrite compareSub n (m+1) in
+  rewrite subSuccR n m in
+  rewrite compareSub n m in
+  aux
+  where
+  aux : (n-m)-1 `Lt` 0 -> n-m `Gt` 0 -> Void
+  aux nm1lt0 nmgt0 with (n-m)
+    | BizO       = absurd nmgt0
+    | BizP  U    = absurd nm1lt0
+    | BizP (O _) = absurd nm1lt0
+    | BizP (I _) = absurd nm1lt0
+    | BizM  _    = absurd nmgt0
+
+ltSuccRFro : (n, m : Biz) -> n `Le` m -> n `Lt` bizSucc m
+ltSuccRFro n m =
+  rewrite compareSub n (m+1) in
+  rewrite subSuccR n m in
+  rewrite compareSub n m in
+  aux
+  where
+  aux : n-m `Le` 0 -> (n-m)-1 `Lt` 0
+  aux nmle0 with (n-m)
+    | BizO   = Refl
+    | BizP _ = absurd $ nmle0 Refl
+    | BizM _ = Refl
+
+-- Specification of minimum and maximum
+
+--max_l
+
+maxL : (n, m : Biz) -> m `Le` n -> n `max` m = n
+maxL n m mlen = rewrite compareAntisym m n in
+                aux
+  where
+  aux : bizMinMaxHelp n m (compareOp (m `compare` n)) = n
+  aux with (m `compare` n)
+    | LT = Refl
+    | EQ = Refl
+    | GT = absurd $ mlen Refl
+
+-- max_r
+
+maxR : (n, m : Biz) -> n `Le` m -> n `max` m = m
+maxR n m nlem with (n `compare` m) proof nm
+  | LT = Refl
+  | EQ = compareEqIffTo n m $ sym nm
+  | GT = absurd $ nlem Refl
+
+-- min_l
+
+minL : (n, m : Biz) -> n `Le` m -> n `min` m = n
+minL n m nlem with (n `compare` m) proof nm
+  | LT = Refl
+  | EQ = sym $ compareEqIffTo n m $ sym nm
+  | GT = absurd $ nlem Refl
+
+-- min_r
+
+minR : (n, m : Biz) -> m `Le` n -> n `min` m = m
+minR n m mlen = rewrite compareAntisym m n in
+                aux
+  where
+  aux : bizMinMaxHelp m n (compareOp (m `compare` n)) = m
+  aux with (m `compare` n)
+    | LT = Refl
+    | EQ = Refl
+    | GT = absurd $ mlen Refl
+
+-- Specification of absolute value
+
+-- abs_eq
+
+absEq : (n : Biz) -> 0 `Le` n -> abs n = n
+absEq  BizO    _    = Refl
+absEq (BizP _) _    = Refl
+absEq (BizM _) zlen = absurd $ zlen Refl
+
+-- abs_neq
+
+absNeq : (n : Biz) -> n `Le` 0 -> abs n = -n
+absNeq  BizO    _    = Refl
+absNeq (BizP _) nle0 = absurd $ nle0 Refl
+absNeq (BizM _) _    = Refl
+
+-- Specification of sign
+
+-- sgn_null n
+
+sgnNull : (n : Biz) -> n = 0 -> bizSign n = 0
+sgnNull  BizO    = const Refl
+sgnNull (BizP _) = absurd
+sgnNull (BizM _) = absurd
+
+-- sgn_pos
+
+sgnPos : (n : Biz) -> 0 `Lt` n -> bizSign n = 1
+sgnPos  BizO    = absurd
+sgnPos (BizP _) = const Refl
+sgnPos (BizM _) = absurd
+
+-- sgn_neg
+
+sgnNeg : (n : Biz) -> n `Lt` 0 -> bizSign n = -1
+sgnNeg  BizO    = absurd
+sgnNeg (BizP _) = absurd
+sgnNeg (BizM _) = const Refl
+
+-- Specification of power
+
+-- pow_0_r is trivial
+
+-- pow_succ_r
+
+powSuccR : (n, m : Biz) -> 0 `Le` m -> bizPow n (bizSucc m) = n * bizPow n m
+powSuccR _  BizO    _    = Refl
+powSuccR n (BizP a) _    = rewrite addComm a 1 in
+                           iterAdd (bizMult n) 1 1 a
+powSuccR _ (BizM _) zlem = absurd $ zlem Refl
+
+-- pow_neg_r
+
+powNegR : (n, m : Biz) -> m `Lt` 0 -> bizPow n m = 0
+powNegR _  BizO    = absurd
+powNegR _ (BizP _) = absurd
+powNegR _ (BizM _) = const Refl
+
+-- For folding back a [pow_pos] into a [pow]
+
+-- pow_pos_fold is trivial
+
+-- Specification of square
+
+-- square_spec
+
+squareSpec : (n : Biz) -> bizSquare n = n * n
+squareSpec  BizO    = Refl
+squareSpec (BizP a) = cong $ squareSpec a
+squareSpec (BizM a) = cong $ squareSpec a
+
+-- Specification of square root
+
+-- sqrtrem_spec
+
+sqrtremSpec : (n : Biz) -> 0 `Le` n -> let sr = bizSqrtRem n
+                                           s = fst sr
+                                           r = snd sr
+                                         in (n = s*s + r, 0 `Le` r, r `Le` 2*s)
+sqrtremSpec  BizO    _    = (Refl, uninhabited, uninhabited)
+sqrtremSpec (BizP a) zlen =
+  case sqrtremSpec a of
+    SqrtExact  prf      prfa => rewrite prfa in
+                                (cong prf, uninhabited, uninhabited)
+    SqrtApprox prf prf1 prfa => rewrite prfa in
+                                (cong prf, uninhabited, prf1)
+sqrtremSpec (BizM a) zlen = absurd $ zlen Refl
+
+-- sqrt_spec
+
+sqrtSpec : (n : Biz) -> 0 `Le` n -> let s = bizSqrt n
+                                      in (s*s `Le` n, n `Lt` (bizSucc s)*(bizSucc s))
+sqrtSpec  BizO    zlen = (zlen, Refl)
+sqrtSpec (BizP a) zlen = rewrite add1R $ bipSqrt a in
+                         sqrtSpec a
+sqrtSpec (BizM a) zlen = absurd $ zlen Refl
+
+-- sqrt_neg
+
+sqrtNeg : (n : Biz) -> n `Lt` 0 -> bizSqrt n = 0
+sqrtNeg  BizO    = absurd
+sqrtNeg (BizP _) = absurd
+sqrtNeg (BizM _) = const Refl
+
+-- sqrtrem_sqrt
+
+sqrtremSqrt : (n : Biz) -> fst (bizSqrtRem n) = bizSqrt n
+sqrtremSqrt  BizO    = Refl
+sqrtremSqrt (BizP a) with (bipSqrtRem a)
+  | (_,BimO)   = Refl
+  | (_,BimP _) = Refl
+  | (_,BimM)   = Refl
+sqrtremSqrt (BizM _) = Refl

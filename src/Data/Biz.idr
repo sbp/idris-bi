@@ -101,19 +101,20 @@ bizMult (BizM a') (BizP b') = BizM (bipMult a' b')
 bizMult (BizM a') (BizM b') = BizP (bipMult a' b')
 
 ||| Power
+
+bizPowBip : (a: Biz) -> (b: Bip) -> Biz
+bizPowBip a b = bipIter (bizMult a) (BizP U) b
+
 bizPow : (a, b: Biz) -> Biz
 bizPow a (BizP b') = bizPowBip a b'
-  where
-    bizPowBip : (a: Biz) -> (b: Bip) -> Biz
-    bizPowBip a b = bipIter (bizMult a) (BizP U) b
-bizPow a  BizO     = BizP U
-bizPow a (BizM _)  = BizO
+bizPow _  BizO     = BizP U
+bizPow _ (BizM _)  = BizO
 
 ||| Square
 bizSquare : (a: Biz) -> Biz
 bizSquare  BizO     = BizO
 bizSquare (BizP a') = BizP (bipSquare a')
-bizSquare (BizM a') = BizM (bipSquare a')
+bizSquare (BizM a') = BizP (bipSquare a')
 
 ||| Comparison
 bizCompare : (a, b: Biz) -> Ordering
@@ -135,21 +136,18 @@ bizSign (BizM _) = BizM U
 
 -- Boolean comparisons are implemented in Ord
 
+-- Helper for bizMin and bizMax, to work around #4001
+bizMinMaxHelp : (a, b : Biz) -> Ordering -> Biz
+bizMinMaxHelp _ b LT = b
+bizMinMaxHelp a _ _  = a
+
 ||| Max
 bizMax : (a, b: Biz) -> Biz
-bizMax a b =
-  case bizCompare a b of
-    EQ => a
-    GT => a
-    LT => b
+bizMax a b = bizMinMaxHelp a b (bizCompare a b)
 
 ||| Min
 bizMin : (a, b: Biz) -> Biz
-bizMin a b =
-  case bizCompare a b of
-    EQ => b
-    GT => b
-    LT => a
+bizMin a b = bizMinMaxHelp b a (bizCompare a b)
 
 ||| Absolute value
 bizAbs : (a: Biz) -> Biz
@@ -307,16 +305,19 @@ bizQuotTwo (BizM a') = BizM (bipDivTwo a')
 ||| Log2
 bizLog2 : (a: Biz) -> Biz
 bizLog2 (BizP (I a')) = BizP (bipDigits a')
-bizLog2 (BizM (O a')) = BizP (bipDigits a')
+bizLog2 (BizP (O a')) = BizP (bipDigits a')
 bizLog2  _            = BizO
 
 ||| Square root with remainder
+
+-- Helper for bizSqrtRem, to work around #4001
+bizSqrtRemHelp : Bip -> Bim -> (Biz, Biz)
+bizSqrtRemHelp s (BimP r) = (BizP s, BizP r)
+bizSqrtRemHelp s _        = (BizP s, BizO)
+
 bizSqrtRem : (a: Biz) -> (Biz, Biz)
 bizSqrtRem  BizO     = (BizO, BizO)
-bizSqrtRem (BizP a') =
-  case bipSqrtRem a' of
-    (s, BimP r) => (BizP s, BizP r)
-    (s, _)      => (BizP s, BizO)
+bizSqrtRem (BizP a') = let sr = bipSqrtRem a' in bizSqrtRemHelp (fst sr) (snd sr)
 bizSqrtRem (BizM _)  = (BizO, BizO)
 
 ||| Square root
@@ -459,6 +460,8 @@ Cast Bin Biz where
 
 Ord Biz where
   compare = bizCompare
+  max = bizMax
+  min = bizMin
 
 Num Biz where
   (+)         = bizPlus
