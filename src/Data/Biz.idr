@@ -123,7 +123,7 @@ bizCompare  BizO     (BizM _)  = GT
 bizCompare (BizP _)   BizO     = GT
 bizCompare (BizP a') (BizP b') = bipCompare a' b' EQ
 bizCompare (BizP _)  (BizM _)  = GT
-bizCompare (BizM _)   BizO     = GT
+bizCompare (BizM _)   BizO     = LT
 bizCompare (BizM _)  (BizP _)  = LT
 bizCompare (BizM a') (BizM b') = bipCompare b' a' EQ
 

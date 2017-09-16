@@ -196,10 +196,10 @@ addComm (BizM _)  BizO    = Refl
 addComm (BizM _) (BizP _) = Refl
 addComm (BizM a) (BizM b) = cong $ addComm a b
 
-oppDouble : (n : Biz) -> -(-n) = n
-oppDouble  BizO    = Refl
-oppDouble (BizP _) = Refl
-oppDouble (BizM _) = Refl
+oppInvolutive : (n : Biz) -> -(-n) = n
+oppInvolutive  BizO    = Refl
+oppInvolutive (BizP _) = Refl
+oppInvolutive (BizM _) = Refl
 
 -- Opposite distributes over addition
 
@@ -416,7 +416,7 @@ mulOppR n m = rewrite mulComm n (-m) in
 mulOppOpp : (n, m : Biz) -> (-n) * (-m) = n * m
 mulOppOpp n m = rewrite mulOppL n (-m) in
                 rewrite mulOppR n m in
-                oppDouble (n*m)
+                oppInvolutive (n*m)
 
 -- mul_opp_comm
 
@@ -472,3 +472,208 @@ mulAddDistrR n m p =
   rewrite mulComm n p in
   rewrite mulComm m p in
   mulAddDistrL p n m
+
+-- Proofs of specifications
+
+-- Specification of constants
+
+-- one_succ is trivial
+-- two_succ is trivial
+
+-- Specification of addition
+
+-- add_0_l is trivial
+
+-- add_succ_l
+
+addSuccL : (n, m : Biz) -> bizSucc n + m = bizSucc (n + m)
+addSuccL n m = rewrite sym $ addAssoc n 1 m in
+               rewrite sym $ addAssoc n m 1 in
+               rewrite addComm 1 m in
+               Refl
+
+
+-- Specification of opposite
+
+-- opp_0 is trivial
+
+-- opp_succ
+
+oppSucc : (n : Biz) -> -(bizSucc n) = bizPred (-n)
+oppSucc n = oppAddDistr n 1
+
+-- Specification of successor and predecessor
+
+-- succ_pred
+
+succPred : (n : Biz) -> bizSucc (bizPred n) = n
+succPred n = rewrite sym $ addAssoc n (-1) 1 in
+             add0R n
+
+-- pred_succ
+
+predSucc : (n : Biz) -> bizPred (bizSucc n) = n
+predSucc n = rewrite sym $ addAssoc n 1 (-1) in
+             add0R n
+
+-- Specification of subtraction
+
+-- sub_0_r
+
+sub0R : (n : Biz) -> n - 0 = n
+sub0R = add0R
+
+-- sub_succ_r
+
+subSuccR : (n, m : Biz) -> n - bizSucc m = bizPred (n - m)
+subSuccR n m = rewrite oppAddDistr m 1 in
+               addAssoc n (-m) (-1)
+
+-- Specification of multiplication
+
+-- mul_0_l is trivial
+
+-- mul_succ_l
+
+mulSuccL : (n, m : Biz) -> bizSucc n * m = n * m + m
+mulSuccL n m = rewrite mulAddDistrR n 1 m in
+               rewrite mul1L m in
+               Refl
+
+-- Specification of comparisons and order
+
+-- eqb_eq
+
+-- TODO split into `to` and `fro`
+
+eqbEqTo : (n, m : Biz) -> n == m = True -> n = m
+eqbEqTo  BizO     BizO    = const Refl
+eqbEqTo  BizO    (BizP _) = absurd
+eqbEqTo  BizO    (BizM _) = absurd
+eqbEqTo (BizP _)  BizO    = absurd
+eqbEqTo (BizP a) (BizP b) = cong . eqbEqTo a b
+eqbEqTo (BizP _) (BizM _) = absurd
+eqbEqTo (BizM _)  BizO    = absurd
+eqbEqTo (BizM _) (BizP _) = absurd
+eqbEqTo (BizM a) (BizM b) = cong . eqbEqTo a b
+
+eqbEqFro : (n, m : Biz) -> n = m -> n == m = True
+eqbEqFro  BizO     BizO    = const Refl
+eqbEqFro  BizO    (BizP _) = absurd
+eqbEqFro  BizO    (BizM _) = absurd
+eqbEqFro (BizP _)  BizO    = absurd
+eqbEqFro (BizP a) (BizP b) = eqbEqFro a b . bizPInj
+eqbEqFro (BizP _) (BizM _) = absurd
+eqbEqFro (BizM _)  BizO    = absurd
+eqbEqFro (BizM _) (BizP _) = absurd
+eqbEqFro (BizM a) (BizM b) = eqbEqFro a b . bizMInj
+
+Lt : (x, y : Biz) -> Type
+Lt x y = x `compare` y = LT
+
+Gt : (x, y : Biz) -> Type
+Gt x y = x `compare` y = GT
+
+Le : (x, y : Biz) -> Type
+Le x y = Not (x `compare` y = GT)
+
+Ge : (x, y : Biz) -> Type
+Ge x y = Not (x `compare` y = LT)
+
+-- ltb_lt
+
+-- TODO split into `to` and `fro`
+
+ltbLtTo : (n, m : Biz) -> n < m = True -> n `Lt` m
+ltbLtTo n m prf with (n `compare` m)
+  | LT = Refl
+  | EQ = absurd prf
+  | GT = absurd prf
+
+ltbLtFro : (n, m : Biz) -> n `Lt` m -> n < m = True
+ltbLtFro _ _ nltm = rewrite nltm in
+                    Refl
+
+-- leb_le
+
+-- TODO split into `to` and `fro`
+
+lebLeTo : (n, m : Biz) -> n > m = False -> n `Le` m
+lebLeTo n m prf nm with (n `compare` m)
+  | LT = absurd nm
+  | EQ = absurd nm
+  | GT = absurd prf
+
+lebLeFro : (n, m : Biz) -> n `Le` m -> n > m = False
+lebLeFro n m nlem with (n `compare` m)
+  | LT = Refl
+  | EQ = Refl
+  | GT = absurd $ nlem Refl
+
+-- compare_eq_iff
+-- TODO split into `to` and `fro`
+
+compareEqIffTo : (n, m : Biz) -> n `compare` m = EQ -> n = m
+compareEqIffTo  BizO     BizO    = const Refl
+compareEqIffTo  BizO    (BizP _) = absurd
+compareEqIffTo  BizO    (BizM _) = absurd
+compareEqIffTo (BizP _)  BizO    = absurd
+compareEqIffTo (BizP a) (BizP b) = cong . compareEqIffTo a b
+compareEqIffTo (BizP _) (BizM _) = absurd
+compareEqIffTo (BizM _)  BizO    = absurd
+compareEqIffTo (BizM _) (BizP _) = absurd
+compareEqIffTo (BizM a) (BizM b) = sym . cong . compareEqIffTo b a
+
+compareEqIffFro : (n, m : Biz) -> n = m -> n `compare` m = EQ
+compareEqIffFro  BizO     BizO    = const Refl
+compareEqIffFro  BizO    (BizP _) = absurd
+compareEqIffFro  BizO    (BizM _) = absurd
+compareEqIffFro (BizP _)  BizO    = absurd
+compareEqIffFro (BizP a) (BizP b) = compareEqIffFro a b . bizPInj
+compareEqIffFro (BizP _) (BizM _) = absurd
+compareEqIffFro (BizM _)  BizO    = absurd
+compareEqIffFro (BizM _) (BizP _) = absurd
+compareEqIffFro (BizM a) (BizM b) = compareEqIffFro b a . bizMInj . sym
+
+-- compare_sub
+
+compareSub : (n, m : Biz) -> n `compare` m = (n - m) `compare` 0
+compareSub  BizO     BizO    = Refl
+compareSub  BizO    (BizP _) = Refl
+compareSub  BizO    (BizM _) = Refl
+compareSub (BizP _)  BizO    = Refl
+compareSub (BizP a) (BizP b) = rewrite posSubSpec a b in
+                               aux
+  where
+  aux : a `compare` b = (posSubSpecHelp a b (a `compare` b)) `compare` 0
+  aux with (a `compare` b)
+    | LT = Refl
+    | EQ = Refl
+    | GT = Refl
+compareSub (BizP _) (BizM _) = Refl
+compareSub (BizM _)  BizO    = Refl
+compareSub (BizM _) (BizP _) = Refl
+compareSub (BizM a) (BizM b) = rewrite posSubSpec b a in
+                               aux
+  where
+  aux : b `compare` a = (posSubSpecHelp b a (b `compare` a)) `compare` 0
+  aux with (b `compare` a)
+    | LT = Refl
+    | EQ = Refl
+    | GT = Refl
+
+-- compare_antisym
+
+compareAntisym : (n, m : Biz) -> m `compare` n = compareOp (n `compare` m)
+compareAntisym  BizO     BizO    = Refl
+compareAntisym  BizO    (BizP _) = Refl
+compareAntisym  BizO    (BizM _) = Refl
+compareAntisym (BizP _)  BizO    = Refl
+compareAntisym (BizP a) (BizP b) = compareAntisym a b
+compareAntisym (BizP _) (BizM _) = Refl
+compareAntisym (BizM _)  BizO    = Refl
+compareAntisym (BizM _) (BizP _) = Refl
+compareAntisym (BizM a) (BizM b) = compareAntisym b a
+
+-- compare_lt_iff is trivial
+-- compare_le_iff is trivial
