@@ -878,3 +878,89 @@ sqrtremSqrt (BizP a) with (bipSqrtRem a)
   | (_,BimP _) = Refl
   | (_,BimM)   = Refl
 sqrtremSqrt (BizM _) = Refl
+
+-- Specification of logarithm
+
+-- log2_spec
+
+log2Spec : (n : Biz) -> 0 `Lt` n -> (bizPow 2 (bizLog2 n) `Le` n, n `Lt` bizPow 2 (bizSucc (bizLog2 n)))
+log2Spec  BizO        zltn = absurd zltn
+log2Spec (BizP  U   ) _    = (uninhabited, Refl)
+log2Spec (BizP (O a)) _    = rewrite powZpos 2 (bipDigits a) in
+                             rewrite powZpos 2 ((bipDigits a)+1) in
+                             ( sizeLe a
+                             , rewrite addComm (bipDigits a) 1 in
+                               rewrite iterAdd (bipMult 2) 1 1 (bipDigits a) in
+                               sizeGt a
+                             )
+log2Spec (BizP (I a)) _    = rewrite powZpos 2 (bipDigits a) in
+                             rewrite powZpos 2 ((bipDigits a)+1) in
+                             ( leTrans (bipPow 2 (bipDigits a)) (O a) (I a) (sizeLe a) $
+                                 rewrite compareContSpec a a LT in
+                                 rewrite compareContRefl a EQ in
+                                 uninhabited
+                             , rewrite addComm (bipDigits a) 1 in
+                               rewrite iterAdd (bipMult 2) 1 1 (bipDigits a) in
+                               compareContGtLtFro a (bipPow 2 (bipDigits a)) (sizeGt a)
+                             )
+log2Spec (BizM _)     zltn = absurd zltn
+
+-- log2_nonpos
+
+log2Nonpos : (n : Biz) -> n `Le` 0 -> bizLog2 n = 0
+log2Nonpos  BizO    _    = Refl
+log2Nonpos (BizP _) nle0 = absurd $ nle0 Refl
+log2Nonpos (BizM _) _    = Refl
+
+-- Specification of parity functions
+
+Even : Biz -> Type
+Even a = (b ** a = 2*b)
+
+Odd : Biz -> Type
+Odd a = (b ** a = 2*b+1)
+
+-- even_spec
+-- TODO split into `to` and `fro`
+
+evenSpecTo : (n : Biz) -> bizEven n = True -> Even n
+evenSpecTo  BizO        _   = (0 ** Refl)
+evenSpecTo (BizP  U   ) prf = absurd prf
+evenSpecTo (BizP (O a)) _   = (BizP a ** Refl)
+evenSpecTo (BizP (I _)) prf = absurd prf
+evenSpecTo (BizM  U   ) prf = absurd prf
+evenSpecTo (BizM (O a)) _   = (BizM a ** Refl)
+evenSpecTo (BizM (I _)) prf = absurd prf
+
+evenSpecFro : (n : Biz) -> Even n -> bizEven n = True
+evenSpecFro _ (BizO   ** prf) = rewrite prf in
+                                Refl
+evenSpecFro _ (BizP _ ** prf) = rewrite prf in
+                                Refl
+evenSpecFro _ (BizM _ ** prf) = rewrite prf in
+                                Refl
+
+-- odd_spec
+-- TODO split into `to` and `fro`
+
+oddSpecTo : (n : Biz) -> bizOdd n = True -> Odd n
+oddSpecTo  BizO        prf = absurd prf
+oddSpecTo (BizP  U   ) _   = (0 ** Refl)
+oddSpecTo (BizP (O _)) prf = absurd prf
+oddSpecTo (BizP (I a)) _   = (BizP a ** Refl)
+oddSpecTo (BizM  U   ) _   = (-1 ** Refl)
+oddSpecTo (BizM (O _)) prf = absurd prf
+oddSpecTo (BizM (I a)) _   = (BizM (bipSucc a) ** rewrite predDoubleSucc a in
+                                                  Refl)
+
+oddSpecFro : (n : Biz) -> Odd n -> bizOdd n = True
+oddSpecFro _ (BizO       ** prf) = rewrite prf in
+                                   Refl
+oddSpecFro _ (BizP  _    ** prf) = rewrite prf in
+                                   Refl
+oddSpecFro _ (BizM  U    ** prf) = rewrite prf in
+                                   Refl
+oddSpecFro _ (BizM (O _) ** prf) = rewrite prf in
+                                   Refl
+oddSpecFro _ (BizM (I _) ** prf) = rewrite prf in
+                                   Refl

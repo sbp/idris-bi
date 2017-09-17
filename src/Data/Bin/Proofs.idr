@@ -585,7 +585,7 @@ sizeGt (BinP a) = sizeGt a
 -- size_le
 
 sizeLe : (n : Bin) -> binPow 2 (binDigits n) `Le` binDPO n
-sizeLe BinO = uninhabited
+sizeLe  BinO    = uninhabited
 sizeLe (BinP a) =
   ltLeIncl (bipPow 2 (bipDigits a)) (I a) $
   ltSuccRFro (bipPow 2 (bipDigits a)) (O a) $
