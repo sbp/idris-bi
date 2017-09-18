@@ -199,7 +199,7 @@ bizIter f  _        b = b
 
 ||| Euclidean division on Biz and Bin
 
--- Helper for bizSqrtRem, to work around #4001
+-- Helper for bipzDivEuclid, to work around #4001
 bipzDivEuclidHelp : (q,r,s : Biz) -> (o : Ordering) -> (Biz, Biz)
 bipzDivEuclidHelp q r _ LT = (bizD q, r)
 bipzDivEuclidHelp q r s EQ = (bizDPO q, bizMinus r s)
@@ -212,7 +212,7 @@ bipzDivEuclid U b =
     EQ => (BizO, BizP U)
     GT => (BizP U, BizO)
 bipzDivEuclid (O a') b =
-  let qr = bipzDivEuclid a' b 
+  let qr = bipzDivEuclid a' b
       r' = bizD $ snd qr in
     bipzDivEuclidHelp (fst qr) r' b (bizCompare r' b)
 bipzDivEuclid (I a') b =
@@ -221,31 +221,37 @@ bipzDivEuclid (I a') b =
     bipzDivEuclidHelp (fst qr) r' b (bizCompare r' b)
 
 ||| Euclidean division into remainder and modulo
+
+-- Helpers for bizDivEuclid, to work around #4001
+bizDivEuclidHelp1 : (q,r,s : Biz) -> (Biz, Biz)
+bizDivEuclidHelp1 q BizO s = (bizOpp q, BizO)
+bizDivEuclidHelp1 q r    s = (bizOpp (bizSucc q), bizMinus s r)
+
+bizDivEuclidHelp2 : (q,r,s : Biz) -> (Biz, Biz)
+bizDivEuclidHelp2 q BizO s = (bizOpp q, BizO)
+bizDivEuclidHelp2 q r    s = (bizOpp (bizSucc q), bizMinus r s)
+
 bizDivEuclid : (a, b : Biz) -> (Biz, Biz)
 bizDivEuclid  BizO     _         = (BizO, BizO)
 bizDivEuclid  _         BizO     = (BizO, BizO)
 bizDivEuclid (BizP a') (BizP b') = bipzDivEuclid a' (BizP b')
 bizDivEuclid (BizM a') (BizP b') =
-  let (q, r) = bipzDivEuclid a' (BizP b') in
-      case r of
-        BizO => (bizOpp q, BizO)
-        _    => (bizOpp (bizSucc q), bizMinus (BizP b') r)
+  let qr = bipzDivEuclid a' (BizP b') in
+  bizDivEuclidHelp1 (fst qr) (snd qr) (BizP b')
 bizDivEuclid (BizM a') (BizM b') =
-  let (q, r) = bipzDivEuclid a' (BizP b') in
-      (q, bizOpp r)
+  let qr = bipzDivEuclid a' (BizP b') in
+  (fst qr, bizOpp $ snd qr)
 bizDivEuclid (BizP a') (BizM b') =
-  let (q, r) = bipzDivEuclid a' (BizP b') in
-      case r of
-        BizO => (bizOpp q, BizO)
-        _    => (bizOpp (bizSucc q), bizPlus (BizM b') r)
+  let qr = bipzDivEuclid a' (BizP b') in
+  bizDivEuclidHelp2 (fst qr) (snd qr) (BizP b')
 
 ||| Division
 bizDiv : (a, b : Biz) -> Biz
-bizDiv a b = let (q, _) = bizDivEuclid a b in q
+bizDiv a b = fst $ bizDivEuclid a b
 
 ||| Modulo
 bizMod : (a, b : Biz) -> Biz
-bizMod a b = let (_, r) = bizDivEuclid a b in r
+bizMod a b = snd $ bizDivEuclid a b
 
 ||| Truncated towards zero Euclidean division
 bizQuotRem : (a, b : Biz) -> (Biz, Biz)

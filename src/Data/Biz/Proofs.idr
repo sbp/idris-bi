@@ -1086,3 +1086,83 @@ posDivEuclEq (I a) (BizP n) zltb with ((bizDPO $ snd $ bipzDivEuclid a (BizP n))
          rewrite addAssoc (2*(q*b)) (2*r) 1 in
          rewrite sym $ mulAddDistrL 2 (q*b) r in
          cong {f=\x=>2*x+1} $ posDivEuclEq a b zltb
+
+-- div_eucl_eq
+
+divEuclEq : (a, b : Biz) -> Not (b=0) -> let qr = bizDivEuclid a b
+                                             q = fst qr
+                                             r = snd qr
+                                         in a = q * b + r
+divEuclEq  _          BizO    bnz = absurd $ bnz Refl
+divEuclEq  BizO       b       _   = Refl
+divEuclEq (BizP a) b@(BizP _) _   = posDivEuclEq a b Refl
+divEuclEq (BizM a)   (BizP n) _   with (snd $ bipzDivEuclid a (BizP n)) proof rprf
+  | BizO   = let b = BizP n
+                 q = fst (bipzDivEuclid a b) in
+             rewrite add0R ((-q)*b) in
+             rewrite mulOppL q b in
+             oppInj (BizM a) (-(q*b)) $
+             rewrite oppInvolutive (q*b) in
+             rewrite posDivEuclEq a b Refl in
+             rewrite sym rprf in
+             add0R (q*b)
+  | BizP r = let b = BizP n
+                 q = fst (bipzDivEuclid a b) in
+             rewrite mulOppL (q+1) b in
+             rewrite mulAddDistrR q 1 b in
+             rewrite oppAddDistr (q*b) b in
+             rewrite sym $ addAssoc (-(q*b)) (-b) (bipMinusBiz n r) in
+             rewrite addAssoc (-b) b (BizM r) in
+             rewrite posSubDiag n in
+             rewrite sym $ oppAddDistr (q*b) (BizP r) in
+             rewrite rprf in
+             cong {f=bizOpp} $ posDivEuclEq a b Refl
+  -- mostly a copypaste of above with a swapped sign for r
+  | BizM r = let b = BizP n
+                 q = fst (bipzDivEuclid a b) in
+             rewrite mulOppL (q+1) b in
+             rewrite mulAddDistrR q 1 b in
+             rewrite oppAddDistr (q*b) b in
+             rewrite sym $ addAssoc (-(q*b)) (-b) (b+(BizP r)) in
+             rewrite addAssoc (-b) b (BizP r) in
+             rewrite posSubDiag n in
+             rewrite sym $ oppAddDistr (q*b) (BizM r) in
+             rewrite rprf in
+             cong {f=bizOpp} $ posDivEuclEq a b Refl
+divEuclEq (BizP a)   (BizM n) _   with (snd $ bipzDivEuclid a (BizP n)) proof rprf
+  | BizO   = let b = BizP n
+                 q = fst (bipzDivEuclid a b) in
+             rewrite mulOppOpp q b in
+             rewrite add0R (q*b) in
+             rewrite posDivEuclEq a b Refl in
+             rewrite sym rprf in
+             add0R (q*b)
+  | BizP r = let b = BizP n
+                 q = fst (bipzDivEuclid a b) in
+             rewrite mulOppOpp (q+1) b in
+             rewrite mulAddDistrR q 1 b in
+             rewrite sym $ addAssoc (q*b) b (bipMinusBiz r n) in
+             rewrite addComm b (bipMinusBiz r n) in
+             rewrite sym $ addAssoc (BizP r) (-b) b in
+             rewrite posSubDiag n in
+             rewrite rprf in
+             posDivEuclEq a b Refl
+  -- mostly a copypaste of above with a swapped sign for r
+  | BizM r = let b = BizP n
+                 q = fst (bipzDivEuclid a b) in
+             rewrite mulOppOpp (q+1) b in
+             rewrite mulAddDistrR q 1 b in
+             rewrite sym $ addAssoc (q*b) b ((BizM r)-b) in
+             rewrite posSubLt n (r+n) $ rewrite addComm r n in
+                                        ltAddDiagR n r
+                     in
+             rewrite addSub r n in
+             rewrite rprf in
+             posDivEuclEq a b Refl
+divEuclEq (BizM a)   (BizM n) _   =
+    let b = BizP n
+        q = fst (bipzDivEuclid a b)
+        r = snd (bipzDivEuclid a b) in
+    rewrite mulOppR q b in
+    rewrite sym $ oppAddDistr (q*b) r in
+    cong {f=bizOpp} $ posDivEuclEq a b Refl
