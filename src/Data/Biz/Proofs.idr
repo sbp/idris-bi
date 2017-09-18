@@ -323,7 +323,7 @@ subSuccL n m =
   rewrite addComm 1 (-m) in
   Refl
 
--- Opposite is inverse for additio
+-- Opposite is inverse for addition
 
 -- add_opp_diag_r
 
@@ -619,6 +619,12 @@ lebLeFro n m nlem with (n `compare` m)
   | EQ = Refl
   | GT = absurd $ nlem Refl
 
+ltLeIncl : (p, q : Biz) -> p `Lt` q -> p `Le` q
+ltLeIncl p q pltq pgtq with (p `compare` q)
+  | LT = uninhabited pgtq
+  | EQ = uninhabited pgtq
+  | GT = uninhabited pltq
+
 -- compare_eq_iff
 -- TODO split into `to` and `fro`
 
@@ -684,11 +690,48 @@ compareAntisym (BizM _)  BizO    = Refl
 compareAntisym (BizM _) (BizP _) = Refl
 compareAntisym (BizM a) (BizM b) = compareAntisym b a
 
+-- ge_le
+
+geLe : (n, m : Biz) -> n `Ge` m -> m `Le` n
+geLe n m ngem = rewrite compareAntisym n m in
+                aux
+  where
+  aux : Not (compareOp (n `compare` m) = GT)
+  aux prf with (n `compare` m)
+    | LT = ngem Refl
+    | EQ = uninhabited prf
+    | GT = ngem $ sym prf
+
+-- le_ge
+
+leGe : (n, m : Biz) -> n `Le` m -> m `Ge` n
+leGe n m nlem = rewrite compareAntisym n m in
+                aux
+  where
+  aux : Not (compareOp (n `compare` m) = LT)
+  aux prf with (n `compare` m)
+    | LT = nlem $ sym prf
+    | EQ = uninhabited prf
+    | GT = nlem Refl
+
 -- compare_lt_iff is trivial
 -- compare_le_iff is trivial
 
 -- Some more advanced properties of comparison and orders, including
 -- [compare_spec] and [lt_irrefl] and [lt_eq_cases].
+
+mulCompareMonoL : (p, q, r : Biz) -> 0 `Lt` p -> (p*q) `compare` (p*r) = q `compare` r
+mulCompareMonoL  BizO     _        _       zltp = absurd zltp
+mulCompareMonoL (BizM _)  _        _       zltp = absurd zltp
+mulCompareMonoL (BizP _)  BizO     BizO    _    = Refl
+mulCompareMonoL (BizP _)  BizO    (BizP _) _    = Refl
+mulCompareMonoL (BizP _)  BizO    (BizM _) _    = Refl
+mulCompareMonoL (BizP _) (BizP _)  BizO    _    = Refl
+mulCompareMonoL (BizP a) (BizP b) (BizP c) _    = mulCompareMonoL a b c
+mulCompareMonoL (BizP _) (BizP _) (BizM _) _    = Refl
+mulCompareMonoL (BizP _) (BizM _)  BizO    _    = Refl
+mulCompareMonoL (BizP _) (BizM _) (BizP _) _    = Refl
+mulCompareMonoL (BizP a) (BizM b) (BizM c) _    = mulCompareMonoL a c b
 
 -- Remaining specification of [lt] and [le]
 
@@ -988,6 +1031,29 @@ predDoubleSpec  BizO    = Refl
 predDoubleSpec (BizP _) = Refl
 predDoubleSpec (BizM _) = Refl
 
+-- Addition and Doubling
+
+bizDLinear : (n, m : Biz) -> (bizD n)+(bizD m) = bizD (n+m)
+bizDLinear  BizO     _       = Refl
+bizDLinear  n        BizO    = rewrite add0R n in
+                          add0R $ bizD n
+bizDLinear (BizP _) (BizP _) = Refl
+bizDLinear (BizP _) (BizM _) = Refl
+bizDLinear (BizM _) (BizP _) = Refl
+bizDLinear (BizM _) (BizM _) = Refl
+
+bizDPOLinearD : (n, m : Biz) -> (bizDPO n)+(bizD m) = bizDPO (n+m)
+bizDPOLinearD n m = rewrite addComm (bizDPO n) (bizD m) in
+               rewrite succDoubleSpec n in
+               rewrite sym $ doubleSpec n in
+               rewrite addAssoc (bizD m) (bizD n) 1 in
+               rewrite bizDLinear m n in
+               rewrite addComm m n in
+               rewrite doubleSpec (n+m) in
+               sym $ succDoubleSpec (n+m)
+
+
+
 -- Correctness proofs for Trunc division
 
 -- pos_div_eucl_eq
@@ -1166,3 +1232,91 @@ divEuclEq (BizM a)   (BizM n) _   =
     rewrite mulOppR q b in
     rewrite sym $ oppAddDistr (q*b) r in
     cong {f=bizOpp} $ posDivEuclEq a b Refl
+
+-- div_mod
+
+divMod : (a, b : Biz) -> Not (b=0) -> a = (bizDiv a b)*b + (bizMod a b)
+divMod = divEuclEq
+
+-- pos_div_eucl_bound
+
+posDivEuclBound : (a : Bip) -> (b : Biz) -> 0 `Lt` b -> let r = snd $ bipzDivEuclid a b in (0 `Le` r, r `Lt` b)
+posDivEuclBound  _     BizO    zltb = absurd zltb
+posDivEuclBound  _    (BizM _) zltb = absurd zltb
+posDivEuclBound  U    (BizP b) zltb with (2 `compare` b) proof b2
+  | LT = (uninhabited, leSuccLTo 1 b $ ltLeIncl 2 b $ sym b2)
+  | EQ = (uninhabited, rewrite sym $ compareEqIffTo 2 b $ sym b2 in
+                       Refl)
+  | GT = (uninhabited, Refl)
+posDivEuclBound (O a) (BizP n) zltb with ((bizD $ snd $ bipzDivEuclid a (BizP n)) `compare` (BizP n)) proof drb
+  | LT = let b = BizP n
+             r = snd $ bipzDivEuclid a b in
+         ( aux r (fst $ posDivEuclBound a b zltb)
+         , sym drb
+         )
+    where
+      aux : (n : Biz) -> 0 `Le` n -> 0 `Le` bizD n
+      aux n zlen = rewrite doubleSpec n in
+                   rewrite mulCompareMonoL 2 0 n Refl in
+                   zlen
+  | EQ = let b = BizP n
+             r = snd $ bipzDivEuclid a b in
+         rewrite compareEqIffTo (bizD r) b $ sym drb in
+         rewrite posSubDiag n in
+         (uninhabited, Refl)
+  | GT = let b = BizP n
+             r = snd $ bipzDivEuclid a b in
+         ( geLe ((bizD r)-b) 0 $
+           rewrite sym $ compareSub (bizD r) b in
+           rewrite sym drb in
+           uninhabited
+         , rewrite compareSub ((bizD r)-b) b in
+           rewrite sym $ addAssoc (bizD r) (-b) (-b) in
+           rewrite addDiag n in
+           rewrite bizDLinear r (-b) in
+           aux (r-b) $
+           rewrite sym $ compareSub r b in
+           snd $ posDivEuclBound a b zltb
+         )
+    where
+      aux : (n : Biz) -> n `Lt` 0 -> bizD n `Lt` 0
+      aux n nltz = rewrite doubleSpec n in
+                   rewrite mulCompareMonoL 2 n 0 Refl in
+                   nltz
+posDivEuclBound (I a) (BizP n) zltb with ((bizDPO $ snd $ bipzDivEuclid a (BizP n)) `compare` (BizP n)) proof dorb
+  | LT = let b = BizP n
+             r = snd $ bipzDivEuclid a b in
+         ( aux r (fst $ posDivEuclBound a b zltb)
+         , sym dorb
+         )
+    where
+      aux : (n : Biz) -> 0 `Le` n -> 0 `Le` bizDPO n
+      aux n zlen = ltLeIncl 0 (bizDPO n) $
+                   rewrite succDoubleSpec n in
+                   ltSuccRFro 0 (2*n) $
+                   rewrite mulCompareMonoL 2 0 n Refl in
+                   zlen
+  | EQ = let b = BizP n
+             r = snd $ bipzDivEuclid a b in
+         rewrite compareEqIffTo (bizDPO r) b $ sym dorb in
+         rewrite posSubDiag n in
+         (uninhabited, Refl)
+  | GT = let b = BizP n
+             r = snd $ bipzDivEuclid a b in
+         ( geLe ((bizDPO r)-b) 0 $
+           rewrite sym $ compareSub (bizDPO r) b in
+           rewrite sym dorb in
+           uninhabited
+         , rewrite compareSub ((bizDPO r)-b) b in
+           rewrite sym $ addAssoc (bizDPO r) (-b) (-b) in
+           rewrite addDiag n in
+           rewrite bizDPOLinearD r (-b) in
+           aux (r-b) $
+           rewrite sym $ compareSub r b in
+           snd $ posDivEuclBound a b zltb
+         )
+    where
+      aux : (n : Biz) -> n `Lt` 0 -> bizDPO n `Lt` 0
+      aux  BizO    nlt0    = absurd nlt0
+      aux (BizP _) nlt0    = absurd nlt0
+      aux (BizM _) _       = Refl
