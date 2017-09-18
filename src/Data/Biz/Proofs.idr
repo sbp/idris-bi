@@ -964,3 +964,125 @@ oddSpecFro _ (BizM (O _) ** prf) = rewrite prf in
                                    Refl
 oddSpecFro _ (BizM (I _) ** prf) = rewrite prf in
                                    Refl
+
+-- Multiplication and Doubling
+
+-- double_spec
+
+doubleSpec : (n : Biz) -> bizD n = 2*n
+doubleSpec  BizO    = Refl
+doubleSpec (BizP _) = Refl
+doubleSpec (BizM _) = Refl
+
+-- succ_double_spec
+
+succDoubleSpec : (n : Biz) -> bizDPO n = 2*n + 1
+succDoubleSpec  BizO    = Refl
+succDoubleSpec (BizP _) = Refl
+succDoubleSpec (BizM _) = Refl
+
+-- pred_double_spec
+
+predDoubleSpec : (n : Biz) -> bizDMO n = 2*n - 1
+predDoubleSpec  BizO    = Refl
+predDoubleSpec (BizP _) = Refl
+predDoubleSpec (BizM _) = Refl
+
+-- Correctness proofs for Trunc division
+
+-- pos_div_eucl_eq
+
+posDivEuclEq : (a: Bip) -> (b: Biz) -> 0 `Lt` b -> let qr = bipzDivEuclid a b
+                                                       q = fst qr
+                                                       r = snd qr
+                                                    in BizP a = q * b + r
+posDivEuclEq  _       BizO    zltb = absurd zltb
+posDivEuclEq  _      (BizM _) zltb = absurd zltb
+posDivEuclEq  U      (BizP n) _    with (2 `compare` n) proof n2
+  | LT = Refl
+  | EQ = Refl
+  | GT = let nle1 = ltSuccRTo n 1 $ gtLt 2 n $ sym n2 in
+         cong $ leAntisym 1 n (le1L n) nle1
+posDivEuclEq (O a) (BizP n) zltb with ((bizD $ snd $ bipzDivEuclid a (BizP n)) `compare` (BizP n)) proof drb
+  | LT = let b = BizP n
+             q = fst (bipzDivEuclid a b)
+             r = snd (bipzDivEuclid a b) in
+         rewrite doubleSpec q in
+         rewrite sym $ mulAssoc 2 q b in
+         rewrite doubleSpec r in
+         rewrite sym $ mulAddDistrL 2 (q*b) r in
+         cong {f=bizMult 2} $ posDivEuclEq a b zltb
+  | EQ = let b = BizP n
+             q = fst (bipzDivEuclid a b)
+             r = snd (bipzDivEuclid a b)
+             r2eqb = compareEqIffTo (bizD r) b $ sym drb in
+         rewrite r2eqb in
+         rewrite posSubDiag n in
+         rewrite add0R ((bizDPO q)*b) in
+         rewrite succDoubleSpec q in
+         rewrite mulAddDistrR (2*q) 1 b in
+         rewrite sym $ mulAssoc 2 q b in
+         rewrite sym r2eqb in
+         rewrite doubleSpec r in
+         rewrite sym $ mulAddDistrL 2 ((fst (bipzDivEuclid a (2*r)))*(2*r)) r in
+         rewrite sym $ doubleSpec r in     --  revert
+         rewrite r2eqb in                  --
+         cong {f=bizMult 2} $ posDivEuclEq a b zltb
+  | GT = let b = BizP n
+             q = fst (bipzDivEuclid a b)
+             r = snd (bipzDivEuclid a b) in
+         rewrite succDoubleSpec q in
+         rewrite mulAddDistrR (2*q) 1 b in
+         rewrite sym $ addAssoc ((2*q)*b) b ((bizD r)-b) in
+         rewrite addAssoc b (bizD r) (-b) in
+         rewrite addComm b (bizD r) in
+         rewrite sym $ addAssoc (bizD r) b (-b) in
+         rewrite posSubDiag n in
+         rewrite add0R (bizD r) in
+         rewrite sym $ mulAssoc 2 q b in
+         rewrite doubleSpec r in
+         rewrite sym $ mulAddDistrL 2 (q*b) r in
+         cong {f=bizMult 2} $ posDivEuclEq a b zltb
+posDivEuclEq (I a) (BizP n) zltb with ((bizDPO $ snd $ bipzDivEuclid a (BizP n)) `compare` (BizP n)) proof dorb
+  | LT = let b = BizP n
+             q = fst (bipzDivEuclid a b)
+             r = snd (bipzDivEuclid a b) in
+         rewrite doubleSpec q in
+         rewrite sym $ mulAssoc 2 q b in
+         rewrite succDoubleSpec r in
+         rewrite addAssoc (2*(q*b)) (2*r) 1 in
+         rewrite sym $ mulAddDistrL 2 (q*b) r in
+         cong {f=\x=>2*x+1} $ posDivEuclEq a b zltb
+  | EQ = let b = BizP n
+             q = fst (bipzDivEuclid a b)
+             r = snd (bipzDivEuclid a b)
+             r21eqb = compareEqIffTo (bizDPO r) b $ sym dorb in
+         rewrite r21eqb in
+         rewrite posSubDiag n in
+         rewrite add0R ((bizDPO q)*b) in
+         rewrite succDoubleSpec q in
+         rewrite mulAddDistrR (2*q) 1 b in
+         rewrite sym $ mulAssoc 2 q b in
+         rewrite sym r21eqb in
+         rewrite succDoubleSpec r in
+         rewrite addAssoc (2*((fst (bipzDivEuclid a (2*r+1)))*(2*r+1))) (2*r) 1 in
+         rewrite sym $ mulAddDistrL 2 ((fst (bipzDivEuclid a (2*r+1)))*(2*r+1)) r in
+         rewrite sym $ succDoubleSpec r in     --  revert
+         rewrite r21eqb in                     --
+         cong {f=\x=>2*x+1} $ posDivEuclEq a b zltb
+  | GT = let b = BizP n
+             q = fst (bipzDivEuclid a b)
+             r = snd (bipzDivEuclid a b) in
+         rewrite succDoubleSpec q in
+         rewrite mulAddDistrR (2*q) 1 b in
+         rewrite sym $ addAssoc ((2*q)*b) b ((bizDPO r)-b) in
+         rewrite addAssoc b (bizDPO r) (-b) in
+         rewrite addComm b (bizDPO r) in
+         rewrite sym $ addAssoc (bizDPO r) b (-b) in
+         rewrite posSubDiag n in
+         rewrite add0R (bizDPO r) in
+         rewrite sym $ mulAssoc 2 q b in
+         rewrite succDoubleSpec r in
+         rewrite addAssoc (2*(q*b)) (2*r) 1 in
+         rewrite sym $ mulAddDistrL 2 (q*b) r in
+         cong {f=\x=>2*x+1} $ posDivEuclEq a b zltb
