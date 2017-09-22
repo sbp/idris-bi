@@ -6,6 +6,8 @@ import Data.Bip.IterPow
 import Data.Bip.OrdSub
 import Data.Bip.SqrtDiv
 
+import Data.Bin.Proofs
+
 import Data.Biz
 
 %default total
@@ -691,15 +693,12 @@ compareAntisym (BizM _) (BizP _) = Refl
 compareAntisym (BizM a) (BizM b) = compareAntisym b a
 
 compareOpp : (n, m : Biz) -> n `compare` m = (-m) `compare` (-n)
-compareOpp  BizO     BizO    = Refl
-compareOpp  BizO    (BizP _) = Refl
-compareOpp  BizO    (BizM _) = Refl
-compareOpp (BizP _)  BizO    = Refl
-compareOpp (BizP _) (BizP _) = Refl
-compareOpp (BizP _) (BizM _) = Refl
-compareOpp (BizM _)  BizO    = Refl
-compareOpp (BizM _) (BizP _) = Refl
-compareOpp (BizM _) (BizM _) = Refl
+compareOpp n m =
+  rewrite compareSub n m in
+  rewrite compareSub (-m) (-n) in
+  rewrite oppInvolutive n in
+  rewrite addComm n (-m) in
+  Refl
 
 -- ge_le
 
@@ -1383,3 +1382,59 @@ modNegBound (BizM a) (BizM b) _    =
   , rewrite sym $ compareOpp 0 (snd $ bipzDivEuclid a (BizP b)) in
     zltr
   )
+
+-- Correctness proofs for Floor division
+
+-- TODO move to Nat.idr
+
+toBizBinInjAdd : (n, m : Bin) -> toBizBin (n+m) = toBizBin n + toBizBin m
+toBizBinInjAdd  BinO     m       = rewrite addZeroL m in Refl
+toBizBinInjAdd (BinP _)  BinO    = Refl
+toBizBinInjAdd (BinP _) (BinP _) = Refl
+
+
+toBizBinInjMul : (n, m : Bin) -> toBizBin (n*m) = toBizBin n * toBizBin m
+toBizBinInjMul  BinO     m       = rewrite mulZeroL m in Refl
+toBizBinInjMul (BinP _)  BinO    = Refl
+toBizBinInjMul (BinP _) (BinP _) = Refl
+
+-- quotrem_eq
+
+quotremEq : (a, b : Biz) -> let qr = bizQuotRem a b in
+                            a = fst qr * b + snd qr
+quotremEq  BizO     _       = Refl
+quotremEq (BizP _)  BizO    = Refl
+quotremEq (BizM _)  BizO    = Refl
+quotremEq (BizP a) (BizP b) =
+  let qr = bipDivEuclid a (BinP b)
+      q = fst qr
+      r = snd qr in
+  rewrite sym $ toBizBinInjMul q (BinP b) in
+  rewrite sym $ toBizBinInjAdd (q*(BinP b)) r in
+  cong {f=toBizBin} $ posDivEuclSpec a (BinP b)
+quotremEq (BizP a) (BizM b) =
+  let qr = bipDivEuclid a (BinP b)
+      q = fst qr
+      r = snd qr in
+  rewrite mulOppOpp (toBizBin q) (BizP b) in
+  rewrite sym $ toBizBinInjMul q (BinP b) in
+  rewrite sym $ toBizBinInjAdd (q*(BinP b)) r in
+  cong {f=toBizBin} $ posDivEuclSpec a (BinP b)
+quotremEq (BizM a) (BizP b) =
+  let qr = bipDivEuclid a (BinP b)
+      q = fst qr
+      r = snd qr in
+  rewrite mulOppL (toBizBin q) (BizP b) in
+  rewrite sym $ oppAddDistr ((toBizBin q)*(BizP b)) (toBizBin r) in
+  rewrite sym $ toBizBinInjMul q (BinP b) in
+  rewrite sym $ toBizBinInjAdd (q*(BinP b)) r in
+  cong {f=bizOpp . toBizBin} $ posDivEuclSpec a (BinP b)
+quotremEq (BizM a) (BizM b) =
+  let qr = bipDivEuclid a (BinP b)
+      q = fst qr
+      r = snd qr in
+  rewrite mulOppR (toBizBin q) (BizP b) in
+  rewrite sym $ oppAddDistr ((toBizBin q)*(BizP b)) (toBizBin r) in
+  rewrite sym $ toBizBinInjMul q (BinP b) in
+  rewrite sym $ toBizBinInjAdd (q*(BinP b)) r in
+  cong {f=bizOpp . toBizBin} $ posDivEuclSpec a (BinP b)

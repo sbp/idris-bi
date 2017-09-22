@@ -45,6 +45,7 @@ binSuccBip (BinP a') = bipSucc a'
 
 ||| Addition
 binPlus : (a, b : Bin) -> Bin
+-- TODO can't we just have `binPlus BinO b = b` ?
 binPlus  BinO      BinO     = BinO
 binPlus  BinO     (BinP b') = BinP b'
 binPlus (BinP a')  BinO     = BinP a'
@@ -56,6 +57,7 @@ bimToBin  _        = BinO
 
 ||| Subtraction
 binMinus : (a, b : Bin) -> Bin
+-- TODO here we could have `binMinus BinO _ = BinO` ?
 binMinus  BinO      BinO     = BinO
 binMinus  BinO     (BinP b') = BinO
 binMinus (BinP a')  BinO     = BinP a'
@@ -63,6 +65,7 @@ binMinus (BinP a') (BinP b') = bimToBin (bimMinus a' b')
 
 ||| Multiplication
 binMult : (a, b : Bin) -> Bin
+-- TODO here we could have `binMult BinO _ = BinO` ?
 binMult  BinO      BinO     = BinO
 binMult  BinO     (BinP b') = BinO
 binMult (BinP a')  BinO     = BinO
@@ -289,7 +292,7 @@ Cast Bin Nat where
 Cast Bin Integer where
   cast = (cast {to=Integer}) . toNatBin
 
--- TODO uncomment and fix proofs  
+-- TODO uncomment and fix proofs
 Ord Bin where
   compare = binCompare
   --min = binMin

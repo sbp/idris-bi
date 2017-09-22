@@ -258,39 +258,39 @@ bizQuotRem : (a, b : Biz) -> (Biz, Biz)
 bizQuotRem  BizO      _        = (BizO, BizO)
 bizQuotRem  a         BizO     = (BizO, a)
 bizQuotRem (BizP a') (BizP b') =
-  let (q, r) = bipDivEuclid a' (BinP b') in
-  (toBizBin q, toBizBin r)
+  let qr = bipDivEuclid a' (BinP b') in
+  (toBizBin $ fst qr, toBizBin $ snd qr)
 bizQuotRem (BizM a') (BizP b') =
-  let (q, r) = bipDivEuclid a' (BinP b') in
-  (bizOpp (toBizBin q), bizOpp (toBizBin r))
+  let qr = bipDivEuclid a' (BinP b') in
+  (bizOpp $ toBizBin $ fst qr, bizOpp $ toBizBin $ snd qr)
 bizQuotRem (BizP a') (BizM b') =
-  let (q, r) = bipDivEuclid a' (BinP b') in
-  (bizOpp (toBizBin q), toBizBin r)
+  let qr = bipDivEuclid a' (BinP b') in
+  (bizOpp $ toBizBin $ fst qr, toBizBin $ snd qr)
 bizQuotRem (BizM a') (BizM b') =
-  let (q, r) = bipDivEuclid a' (BinP b') in
-  (toBizBin q, bizOpp (toBizBin r))
+  let qr = bipDivEuclid a' (BinP b') in
+  (toBizBin $ fst qr, bizOpp $ toBizBin $ snd qr)
 
 ||| TTZ Euclidean division
 bizQuot : (a, b : Biz) -> Biz
-bizQuot a b = fst (bizQuotRem a b)
+bizQuot a b = fst $ bizQuotRem a b
 
 ||| TTZ Euclidean remainder
 bizRem : (a, b : Biz) -> Biz
-bizRem a b = snd (bizQuotRem a b)
+bizRem a b = snd $ bizQuotRem a b
 
 ||| Even parity
 bizEven : (a : Biz) -> Bool
-bizEven BizO         = True
+bizEven  BizO        = True
 bizEven (BizP (O _)) = True
 bizEven (BizM (O _)) = True
-bizEven _            = False
+bizEven  _           = False
 
 ||| Odd parity
 bizOdd : (a : Biz) -> Bool
-bizOdd BizO         = False
+bizOdd  BizO        = False
 bizOdd (BizP (O _)) = False
 bizOdd (BizM (O _)) = False
-bizOdd _            = True
+bizOdd  _           = True
 
 ||| Division by two
 bizDivTwo : (a : Biz) -> Biz
@@ -480,7 +480,7 @@ Neg Biz where
   abs    = bizAbs
   (-)    = bizMinus
 
--- TODO Integral instance? which div+mod to use?  
+-- TODO Integral instance? which div+mod to use?
 
 DecEq Biz where
   decEq  BizO     BizO    = Yes Refl
