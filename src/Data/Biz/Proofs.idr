@@ -1244,7 +1244,7 @@ divEuclEq (BizM a)   (BizM n) _   =
     cong {f=bizOpp} $ posDivEuclEq a b Refl
 
 -- div_mod
-
+-- TODO doesn't seem useful, keep as a sanity check?
 divMod : (a, b : Biz) -> Not (b=0) -> a = (bizDiv a b)*b + (bizMod a b)
 divMod = divEuclEq
 
@@ -1438,3 +1438,86 @@ quotremEq (BizM a) (BizM b) =
   rewrite sym $ toBizBinInjMul q (BinP b) in
   rewrite sym $ toBizBinInjAdd (q*(BinP b)) r in
   cong {f=bizOpp . toBizBin} $ posDivEuclSpec a (BinP b)
+
+-- quot_rem'
+-- TODO doesn't seem useful, keep as a sanity check?
+quotRem0 : (a, b : Biz) -> a = (bizQuot a b)*b + bizRem a b
+quotRem0 = quotremEq
+
+-- quot_rem is just quot_rem' with added constraint
+
+-- rem_bound_pos
+
+remBoundPos : (a, b : Biz) -> 0 `Le` a -> 0 `Lt` b -> let r = bizRem a b in (0 `Le` r, r `Lt` b)
+remBoundPos  _        BizO    _    zltb = absurd zltb
+remBoundPos  _       (BizM _) _    zltb = absurd zltb
+remBoundPos (BizM _)  _       zlea _    = absurd $ zlea Refl
+remBoundPos  BizO    (BizP _) _    _    = (uninhabited, Refl)
+remBoundPos (BizP a) (BizP b) zlea zltb with (snd $ bipDivEuclid a (BinP b)) proof rprf
+  | BinO   = (uninhabited, Refl)
+  | BinP _ = (uninhabited, let rltb = posDivEuclRemainder a (BinP b) uninhabited in
+                           replace {P =\x => x `Lt` BinP b} (sym rprf) rltb)
+
+-- rem_opp_l'
+
+remOppL : (a, b : Biz) -> bizRem (-a) b = -(bizRem a b)
+remOppL  BizO     _       = Refl
+remOppL (BizP _)  BizO    = Refl
+remOppL (BizM _)  BizO    = Refl
+remOppL (BizP _) (BizP _) = Refl
+remOppL (BizP _) (BizM _) = Refl
+remOppL (BizM a) (BizP b) = sym $ oppInvolutive $ toBizBin $ snd $ bipDivEuclid a (BinP b)
+remOppL (BizM a) (BizM b) = sym $ oppInvolutive $ toBizBin $ snd $ bipDivEuclid a (BinP b)
+
+-- rem_opp_r'
+
+remOppR : (a, b : Biz) -> bizRem a (-b) = bizRem a b
+remOppR  BizO     _       = Refl
+remOppR (BizP _)  BizO    = Refl
+remOppR (BizM _)  BizO    = Refl
+remOppR (BizP _) (BizP _) = Refl
+remOppR (BizP _) (BizM _) = Refl
+remOppR (BizM _) (BizP _) = Refl
+remOppR (BizM _) (BizM _) = Refl
+
+-- rem_opp_l is just rem_opp_l' with added constraint
+
+-- rem_opp_r is just rem_opp_r' with added constraint
+
+-- Basic properties of divisibility
+
+bizDivides : (x, y : Biz) -> Type
+bizDivides x y = (z ** y = z*x)
+
+-- divide_Zpos
+-- TODO split into `to` and `fro`
+
+divideZposTo : (p, q : Bip) -> bizDivides (BizP p) (BizP q) -> bipDivides p q
+divideZposTo _ _ (BizO   ** prf) = absurd prf
+divideZposTo _ _ (BizM _ ** prf) = absurd prf
+divideZposTo _ _ (BizP z ** prf) = (z ** bizPInj prf)
+
+divideZposFro : (p, q : Bip) -> bipDivides p q -> bizDivides (BizP p) (BizP q)
+divideZposFro _ _ (r ** prf) = (BizP r ** cong prf)
+
+-- divide_Zpos_Zneg_r
+-- TODO split into `to` and `fro`
+
+divideZposZnegRTo : (n : Biz) -> (p : Bip) -> bizDivides n (BizP p) -> bizDivides n (BizM p)
+divideZposZnegRTo n _ (z ** prf) = (-z ** rewrite mulOppL z n in
+                                          cong {f=bizOpp} prf)
+
+divideZposZnegRFro : (n : Biz) -> (p : Bip) -> bizDivides n (BizM p) -> bizDivides n (BizP p)
+divideZposZnegRFro n _ (z ** prf) = (-z ** rewrite mulOppL z n in
+                                           cong {f=bizOpp} prf)
+
+-- divide_Zpos_Zneg_l
+-- TODO split into `to` and `fro`
+
+divideZposZnegLTo : (n : Biz) -> (p : Bip) -> bizDivides (BizP p) n -> bizDivides (BizM p) n
+divideZposZnegLTo _ p (z ** prf) = (-z ** rewrite mulOppOpp z (BizP p) in
+                                          prf)
+
+divideZposZnegLFro : (n : Biz) -> (p : Bip) -> bizDivides (BizM p) n -> bizDivides (BizP p) n
+divideZposZnegLFro _ p (z ** prf) = (-z ** rewrite mulOppOpp z (BizM p) in
+                                           prf)
