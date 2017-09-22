@@ -4,6 +4,7 @@ import Data.Bin
 import Data.Bip.AddMul
 import Data.Bip.IterPow
 import Data.Bip.OrdSub
+import Data.Bip.SqrtDiv
 
 %access public export
 %default total
@@ -22,10 +23,10 @@ peanoRect P f0 f (BinP a) = peanoRect (P . BinP) (f BinO f0) (\p => f $ BinP p) 
 
 -- peano_rect_base is trivial
 
--- TODO
 -- peano_rect_succ
 -- peano_rec_base
 -- peano_rec_succ
+-- TODO
 
 -- Properties of mixed successor and predecessor
 
@@ -51,7 +52,16 @@ succPosPred  U     = Refl
 succPosPred (O a') = rewrite succPredDouble a' in Refl
 succPosPred (I _ ) = Refl
 
+dmoDiv2 : (a : Bip) -> bipPredBin a = binDivTwo (BinP $ bipDMO a)
+dmoDiv2  U    = Refl
+dmoDiv2 (O _) = Refl
+dmoDiv2 (I _) = Refl
+
 -- Properties of successor and predecessor
+
+succPred : (a : Bin) -> Not (a=0) -> binSucc (binPred a) = a
+succPred  BinO    az = absurd $ az Refl
+succPred (BinP a) _  = succPosPred a
 
 -- pred_succ
 predSucc : (a : Bin) -> binPred (binSucc a) = a
@@ -125,6 +135,10 @@ mulZeroL : (a : Bin) -> BinO * a = BinO
 mulZeroL  BinO    = Refl
 mulZeroL (BinP _) = Refl
 
+mulZeroR : (a : Bin) -> a * BinO = BinO
+mulZeroR  BinO    = Refl
+mulZeroR (BinP _) = Refl
+
 -- mul_succ_l
 
 mulSuccL : (a, b : Bin) -> (binSucc a) * b = b + a * b
@@ -161,6 +175,10 @@ Le x y = Not (x `compare` y = GT)
 Ge : (x, y : Bin) -> Type
 Ge x y = Not (x `compare` y = LT)
 
+zeroLt1 : (n : Bin) -> n `Lt` 1 -> n = 0
+zeroLt1  BinO    Refl = Refl
+zeroLt1 (BinP a) nlt1 = absurd $ nlt1R a $ nlt1
+
 -- ltb_lt
 -- TODO split into `to` and `fro`
 
@@ -189,6 +207,12 @@ lebLeFro p q pleq with (p `compare` q)
   | GT = absurd $ pleq Refl
 
 -- Basic properties of comparison (using <->)
+
+compareSuccSucc : (n, m : Bin) -> binSucc n `compare` binSucc m = n `compare` m
+compareSuccSucc  BinO     BinO    = Refl
+compareSuccSucc  BinO    (BinP a) = lt1Succ a
+compareSuccSucc (BinP a)  BinO    = ltGt U (bipSucc a) $ lt1Succ a
+compareSuccSucc (BinP a) (BinP b) = compareSuccSucc a b
 
 -- compare_eq_iff
 -- TODO split into `to` and `fro`
@@ -219,6 +243,30 @@ compareAntisym (BinP a) (BinP b) = compareAntisym a b
 
 -- Some more advanced properties of comparison and orders
 
+dpoLt : (a, b : Bin) -> binDPO a `Lt` b -> binD a `Lt` b
+dpoLt  BinO     BinO    = absurd
+dpoLt  BinO    (BinP _) = const Refl
+dpoLt (BinP _)  BinO    = absurd
+dpoLt (BinP a) (BinP b) = leSuccLTo (O a) b . ltLeIncl (I a) b
+
+ltLeIncl : (n, m : Bin) -> n `Lt` m -> n `Le` m
+ltLeIncl n m nltm ngtm with (n `compare` m)
+  | LT = uninhabited ngtm
+  | EQ = uninhabited ngtm
+  | GT = uninhabited nltm
+
+ltGt : (p, q : Bin) -> p `Lt` q -> q `Gt` p
+ltGt p q pltq =
+  rewrite compareAntisym p q in
+  rewrite pltq in
+  Refl
+
+gtLt : (p, q : Bin) -> p `Gt` q -> q `Lt` p
+gtLt p q pgtq =
+  rewrite compareAntisym p q in
+  rewrite pgtq in
+  Refl
+
 -- add_0_r
 
 addZeroR : (a : Bin) -> a + BinO = a
@@ -245,19 +293,35 @@ addAssoc (BinP _ )  BinO     (BinP _ ) = Refl
 addAssoc (BinP _ ) (BinP _ )  BinO     = Refl
 addAssoc (BinP a') (BinP b') (BinP c') = cong $ addAssoc a' b' c'
 
+subDiag : (n : Bin) -> n-n = 0
+subDiag  BinO    = Refl
+subDiag (BinP a) = rewrite subMaskDiag a in
+                   Refl
+
 -- sub_add
 
-subAdd : (p, q : Bin) -> p `Lt` q -> (q-p)+p = q
-subAdd  BinO     BinO    pltq = absurd pltq
-subAdd  BinO    (BinP _) Refl = Refl
-subAdd (BinP _)  BinO    pltq = absurd pltq
-subAdd (BinP a) (BinP b) pltq = case subMaskSpec a b of
+subAdd : (p, q : Bin) -> p `Le` q -> (q-p)+p = q
+subAdd  BinO     BinO    _    = Refl
+subAdd  BinO    (BinP _) _    = Refl
+subAdd (BinP _)  BinO    pleq = absurd $ pleq Refl
+subAdd (BinP a) (BinP b) pleq = case subMaskSpec a b of
   SubIsNul     Refl _ => rewrite subMaskDiag a in
                          Refl
-  SubIsPos {r} Refl _ => absurd $ ltNotAddL b r pltq
+  SubIsPos {r} Refl _ => absurd $ pleq $ ltGt b (b+r) $ ltAddDiagR b r
   SubIsNeg {r} Refl _ => rewrite subMaskAddDiagL a r in
                          rewrite addComm a r in
                          Refl
+
+addSub : (p, q : Bin) -> (p+q)-q = p
+addSub BinO BinO = Refl
+addSub BinO (BinP a) = rewrite subMaskDiag a in
+                       Refl
+addSub (BinP _) BinO = Refl
+addSub (BinP a) (BinP b) =
+  rewrite addComm a b in
+  rewrite subMaskAddDiagL b a in
+  Refl
+
 
 -- mul_comm
 
@@ -269,10 +333,9 @@ mulComm (BinP a') (BinP b') = cong $ mulComm a' b'
 
 -- le_0_l
 
-leZeroL : (a : Bin) ->
-  Either (BinO `compare` a = EQ) (BinO `compare` a = LT)
-leZeroL  BinO    = Left Refl
-leZeroL (BinP _) = Right Refl
+leZeroL : (a : Bin) -> BinO `Le` a
+leZeroL  BinO    = uninhabited
+leZeroL (BinP _) = uninhabited
 
 -- leb_spec
 
@@ -295,7 +358,7 @@ gtNotEqN  BinO    (BinP _) = absurd
 gtNotEqN (BinP _)  BinO    = const Refl
 gtNotEqN (BinP a) (BinP b) = gtNotEqP a b
 
--- TODO contribute to Prelude.Bool?
+-- TODO contribute to Prelude.Bool or remove? We're not really using it anywhere
 
 data BoolSpec : (p, q : Type) -> Bool -> Type where
   BoolSpecT : p -> BoolSpec p q True
@@ -340,6 +403,11 @@ ltSuccRFro  BinO     BinO    pleq = Refl
 ltSuccRFro  BinO    (BinP _) pleq = Refl
 ltSuccRFro (BinP _)  BinO    pleq = absurd $ pleq Refl
 ltSuccRFro (BinP a) (BinP b) pleq = ltSuccRFro a b pleq
+
+succLePos : (x, y : Bin) -> binSucc x `Le` y -> (a ** y = BinP a)
+succLePos x  BinO    sxley = absurd $ sxley $ ltGt 0 (binSucc x) $ ltSuccRFro 0 x $ leZeroL x
+succLePos _ (BinP a) _     = (a**Refl)
+
 
 -- Properties of double and succ_double
 
@@ -401,142 +469,912 @@ divTwoSuccDouble  BinO    = Refl
 divTwoSuccDouble (BinP _) = Refl
 
 -- double_inj
+
+doubleInj : (n, m : Bin) -> binD n = binD m -> n = m
+doubleInj n m prf =
+  rewrite sym $ divTwoDouble n in
+  rewrite sym $ divTwoDouble m in
+  rewrite prf in
+  Refl
+
 -- succ_double_inj
+
+succDoubleInj : (n, m : Bin) -> binDPO n = binDPO m -> n = m
+succDoubleInj n m prf =
+  rewrite sym $ divTwoSuccDouble n in
+  rewrite sym $ divTwoSuccDouble m in
+  rewrite prf in
+  Refl
+
 -- succ_double_lt
--- TODO
+
+succDoubleLt : (n, m : Bin) -> n `Lt` m -> binDPO n `Lt` binD m
+succDoubleLt  BinO     BinO    = absurd
+succDoubleLt  BinO    (BinP _) = const Refl
+succDoubleLt (BinP _)  BinO    = absurd
+succDoubleLt (BinP a) (BinP b) = compareContGtLtFro a b
 
 -- Specification of minimum and maximum
 
 -- min_l
+
+minL : (n, m : Bin) -> n `Le` m -> min n m = n
+minL n m nlem with (n `compare` m) proof nm
+  | LT = Refl
+  | EQ = sym $ compareEqIffTo n m $ sym nm
+  | GT = absurd $ nlem Refl
+
 -- min_r
+
+minR : (n, m : Bin) -> m `Le` n -> min n m = m
+minR n m mlen with (m `compare` n) proof mn
+  | LT = rewrite compareAntisym m n in
+         rewrite sym mn in
+         Refl
+  | EQ = rewrite compareAntisym m n in
+         rewrite sym mn in
+         Refl
+  | GT = absurd $ mlen Refl
+
 -- max_l
+
+maxL : (n, m : Bin) -> m `Le` n -> max n m = n
+maxL n m mlen with (m `compare` n) proof mn
+  | LT = rewrite compareAntisym m n in
+         rewrite sym mn in
+         Refl
+  | EQ = rewrite compareAntisym m n in
+         rewrite sym mn in
+         compareEqIffTo m n $ sym mn
+  | GT = absurd $ mlen Refl
+
 -- max_r
--- TODO
+
+maxR : (n, m : Bin) -> n `Le` m -> max n m = m
+maxR n m nlem with (n `compare` m) proof nm
+  | LT = Refl
+  | EQ = Refl
+  | GT = absurd $ nlem Refl
 
 -- 0 is the least natural number
 
 -- compare_0_r
--- TODO
+
+compare0R : (n : Bin) -> Not (n `Lt` 0)
+compare0R  BinO    = uninhabited
+compare0R (BinP _) = uninhabited
 
 -- Specifications of power
 
--- pow_0_r
+-- pow_0_r is trivial
+
 -- pow_succ_r
--- pow_neg_r
--- TODO
+-- dropped the `0<=p` requirement as it's trivial
+powSuccR : (n, p : Bin) -> binPow n (binSucc p) = n * binPow n p
+powSuccR  BinO     BinO    = Refl
+powSuccR (BinP _)  BinO    = Refl
+powSuccR  BinO    (BinP _) = Refl
+powSuccR (BinP a) (BinP b) = cong $ powSuccR a b
+
+-- pow_neg_r doesn't make sense: as Bin, p can't ever be <0
 
 -- Specification of square
 
 -- square_spec
--- TODO
+
+squareSpec : (n : Bin) -> binSquare n = n * n
+squareSpec  BinO    = Refl
+squareSpec (BinP a) = cong $ squareSpec a
 
 -- Specification of Base-2 logarithm
 
 -- size_log2
+
+sizeLog2 : (n : Bin) -> Not (n=0) -> binDigits n = binSucc (binLogTwo n)
+sizeLog2  BinO        nz = absurd $ nz Refl
+sizeLog2 (BinP  U   ) _  = Refl
+sizeLog2 (BinP (O _)) _  = Refl
+sizeLog2 (BinP (I _)) _  = Refl
+
 -- size_gt
+
+sizeGt : (n : Bin) -> n `Lt` binPow 2 (binDigits n)
+sizeGt  BinO    = Refl
+sizeGt (BinP a) = sizeGt a
+
 -- size_le
+
+sizeLe : (n : Bin) -> binPow 2 (binDigits n) `Le` binDPO n
+sizeLe BinO = uninhabited
+sizeLe (BinP a) =
+  ltLeIncl (bipPow 2 (bipDigits a)) (I a) $
+  ltSuccRFro (bipPow 2 (bipDigits a)) (O a) $
+  sizeLe a
+
 -- log2_spec
--- log2_nonpos
--- TODO
+-- TODO replace requirement with `Not (n=0)`?
+log2Spec : (n : Bin) -> 0 `Lt` n -> ( binPow 2 (binLogTwo n) `Le` n
+                                    , n `Lt` binPow 2 (binSucc (binLogTwo n))
+                                    )
+log2Spec  BinO        zltn = absurd zltn
+log2Spec (BinP  U   ) _    = (uninhabited, Refl)
+log2Spec (BinP (O a)) _    = (sizeLe a, sizeGt $ BinP $ O a)
+log2Spec (BinP (I a)) _    = (sizeLe $ BinP a, sizeGt $ BinP $ I a)
+
+-- log2_nonpos doesn't make sense too (and is trivial when n=0)
 
 -- Specification of parity functions
 
 -- even_spec
+-- TODO split into `to` and `fro`
+-- TODO make a synonym for Even?
+evenSpecTo : (n : Bin) -> binEven n = True -> (m ** n = 2*m)
+evenSpecTo  BinO        _   = (0 ** Refl)
+evenSpecTo (BinP  U   ) prf = absurd prf
+evenSpecTo (BinP (O a)) _   = (BinP a ** Refl)
+evenSpecTo (BinP (I _)) prf = absurd prf
+
+evenSpecFro : (n : Bin) -> (m ** n = 2*m) -> binEven n = True
+evenSpecFro  BinO         _         = Refl
+evenSpecFro (BinP  U   ) (m ** prf) = case m of
+  BinO   => absurd prf
+  BinP _ => absurd $ binPInj prf
+evenSpecFro (BinP (O _))  _         = Refl
+evenSpecFro (BinP (I _)) (m ** prf) = case m of
+  BinO   => absurd prf
+  BinP _ => absurd $ binPInj prf
+
 -- odd_spec
--- TODO
+-- TODO split into `to` and `fro`
+-- TODO make a synonym for Odd?
+oddSpecTo : (n : Bin) -> binOdd n = True -> (m ** n = 2*m+1)
+oddSpecTo  BinO        prf = absurd prf
+oddSpecTo (BinP  U   ) _   = (0 ** Refl)
+oddSpecTo (BinP (O _)) prf = absurd prf
+oddSpecTo (BinP (I a)) _   = (BinP a ** Refl)
+
+oddSpecFro : (n : Bin) -> (m ** n = 2*m+1) -> binOdd n = True
+oddSpecFro  BinO        (m ** prf) = case m of
+  BinO   => absurd prf
+  BinP _ => absurd prf
+oddSpecFro (BinP  U   )  _ = Refl
+oddSpecFro (BinP (O _)) (m ** prf) = case m of
+  BinO   => absurd $ binPInj prf
+  BinP _ => absurd $ binPInj prf
+oddSpecFro (BinP (I _))  _ = Refl
 
 -- Specification of the euclidean division
 
 -- pos_div_eucl_spec
+
+posDivEuclSpec : (a : Bip) -> (b : Bin) -> let qr = bipDivEuclid a b
+                                               q = fst qr
+                                               r = snd qr
+                                           in
+                                           BinP a = q * b + r
+posDivEuclSpec  U     BinO        = Refl
+posDivEuclSpec  U    (BinP  U   ) = Refl
+posDivEuclSpec  U    (BinP (O _)) = Refl
+posDivEuclSpec  U    (BinP (I _)) = Refl
+posDivEuclSpec (O a)  b           =
+  -- BUG? can't directly rewrite with cong ..
+  let ih = cong {f=binD} $ posDivEuclSpec a b
+      qr = bipDivEuclid a b
+      q = fst qr
+      r = snd qr
+    in
+  rewrite ih in
+  rewrite doubleAdd (q*b) r in
+  rewrite doubleMul q b in
+  aux q r
+  where
+  aux : (q, r : Bin) -> let res = bipDivEuclidHelp q (binD r) b (b `compare` binD r)
+                       in ((binD q)*b)+(binD r) = ((fst res)*b)+(snd res)
+  aux q r with (b `compare` binD r) proof cmp
+    | LT = rewrite succDoubleMul q b in
+           rewrite sym $ addAssoc ((binD q)*b) b ((binD r)-b) in
+           rewrite addComm b ((binD r)-b) in
+           rewrite subAdd b (binD r) $ ltLeIncl b (binD r) $ sym cmp in
+           Refl
+    | EQ = rewrite sym $ compareEqIffTo b (binD r) $ sym cmp in
+           rewrite subDiag b in
+           rewrite addZeroR ((binDPO q)*b) in
+           sym $ succDoubleMul q b
+    | GT = Refl
+posDivEuclSpec (I a)  b           =
+  let ih = cong {f=binDPO} $ posDivEuclSpec a b
+      qr = bipDivEuclid a b
+      q = fst qr
+      r = snd qr
+   in
+  rewrite ih in
+  rewrite succDoubleAdd (q*b) r in
+  rewrite doubleMul q b in
+  aux q r
+  where
+  aux : (q, r : Bin) -> let res = bipDivEuclidHelp q (binDPO r) b (b `compare` binDPO r)
+                       in ((binD q)*b)+(binDPO r) = ((fst res)*b)+(snd res)
+  aux q r with (b `compare` binDPO r) proof cmp
+    | LT = rewrite succDoubleMul q b in
+           rewrite sym $ addAssoc ((binD q)*b) b ((binDPO r)-b) in
+           rewrite addComm b ((binDPO r)-b) in
+           rewrite subAdd b (binDPO r) $ ltLeIncl b (binDPO r) $ sym cmp in
+           Refl
+    | EQ = rewrite sym $ compareEqIffTo b (binDPO r) $ sym cmp in
+           rewrite subDiag b in
+           rewrite addZeroR ((binDPO q)*b) in
+           sym $ succDoubleMul q b
+    | GT = Refl
+
 -- div_eucl_spec
+-- why is q*b flipped here?
+divEuclSpec : (a, b : Bin) -> let qr = binDivEuclid a b
+                                  q = fst qr
+                                  r = snd qr
+                              in a = b * q + r
+divEuclSpec  BinO     BinO    = Refl
+divEuclSpec  BinO    (BinP _) = Refl
+divEuclSpec (BinP _)  BinO    = Refl
+divEuclSpec (BinP a) (BinP b) =
+  rewrite mulComm (BinP b) (fst (bipDivEuclid a (BinP b))) in
+  posDivEuclSpec a (BinP b)
+
 -- div_mod'
--- div_mod
+-- this looks redundant
+divMod' : (a, b : Bin) -> a = b * (a `div` b) + (a `mod` b)
+divMod' = divEuclSpec
+
+-- div_mod looks even more redundant
+
 -- pos_div_eucl_remainder
+
+posDivEuclRemainder : (a : Bip) -> (b : Bin) -> Not (b=0) -> (snd $ bipDivEuclid a b) `Lt` b
+posDivEuclRemainder  _     BinO        bz = absurd $ bz Refl
+posDivEuclRemainder  U    (BinP  U   ) _  = Refl
+posDivEuclRemainder  U    (BinP (O _)) _  = Refl
+posDivEuclRemainder  U    (BinP (I _)) _  = Refl
+posDivEuclRemainder (O a) (BinP  y   ) bz with ((BinP y) `compare` (binD $ snd $ bipDivEuclid a (BinP y))) proof cmp
+  | LT = let b = BinP y
+             r = snd $ bipDivEuclid a b
+         in
+         addLtCancelL ((binD r)-b) b b $
+         rewrite addComm b ((binD r)-b) in
+         rewrite subAdd b (binD r) $ ltLeIncl b (binD r) $ sym cmp in
+         rewrite addDiag y in
+         let ih = posDivEuclRemainder a b bz in
+         dpoLt (snd $ bipDivEuclid a b) (BinP (O y)) $
+         succDoubleLt r b ih
+  | EQ = rewrite sym $ compareEqIffTo (BinP y) (binD $ snd $ bipDivEuclid a (BinP y)) $ sym cmp in
+         rewrite subDiag (BinP y) in
+         Refl
+  | GT = gtLt (BinP y) (binD $ snd $ bipDivEuclid a (BinP y)) $ sym cmp
+posDivEuclRemainder (I a) (BinP  y   ) bz with ((BinP y) `compare` (binDPO $ snd $ bipDivEuclid a (BinP y))) proof cmp
+  | LT = let b = BinP y
+             r = snd $ bipDivEuclid a b
+         in
+         addLtCancelL ((binDPO r)-b) b b $
+         rewrite addComm b ((binDPO r)-b) in
+         rewrite subAdd b (binDPO r) $ ltLeIncl b (binDPO r) $ sym cmp in
+         rewrite addDiag y in
+         let ih = posDivEuclRemainder a b bz in
+         succDoubleLt r b ih
+  | EQ = rewrite sym $ compareEqIffTo (BinP y) (binDPO $ snd $ bipDivEuclid a (BinP y)) $ sym cmp in
+         rewrite subDiag (BinP y) in
+         Refl
+  | GT = gtLt (BinP y) (binDPO $ snd $ bipDivEuclid a (BinP y)) $ sym cmp
+
 -- mod_lt
--- mod_bound_pos
--- TODO
+
+modLt : (a, b : Bin) -> Not (b=0) -> (a `mod` b) `Lt` b
+modLt  _        BinO    bz = absurd $ bz Refl
+modLt  BinO    (BinP _) _  = Refl
+modLt (BinP a) (BinP b) bz = posDivEuclRemainder a (BinP b) bz
+
+-- mod_bound_pos is just mod_lt + le_0_l
 
 -- Specification of square root
 
 -- sqrtrem_sqrt
+
+sqrtremSqrt : (n : Bin) -> fst (binSqrtRem n) = binSqrt n
+sqrtremSqrt  BinO    = Refl
+sqrtremSqrt (BinP a) with (snd $ bipSqrtRem a)
+  | BimP _ = Refl
+  | BimO   = Refl
+  | BimM   = Refl
+
 -- sqrtrem_spec
+
+sqrtremSpec : (n : Bin) -> let sr = binSqrtRem n
+                               s = fst sr
+                               r = snd sr
+                           in (n = s*s + r, r `Le` 2*s)
+sqrtremSpec  BinO    = (Refl, uninhabited)
+sqrtremSpec (BinP a) = case sqrtremSpec a of
+  SqrtExact  prf     srprf =>
+    rewrite srprf in
+    (cong prf, uninhabited)
+  SqrtApprox prf rle srprf =>
+    rewrite srprf in
+    (cong prf, rle)
+
 -- sqrt_spec
--- sqrt_neg
--- TODO
+-- removed redundant constraint on `n`
+sqrtSpec : (n : Bin) -> let s = binSqrt n in
+  (s*s `Le` n, n `Lt` (binSucc s)*(binSucc s))
+sqrtSpec BinO = (uninhabited, Refl)
+sqrtSpec (BinP a) = sqrtSpec a
+
+-- sqrt_neg doesn't make sense
 
 -- Specification of gcd
 
 -- ggcd_gcd
+-- The first component of binGGCD is binGCD
+ggcdGcd : (a, b : Bin) -> fst (binGGCD a b) = binGCD a b
+ggcdGcd  BinO     BinO    = Refl
+ggcdGcd  BinO    (BinP _) = Refl
+ggcdGcd (BinP _)  BinO    = Refl
+ggcdGcd (BinP a) (BinP b) = cong $ ggcdGcd a b
+
 -- ggcd_correct_divisors
+-- The other components of binGGCD are indeed the correct factors
+ggcdCorrectDivisors : (a, b : Bin) -> let gaabb = binGGCD a b
+                                          g = fst gaabb
+                                          aa = fst $ snd gaabb
+                                          bb = snd $ snd gaabb in
+                                        (a=g*aa, b=g*bb)
+ggcdCorrectDivisors  BinO     BinO    = (Refl, Refl)
+ggcdCorrectDivisors  BinO    (BinP b) = (Refl, rewrite mul1R b in
+                                               Refl)
+ggcdCorrectDivisors (BinP a)  BinO    = (rewrite mul1R a in
+                                         Refl, Refl)
+ggcdCorrectDivisors (BinP a) (BinP b) = let (prf1, prf2) = ggcdCorrectDivisors a b in
+                                        (cong prf1, cong prf2)
+
+binDivides : (a, b : Bin) -> Type
+binDivides a b = (c ** b = c*a)
+
 -- gcd_divide_l
+
+gcdDivideL : (a, b : Bin) -> binDivides (binGCD a b) a
+gcdDivideL a b =
+  let (aprf, _) = ggcdCorrectDivisors a b
+      x = binGGCD a b in
+  rewrite sym $ ggcdGcd a b in
+  (fst $ snd x **
+    rewrite mulComm (fst $ snd x) (fst x) in
+    aprf)
+
 -- gcd_divide_r
+
+gcdDivideR : (a, b : Bin) -> binDivides (binGCD a b) b
+gcdDivideR a b =
+  let (_, bprf) = ggcdCorrectDivisors a b
+      x = binGGCD a b in
+  rewrite sym $ ggcdGcd a b in
+  (snd $ snd x **
+    rewrite mulComm (snd $ snd x) (fst x) in
+    bprf)
+
 -- gcd_greatest
--- gcd_nonneg
--- TODO
+
+gcdGreatest : (a, b, c : Bin) -> binDivides c a -> binDivides c b
+                              -> binDivides c (binGCD a b)
+gcdGreatest  BinO     BinO     c       _        _        = (0 ** rewrite mulZeroL c in Refl)
+gcdGreatest  BinO    (BinP _)  _       _        cb       = cb
+gcdGreatest (BinP _)  BinO     _       ca       _        = ca
+gcdGreatest (BinP _) (BinP _)  BinO    (d**pca) _        = absurd $ replace (mulZeroR d) pca
+gcdGreatest (BinP a) (BinP b) (BinP c) (d**pca) (e**pcb) = aux d e pca pcb
+  where
+  aux : (d, e : Bin) -> BinP a = binMult d (BinP c) -> BinP b = binMult e (BinP c)
+                     -> (z ** BinP (bipGCD a b) = z*(BinP c))
+  aux  BinO     _       pca _   = absurd pca
+  aux  _        BinO    _   pcb = absurd pcb
+  aux (BinP x) (BinP y) pca pcb =
+    let (r**prf) = gcdGreatest a b c (x**binPInj pca) (y**binPInj pcb)
+    in
+    (BinP r ** cong prf)
+
+-- gcd_nonneg is just le_0_l
 
 -- Specification of bitwise functions
 
 -- testbit_even_0
+
+testbitEven0 : (a : Bin) -> binTestBit (2*a) 0 = False
+testbitEven0  BinO    = Refl
+testbitEven0 (BinP _) = Refl
+
 -- testbit_odd_0
+
+testbitOdd0 : (a : Bin) -> binTestBit (2*a+1) 0 = True
+testbitOdd0  BinO    = Refl
+testbitOdd0 (BinP _) = Refl
+
 -- testbit_succ_r_div2
+
+-- removed redundant constraint on `n`
+testbitSuccRDiv2 : (a, n : Bin) -> binTestBit a (binSucc n) = binTestBit (binDivTwo a) n
+testbitSuccRDiv2  BinO         _       = Refl
+testbitSuccRDiv2 (BinP  U   )  BinO    = Refl
+testbitSuccRDiv2 (BinP  U   ) (BinP _) = Refl
+testbitSuccRDiv2 (BinP (O _))  BinO    = Refl
+testbitSuccRDiv2 (BinP (O a)) (BinP b) = cong {f=bipTestBit a} $ predBinSucc b
+testbitSuccRDiv2 (BinP (I _))  BinO    = Refl
+testbitSuccRDiv2 (BinP (I a)) (BinP b) = cong {f=bipTestBit a} $ predBinSucc b
+
 -- testbit_odd_succ
+-- removed redundant constraint on `n`
+testbitOddSucc : (a, n : Bin) -> binTestBit (2*a+1) (binSucc n) = binTestBit a n
+testbitOddSucc a n = rewrite testbitSuccRDiv2 (2*a+1) n in
+                     rewrite sym $ succDoubleSpec a in
+                     rewrite divTwoSuccDouble a in
+                     Refl
+
 -- testbit_even_succ
--- testbit_neg_r
--- TODO
+-- removed redundant constraint on `n`
+testbitEvenSucc : (a, n : Bin) -> binTestBit (2*a) (binSucc n) = binTestBit a n
+testbitEvenSucc a n = rewrite testbitSuccRDiv2 (2*a) n in
+                      rewrite sym $ doubleSpec a in
+                      rewrite divTwoDouble a in
+                      Refl
+
+-- testbit_neg_r doesn't make sense
 
 -- Correctness proofs for shifts
 
+shiftlZero : (a : Bin) -> binShiftL a 0 = a
+shiftlZero  BinO    = Refl
+shiftlZero (BinP _) = Refl
+
 -- shiftr_succ_r
+
+shiftrSuccR : (a, n : Bin) -> binShiftR a (binSucc n) = binDivTwo (binShiftR a n)
+shiftrSuccR _  BinO    = Refl
+shiftrSuccR a (BinP b) = iterSucc binDivTwo a b
+
 -- shiftl_succ_r
+
+shiftlSuccR : (a, n : Bin) -> binShiftL a (binSucc n) = binD (binShiftL a n)
+shiftlSuccR BinO _ = Refl
+shiftlSuccR (BinP a) BinO = Refl
+shiftlSuccR (BinP a) (BinP b) = cong $ iterSucc O a b
+
 -- shiftr_spec
+-- removed redundant constraint on `m`
+shiftrSpec : (a, n, m : Bin) -> binTestBit (binShiftR a n) m = binTestBit a (m+n)
+shiftrSpec a n =
+  peanoRect
+    -- a trick to emulate Coq's `revert`, otherwise you get stuck on `binSucc m`
+    (\x => (y : Bin) -> binTestBit (binShiftR a x) y = binTestBit a (y+x))
+    (\y => rewrite addZeroR y in Refl)
+    (\n',fprf,y =>
+     rewrite shiftrSuccR a n' in
+     rewrite sym $ testbitSuccRDiv2 (binShiftR a n') y in
+     rewrite fprf (binSucc y) in
+     rewrite addComm y (binSucc n') in
+     rewrite addSuccL n' y in
+     rewrite addSuccL y n' in
+     rewrite addComm n' y in
+     Refl)
+    n
+
 -- shiftl_spec_high
+-- removed redundant constraint on `m`
+shiftlSpecHigh : (a, n, m : Bin) -> n `Le` m -> binTestBit (binShiftL a n) m = binTestBit a (m-n)
+shiftlSpecHigh a n m nlem =
+  rewrite sym $ subAdd n m nlem in
+  rewrite addSub (m-n) n in
+  peanoRect
+    (\x => (y : Bin) -> binTestBit (binShiftL a x) (y+x) = binTestBit a y)
+    (\y => rewrite addZeroR y in
+           rewrite shiftlZero a in
+           Refl)
+    (\n',fprf,y =>
+      rewrite shiftlSuccR a n' in
+      rewrite addComm y (binSucc n') in
+      rewrite addSuccL n' y in
+      rewrite doubleSpec (binShiftL a n') in
+      rewrite testbitEvenSucc (binShiftL a n') (n'+y) in
+      rewrite addComm n' y in
+      fprf y)
+    n
+    (m-n)
+
 -- shiftl_spec_low
--- div2_spec
--- TODO
+
+shiftlSpecLow : (a, n, m : Bin) -> m `Lt` n -> binTestBit (binShiftL a n) m = False
+shiftlSpecLow _  BinO    m mltn = absurd $ leZeroL m $ ltGt m 0 mltn
+shiftlSpecLow a (BinP b) m mltn =
+  peanoRect
+    (\x => (y : Bin) -> y `Lt` (BinP x) -> binTestBit (binShiftL a (BinP x)) y = False)
+    (\y,yltx => rewrite zeroLt1 y yltx in
+                rewrite shiftlSuccR a 0 in
+                rewrite doubleSpec (binShiftL a 0) in
+                testbitEven0 (binShiftL a 0)
+    )
+    (\b',prf,y,yltx =>
+      rewrite shiftlSuccR a (BinP b') in
+      case y of
+        BinO   => rewrite doubleSpec (binShiftL a (BinP b')) in
+                  testbitEven0 (binShiftL a (BinP b'))
+        BinP z => rewrite sym $ succPred (BinP z) uninhabited in
+                  rewrite doubleSpec (binShiftL a (BinP b')) in
+                  rewrite testbitEvenSucc (binShiftL a (BinP b')) (bipPredBin z) in
+                  prf (bipPredBin z) $
+                    rewrite sym $ compareSuccSucc (bipPredBin z) (BinP b') in
+                    rewrite succPosPred z in
+                    yltx
+      )
+    b
+    m mltn
+
+-- div2_spec is trivial
 
 -- Semantics of bitwise operations
 
+------- TODO contribute to Prelude.Bool ------
+xor : Bool -> Bool -> Bool
+xor = (/=)
+
+xorDiag : (b : Bool) -> xor b b = False
+xorDiag False = Refl
+xorDiag True = Refl
+
+xorComm : (a, b : Bool) -> xor a b = xor b a
+xorComm False False = Refl
+xorComm False True  = Refl
+xorComm True  False = Refl
+xorComm True  True  = Refl
+
+xorFalse : (b : Bool) -> xor False b = b
+xorFalse False = Refl
+xorFalse True = Refl
+
+orDiag : (b : Bool) -> b || b = b
+orDiag False = Refl
+orDiag True = Refl
+
+orFalse : (b : Bool) -> b || False = b
+orFalse False = Refl
+orFalse True = Refl
+
+andDiag : (b : Bool) -> b && b = b
+andDiag False = Refl
+andDiag True = Refl
+
+andFalse : (b : Bool) -> b && False = False
+andFalse False = Refl
+andFalse True = Refl
+
+andTrue : (b : Bool) -> b && True = b
+andTrue False = Refl
+andTrue True = Refl
+
+andNot : (b : Bool) -> b && not b = False
+andNot False = Refl
+andNot True = Refl
+----------------------------------------------
+
+-- some unfortunate duplication, see idris-bi/16
+doubleSpec2 : (a : Bin) -> binDouble a = 2 * a
+doubleSpec2  BinO    = Refl
+doubleSpec2 (BinP _) = Refl
+
+succDoubleSpec2 : (a : Bin) -> binDoubleSucc a = 2 * a + 1
+succDoubleSpec2  BinO    = Refl
+succDoubleSpec2 (BinP _) = Refl
+
 -- pos_lxor_spec
+
+-- TODO there's a lot of repetition here, most likely it can be broken into lemmas and simplified
+posLxorSpec : (p, p1: Bip) -> (n : Bin) -> binTestBit (bipXor p p1) n = xor (bipTestBit p n) (bipTestBit p1 n)
+posLxorSpec  U     U     n       = sym $ xorDiag (bipTestBit U n)
+posLxorSpec  U    (O _)  BinO    = Refl
+posLxorSpec  U    (O a) (BinP b) = sym $ xorFalse (bipTestBit a (bipPredBin b))
+posLxorSpec  U    (I _)  BinO    = Refl
+posLxorSpec  U    (I a) (BinP b) = sym $ xorFalse (bipTestBit a (bipPredBin b))
+posLxorSpec (O _)  U     BinO    = Refl
+posLxorSpec (O a)  U    (BinP b) = rewrite xorComm (bipTestBit a (bipPredBin b)) False in
+                                   sym $ xorFalse (bipTestBit a (bipPredBin b))
+posLxorSpec (I _)  U     BinO    = Refl
+posLxorSpec (I a)  U    (BinP b) = rewrite xorComm (bipTestBit a (bipPredBin b)) False in
+                                   sym $ xorFalse (bipTestBit a (bipPredBin b))
+posLxorSpec (O a) (O b)  BinO    = rewrite doubleSpec2 (bipXor a b) in
+                                   testbitEven0 (bipXor a b)
+posLxorSpec (O a) (O b) (BinP c) =
+  rewrite doubleSpec2 (bipXor a b) in
+  rewrite sym $ succPosPred c in
+  rewrite testbitEvenSucc (bipXor a b) (bipPredBin c) in
+  posLxorSpec a b (bipPredBin c)
+posLxorSpec (O a) (I b)  BinO    = rewrite succDoubleSpec2 (bipXor a b) in
+                                   testbitOdd0 (bipXor a b)
+posLxorSpec (O a) (I b) (BinP c) =
+  rewrite succDoubleSpec2 (bipXor a b) in
+  rewrite sym $ succPosPred c in
+  rewrite testbitOddSucc (bipXor a b) (bipPredBin c) in
+  posLxorSpec a b (bipPredBin c)
+posLxorSpec (I a) (O b)  BinO    = rewrite succDoubleSpec2 (bipXor a b) in
+                                   testbitOdd0 (bipXor a b)
+posLxorSpec (I a) (O b) (BinP c) =
+  rewrite succDoubleSpec2 (bipXor a b) in
+  rewrite sym $ succPosPred c in
+  rewrite testbitOddSucc (bipXor a b) (bipPredBin c) in
+  posLxorSpec a b (bipPredBin c)
+posLxorSpec (I a) (I b)  BinO    = rewrite doubleSpec2 (bipXor a b) in
+                                   testbitEven0 (bipXor a b)
+posLxorSpec (I a) (I b) (BinP c) =
+  rewrite doubleSpec2 (bipXor a b) in
+  rewrite sym $ succPosPred c in
+  rewrite testbitEvenSucc (bipXor a b) (bipPredBin c) in
+  posLxorSpec a b (bipPredBin c)
+
 -- lxor_spec
+
+lxorSpec : (a, a1, n : Bin) -> binTestBit (binXor a a1) n = xor (binTestBit a n) (binTestBit a1 n)
+lxorSpec  BinO     BinO     _ = Refl
+lxorSpec  BinO    (BinP b1) n = sym $ xorFalse (bipTestBit b1 n)
+lxorSpec (BinP b)  BinO     n = rewrite xorComm (bipTestBit b n) False in
+                                sym $ xorFalse (bipTestBit b n)
+lxorSpec (BinP b) (BinP b1) n = posLxorSpec b b1 n
+
 -- pos_lor_spec
+
+posLorSpec : (p, p1: Bip) -> (n : Bin) -> bipTestBit (bipOr p p1) n = (bipTestBit p n) || (bipTestBit p1 n)
+posLorSpec  U     U     n       = sym $ orDiag $ bipTestBit U n
+posLorSpec  U    (O _)  BinO    = Refl
+posLorSpec  U    (O _) (BinP _) = Refl
+posLorSpec  U    (I _)  BinO    = Refl
+posLorSpec  U    (I _) (BinP _) = Refl
+posLorSpec (O _)  U     BinO    = Refl
+posLorSpec (O a)  U    (BinP c) = sym $ orFalse $ bipTestBit a (bipPredBin c)
+posLorSpec (O _) (O _)  BinO    = Refl
+posLorSpec (O a) (O b) (BinP c) = posLorSpec a b (bipPredBin c)
+posLorSpec (O a) (I b)  BinO    = Refl
+posLorSpec (O a) (I b) (BinP c) = posLorSpec a b (bipPredBin c)
+posLorSpec (I a)  U     BinO    = Refl
+posLorSpec (I a)  U    (BinP c) = sym $ orFalse $ bipTestBit a (bipPredBin c)
+posLorSpec (I a) (O b)  BinO    = Refl
+posLorSpec (I a) (O b) (BinP c) = posLorSpec a b (bipPredBin c)
+posLorSpec (I a) (I b)  BinO    = Refl
+posLorSpec (I a) (I b) (BinP c) = posLorSpec a b (bipPredBin c)
+
 -- lor_spec
+
+lorSpec : (a, a1, n : Bin) -> binTestBit (binOr a a1) n = (binTestBit a n) || (binTestBit a1 n)
+lorSpec  BinO     _        _ = Refl
+lorSpec (BinP b)  BinO     n = sym $ orFalse $ bipTestBit b n
+lorSpec (BinP b) (BinP b1) n = posLorSpec b b1 n
+
 -- pos_land_spec
+
+posLandSpec : (p, p1 : Bip) -> (n : Bin) -> binTestBit (bipAnd p p1) n = (bipTestBit p n) && (bipTestBit p1 n)
+posLandSpec  U     U     n       = sym $ andDiag $ bipTestBit U n
+posLandSpec  U    (O _)  BinO    = Refl
+posLandSpec  U    (O _) (BinP _) = Refl
+posLandSpec  U    (I _)  BinO    = Refl
+posLandSpec  U    (I _) (BinP _) = Refl
+posLandSpec (O _)  U     BinO    = Refl
+posLandSpec (O a)  U    (BinP c) = sym $ andFalse $ bipTestBit a (bipPredBin c)
+posLandSpec (O a) (O b)  BinO    = rewrite doubleSpec2 (bipAnd a b) in
+                                   testbitEven0 (bipAnd a b)
+posLandSpec (O a) (O b) (BinP c) =
+  rewrite doubleSpec2 (bipAnd a b) in
+  rewrite sym $ succPosPred c in
+  rewrite testbitEvenSucc (bipAnd a b) (bipPredBin c) in
+  posLandSpec a b (bipPredBin c)
+posLandSpec (O a) (I b)  BinO    = rewrite doubleSpec2 (bipAnd a b) in
+                                   testbitEven0 (bipAnd a b)
+posLandSpec (O a) (I b) (BinP c) =
+  rewrite doubleSpec2 (bipAnd a b) in
+  rewrite sym $ succPosPred c in
+  rewrite testbitEvenSucc (bipAnd a b) (bipPredBin c) in
+  posLandSpec a b (bipPredBin c)
+posLandSpec (I a)  U     BinO    = Refl
+posLandSpec (I a)  U    (BinP c) = sym $ andFalse $ bipTestBit a (bipPredBin c)
+posLandSpec (I a) (O b)  BinO    = rewrite doubleSpec2 (bipAnd a b) in
+                                   testbitEven0 (bipAnd a b)
+posLandSpec (I a) (O b) (BinP c) =
+  rewrite doubleSpec2 (bipAnd a b) in
+  rewrite sym $ succPosPred c in
+  rewrite testbitEvenSucc (bipAnd a b) (bipPredBin c) in
+  posLandSpec a b (bipPredBin c)
+posLandSpec (I a) (I b)  BinO    = rewrite succDoubleSpec2 (bipAnd a b) in
+                                   testbitOdd0 (bipAnd a b)
+posLandSpec (I a) (I b) (BinP c) =
+  rewrite succDoubleSpec2 (bipAnd a b) in
+  rewrite sym $ succPosPred c in
+  rewrite testbitOddSucc (bipAnd a b) (bipPredBin c) in
+  posLandSpec a b (bipPredBin c)
+
 -- land_spec
+
+landSpec : (a, a1, n : Bin) -> binTestBit (binAnd a a1) n = (binTestBit a n) && (binTestBit a1 n)
+landSpec  BinO     _        _ = Refl
+landSpec (BinP b)  BinO     n = sym $ andFalse $ bipTestBit b n
+landSpec (BinP b) (BinP b1) n = posLandSpec b b1 n
+
 -- pos_ldiff_spec
+
+posLdiffSpec : (p, p1 : Bip) -> (n : Bin) -> binTestBit (bipDiff p p1) n = (bipTestBit p n) && not (bipTestBit p1 n)
+posLdiffSpec  U     U     n       = sym $ andNot $ bipTestBit U n
+posLdiffSpec  U    (O _)  BinO    = Refl
+posLdiffSpec  U    (O _) (BinP _) = Refl
+posLdiffSpec  U    (I _)  BinO    = Refl
+posLdiffSpec  U    (I _) (BinP _) = Refl
+posLdiffSpec (O _)  U     BinO    = Refl
+posLdiffSpec (O a)  U    (BinP c) = sym $ andTrue $ bipTestBit a (bipPredBin c)
+posLdiffSpec (O a) (O b)  BinO    = rewrite doubleSpec2 (bipDiff a b) in
+                                    testbitEven0 (bipDiff a b)
+posLdiffSpec (O a) (O b) (BinP c) =
+  rewrite doubleSpec2 (bipDiff a b) in
+  rewrite sym $ succPosPred c in
+  rewrite testbitEvenSucc (bipDiff a b) (bipPredBin c) in
+  posLdiffSpec a b (bipPredBin c)
+posLdiffSpec (O a) (I b)  BinO    = rewrite doubleSpec2 (bipDiff a b) in
+                                    testbitEven0 (bipDiff a b)
+posLdiffSpec (O a) (I b) (BinP c) =
+  rewrite doubleSpec2 (bipDiff a b) in
+  rewrite sym $ succPosPred c in
+  rewrite testbitEvenSucc (bipDiff a b) (bipPredBin c) in
+  posLdiffSpec a b (bipPredBin c)
+posLdiffSpec (I a)  U     BinO    = Refl
+posLdiffSpec (I a)  U    (BinP c) = sym $ andTrue $ bipTestBit a (bipPredBin c)
+posLdiffSpec (I a) (O b)  BinO    = rewrite succDoubleSpec2 (bipDiff a b) in
+                                    testbitOdd0 (bipDiff a b)
+posLdiffSpec (I a) (O b) (BinP c) =
+  rewrite succDoubleSpec2 (bipDiff a b) in
+  rewrite sym $ succPosPred c in
+  rewrite testbitOddSucc (bipDiff a b) (bipPredBin c) in
+  posLdiffSpec a b (bipPredBin c)
+posLdiffSpec (I a) (I b)  BinO    = rewrite doubleSpec2 (bipDiff a b) in
+                                    testbitEven0 (bipDiff a b)
+posLdiffSpec (I a) (I b) (BinP c) =
+  rewrite doubleSpec2 (bipDiff a b) in
+  rewrite sym $ succPosPred c in
+  rewrite testbitEvenSucc (bipDiff a b) (bipPredBin c) in
+  posLdiffSpec a b (bipPredBin c)
+
 -- ldiff_spec
--- TODO
+
+ldiffSpec : (a, a1, n : Bin) -> binTestBit (binDiff a a1) n = (binTestBit a n) && not (binTestBit a1 n)
+ldiffSpec  BinO     _        _ = Refl
+ldiffSpec (BinP b)  BinO     n = sym $ andTrue $ bipTestBit b n
+ldiffSpec (BinP b) (BinP b1) n = posLdiffSpec b b1 n
 
 -- Specification of constants
+
+-- all of the following are trivial:
 
 -- one_succ
 -- two_succ
 -- pred_0
--- TODO
 
 -- Generic induction / recursion
 
 -- bi_induction
+-- TODO without setoids this is essentially `peanoRect` with an additional
+-- constraint `(n : Bin) -> A (binSucc n) -> A n`, so I'm not sure how useful
+-- it is here
+
+binRecursion : a -> (Bin -> a -> a) -> Bin -> a
+binRecursion {a} = peanoRect (\_ => a)
+
 -- recursion_wd
--- recursion_0
+-- TODO
+
+-- recursion_0 is trivial
+
 -- recursion_succ
 -- TODO
 
 -- Instantiation of generic properties of natural numbers
 
--- gt_lt_iff
 -- gt_lt
 -- lt_gt
--- ge_le_iff
+
+-- TODO had to define these two earlier, will regroup into smaller files
+
 -- ge_le
+
+geLe : (n, m : Bin) -> n `Ge` m -> m `Le` n
+geLe n m ngem = rewrite compareAntisym n m in
+                aux
+  where
+  aux : Not (compareOp (n `compare` m) = GT)
+  aux prf with (n `compare` m)
+    | LT = ngem Refl
+    | EQ = uninhabited prf
+    | GT = ngem $ sym prf
+
 -- le_ge
--- TODO
+
+leGe : (n, m : Bin) -> n `Le` m -> m `Ge` n
+leGe n m nlem = rewrite compareAntisym n m in
+                aux
+  where
+  aux : Not (compareOp (n `compare` m) = LT)
+  aux prf with (n `compare` m)
+    | LT = nlem $ sym prf
+    | EQ = uninhabited prf
+    | GT = nlem Refl
 
 -- Auxiliary results about right shift on positive numbers
 
 -- pos_pred_shiftl_low
+
+posPredShiftlLow : (p : Bip) -> (n, m : Bin) -> m `Lt` n -> binTestBit (bipPredBin (bipShiftL p n)) m = True
+posPredShiftlLow _  BinO    m mltn = absurd $ compare0R m mltn
+posPredShiftlLow p (BinP a) m mltn =
+  peanoRect
+    (\x => (y : Bin) -> y `Lt` (BinP x) -> binTestBit (bipPredBin (bipIter O p x)) y = True)
+    (\y, yltx =>
+     rewrite zeroLt1 y yltx in
+     zeroBitDMO p)
+    (\x',prf,y,yltx =>
+      case y of
+        BinO   => rewrite iterSucc O p x' in
+                  zeroBitDMO (bipIter O p x')
+        BinP z => rewrite sym $ succPred (BinP z) uninhabited in
+                  rewrite testbitSuccRDiv2 (bipPredBin (bipIter O p (bipSucc x'))) (bipPredBin z) in
+                  rewrite iterSucc O p x' in
+                  rewrite sym $ dmoDiv2 (bipIter O p x') in
+                  prf (bipPredBin z) $
+                     rewrite sym $ compareSuccSucc (bipPredBin z) (BinP x') in
+                     rewrite succPosPred z in
+                     yltx
+    )
+    a
+    m mltn
+  where
+  zeroBitDMO : (p : Bip) -> bipTestBit (bipDMO p) 0 = True
+  zeroBitDMO  U    = Refl
+  zeroBitDMO (O _) = Refl
+  zeroBitDMO (I _) = Refl
+
 -- pos_pred_shiftl_high
+
+posPredShiftlHigh  : (p : Bip) -> (n, m : Bin) -> n `Le` m -> binTestBit (bipPredBin (bipShiftL p n)) m = binTestBit (binShiftL (bipPredBin p) n) m
+posPredShiftlHigh p n m nlem =
+  peanoRect
+    (\x => (y : Bin) -> x `Le` y -> binTestBit (bipPredBin (bipShiftL p x)) y = binTestBit (binShiftL (bipPredBin p) x) y)
+    (\_,_ => rewrite shiftlZero (bipPredBin p) in
+     Refl)
+    (\n',prf,y,xley =>
+     let (a**prfa) = succLePos n' y xley in
+     rewrite prfa in
+     rewrite sym $ succPred (BinP a) uninhabited in
+     rewrite shiftlSuccR (bipPredBin p) n' in
+     rewrite aux p n' in
+     rewrite doubleSpec (binShiftL (bipPredBin p) n') in
+     rewrite succDoubleSpec (bipPredBin (bipShiftL p n')) in
+     rewrite testbitEvenSucc (binShiftL (bipPredBin p) n') (bipPredBin a) in
+     rewrite testbitOddSucc (bipPredBin (bipShiftL p n')) (bipPredBin a) in
+     prf (bipPredBin a) $
+       rewrite sym $ compareSuccSucc n' (bipPredBin a) in
+       rewrite succPosPred a in
+       rewrite sym prfa in
+       xley
+    )
+    n
+    m nlem
+  where
+  dmoPredDPO : (a : Bip) -> BinP (bipDMO a) = binDPO (bipPredBin a)
+  dmoPredDPO U = Refl
+  dmoPredDPO (O a) = Refl
+  dmoPredDPO (I a) = Refl
+  aux : (a : Bip) -> (n : Bin) -> bipPredBin $ bipShiftL a (binSucc n) = binDPO $ bipPredBin (bipShiftL a n)
+  aux a BinO = dmoPredDPO a
+  aux a (BinP b) = rewrite iterSucc O a b in
+                   dmoPredDPO (bipIter O a b)
+
 -- pred_div2_up
--- TODO
+
+predDiv2Up : (p : Bip) -> bipPredBin (bipDivTwoCeil p) = binDivTwo (bipPredBin p)
+predDiv2Up  U    = Refl
+predDiv2Up (O a) = dmoDiv2 a
+predDiv2Up (I a) = predBinSucc a
 
 -- More complex compatibility facts
 

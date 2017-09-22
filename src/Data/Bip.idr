@@ -380,15 +380,15 @@ bipDiff (O a')  U     = BinP (O a')
 bipDiff (I a')  U     = BinP (O a')
 bipDiff (O a') (O b') = binDouble (bipDiff a' b')
 bipDiff (O a') (I b') = binDouble (bipDiff a' b')
-bipDiff (I a') (O b') = binDouble (bipDiff a' b')
-bipDiff (I a') (I b') = binDoubleSucc (bipDiff a' b')
+bipDiff (I a') (O b') = binDoubleSucc (bipDiff a' b')
+bipDiff (I a') (I b') = binDouble (bipDiff a' b')
 
 ||| Logical XOR
 bipXor : (a, b: Bip) -> Bin
 bipXor  U      U     = BinO
 bipXor  U     (O b') = BinP (I b')
 bipXor  U     (I b') = BinP (O b')
-bipXor (O a')  U     = BinP (O a')
+bipXor (O a')  U     = BinP (I a')
 bipXor (O a') (O b') = binDouble (bipXor a' b')
 bipXor (O a') (I b') = binDoubleSucc (bipXor a' b')
 bipXor (I a')  U     = BinP (O a')
@@ -436,7 +436,7 @@ bipMultNat (I a') pow2 = pow2 + (bipMultNat a' (pow2 + pow2))
 toNatBip : (a: Bip) -> Nat
 toNatBip a = bipMultNat a 1
 
-||| From Nat to Bip, with Z mapping to O
+||| From Nat to Bip, with Z mapping to U
 toBipNat : (n: Nat) -> Bip
 toBipNat  Z     = U
 toBipNat (S Z)  = U
