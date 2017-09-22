@@ -690,6 +690,17 @@ compareAntisym (BizM _)  BizO    = Refl
 compareAntisym (BizM _) (BizP _) = Refl
 compareAntisym (BizM a) (BizM b) = compareAntisym b a
 
+compareOpp : (n, m : Biz) -> n `compare` m = (-m) `compare` (-n)
+compareOpp  BizO     BizO    = Refl
+compareOpp  BizO    (BizP _) = Refl
+compareOpp  BizO    (BizM _) = Refl
+compareOpp (BizP _)  BizO    = Refl
+compareOpp (BizP _) (BizP _) = Refl
+compareOpp (BizP _) (BizM _) = Refl
+compareOpp (BizM _)  BizO    = Refl
+compareOpp (BizM _) (BizP _) = Refl
+compareOpp (BizM _) (BizM _) = Refl
+
 -- ge_le
 
 geLe : (n, m : Biz) -> n `Ge` m -> m `Le` n
@@ -1320,3 +1331,55 @@ posDivEuclBound (I a) (BizP n) zltb with ((bizDPO $ snd $ bipzDivEuclid a (BizP 
       aux  BizO    nlt0    = absurd nlt0
       aux (BizP _) nlt0    = absurd nlt0
       aux (BizM _) _       = Refl
+
+-- mod_pos_bound
+
+modPosBound : (a, b : Biz) -> 0 `Lt` b -> let m = bizMod a b in (0 `Le` m, m `Lt` b)
+modPosBound  _          BizO    zltb = absurd zltb
+modPosBound  _         (BizM _) zltb = absurd zltb
+modPosBound  BizO      (BizP _) _    = (uninhabited, Refl)
+modPosBound (BizP a) b@(BizP _) _    = posDivEuclBound a b Refl
+modPosBound (BizM a)   (BizP b) _    with (snd $ bipzDivEuclid a (BizP b)) proof rprf
+  | BizO   = (uninhabited, Refl)
+  | BizP r =
+      let rltb' = snd $ posDivEuclBound a (BizP b) Refl
+          rltb = replace {P=\x=>x `Lt` (BizP b)} (sym rprf) rltb' in
+      rewrite posSubGt b r rltb in
+      (uninhabited, subDecr b r rltb)
+  | BizM _ =
+      let zler' = fst $ posDivEuclBound a (BizP b) Refl
+          zler = replace {P=\x=>0 `Le` x} (sym rprf) zler' in
+-- TODO bug? we arrive at `zler:(GT=GT)->Void` but the following results in
+-- `zler does not have a function type ((\x => ([__])) (BizM _))`
+          --absurd $ zler Refl
+          really_believe_me zler
+
+
+-- mod_neg_bound
+
+modNegBound : (a, b : Biz) -> b `Lt` 0 -> let m = bizMod a b in (b `Lt` m, m `Le` 0)
+modNegBound  _        BizO    blt0 = absurd blt0
+modNegBound  _       (BizP _) blt0 = absurd blt0
+modNegBound  BizO    (BizM _) _    = (Refl, uninhabited)
+modNegBound (BizP a) (BizM b) _    with (snd $ bipzDivEuclid a (BizP b)) proof rprf
+  | BizO   = (Refl, uninhabited)
+  | BizP r =
+    let rltb' = snd $ posDivEuclBound a (BizP b) Refl
+        rltb = replace {P=\x=>x `Lt` (BizP b)} (sym rprf) rltb' in
+    rewrite posSubLt r b rltb in
+    ( subDecr b r rltb
+    , uninhabited
+    )
+  | BizM _ =
+      let zler' = fst $ posDivEuclBound a (BizP b) Refl
+          zler = replace {P=\x=>0 `Le` x} (sym rprf) zler' in
+-- TODO bug? see above
+      --absurd $ zler Refl
+      really_believe_me zler
+modNegBound (BizM a) (BizM b) _    =
+  let (zltr, rltb) = posDivEuclBound a (BizP b) Refl in
+  ( rewrite sym $ compareOpp (snd $ bipzDivEuclid a (BizP b)) (BizP b) in
+    rltb
+  , rewrite sym $ compareOpp 0 (snd $ bipzDivEuclid a (BizP b)) in
+    zltr
+  )

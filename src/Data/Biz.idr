@@ -480,6 +480,8 @@ Neg Biz where
   abs    = bizAbs
   (-)    = bizMinus
 
+-- TODO Integral instance? which div+mod to use?  
+
 DecEq Biz where
   decEq  BizO     BizO    = Yes Refl
   decEq  BizO    (BizP _) = No uninhabited
