@@ -25,25 +25,25 @@ mutual
 
 -- iter_swap_gen
 
-iterSwapGen : {f : a -> b} -> {g : a -> a} -> {h : b -> b} ->
+iterSwapGen : (f : a -> b) -> (g : a -> a) -> (h : b -> b) ->
               ((x : a) -> f (g x) = h (f x)) ->
-              (x : a) -> (p : Bip) -> (f (bipIter g x p)) = (bipIter h (f x) p)
-iterSwapGen             fx x  U     = fx x
-iterSwapGen {f} {g} {h} fx x (O b)  =
-  rewrite sym $ iterSwapGen {f} {g} {h} fx x b in
-  rewrite iterSwapGen {f} {g} {h} fx (bipIter g x b) b in
+              (x : a) -> (p : Bip) -> f (bipIter g x p) = bipIter h (f x) p
+iterSwapGen _ _ _ fx x  U     = fx x
+iterSwapGen f g h fx x (O b)  =
+  rewrite sym $ iterSwapGen f g h fx x b in
+  rewrite iterSwapGen f g h fx (bipIter g x b) b in
   Refl
-iterSwapGen {f} {g} {h} fx x (I b) =
-  rewrite sym $ iterSwapGen {f} {g} {h} fx x b in
+iterSwapGen f g h fx x (I b) =
+  rewrite sym $ iterSwapGen f g h fx x b in
   rewrite fx (bipIter g (bipIter g x b) b) in
-  rewrite iterSwapGen {f} {g} {h} fx (bipIter g x b) b in
+  rewrite iterSwapGen f g h fx (bipIter g x b) b in
   Refl
 
 -- iter_swap
 
 iterSwap : (f : a -> a) -> (x : a) -> (p : Bip) ->
            bipIter f (f x) p = f (bipIter f x p)
-iterSwap f x p = sym $ iterSwapGen {f} {g=f} {h=f} (\_ => Refl) x p
+iterSwap f x p = sym $ iterSwapGen f f f (\_ => Refl) x p
 
 -- iter_succ
 

@@ -166,7 +166,7 @@ subZpos n m = posSubGt m n
 -- pow_Zpos
 
 powZpos : (p, q : Bip) -> bizPow (BizP p) (BizP q) = BizP (bipPow p q)
-powZpos p q = sym $ iterSwapGen {f=BizP} {g = bipMult p} {h = bizMult $ BizP p} (\_ => Refl) U q
+powZpos p q = sym $ iterSwapGen BizP (bipMult p) (bizMult $ BizP p) (\_ => Refl) U q
 
 -- inj_Zpos is just bizPInj + cong
 -- inj_Zneg is just bizMInj + cong
@@ -1771,3 +1771,45 @@ testbitEvenSucc (BizM (I _)) (BizP b) _    =
   Refl
 testbitEvenSucc  _           (BizM _) zlen = absurd $ zlen Refl
 
+-- Correctness proofs about [Z.shiftr] and [Z.shiftl]
+
+div2BizBin : (x : Bin) -> toBizBin (binDivTwo x) = bizDivTwo (toBizBin x)
+div2BizBin  BinO        = Refl
+div2BizBin (BinP  U   ) = Refl
+div2BizBin (BinP (O _)) = Refl
+div2BizBin (BinP (I _)) = Refl
+
+div2BipBin : (x : Bip) -> bipPredBin (bipDivTwoCeil x) = binDivTwo (bipPredBin x)
+div2BipBin  U    = Refl
+div2BipBin (O a) = rewrite dmoPredDPO a in
+                   sym $ divTwoSuccDouble (bipPredBin a)
+div2BipBin (I a) = predBinSucc a
+
+-- shiftr_spec_aux
+shiftrSpecAux : (a, n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> bizTestBit (bizShiftR a n) m = bizTestBit a (m+n)
+shiftrSpecAux  _       (BizM _)  _       zlen _    = absurd $ zlen Refl
+shiftrSpecAux  _        _       (BizM _) _    zlem = absurd $ zlem Refl
+shiftrSpecAux  _        BizO     BizO    _    _    = Refl
+shiftrSpecAux  _        BizO    (BizP _) _    _    = Refl
+shiftrSpecAux  BizO    (BizP b)  m       _    _    =
+  let zeroIterDiv2 = iterInvariant Biz.bizDivTwo (\x=>x=0) b (\_,prf => rewrite prf in Refl) 0 Refl in
+  rewrite zeroIterDiv2 in
+  rewrite testbit0L (m+(BizP b)) in
+  testbit0L m
+shiftrSpecAux (BizP a) (BizP b)  BizO    _    _    =
+  rewrite sym $ iterSwapGen toBizBin binDivTwo bizDivTwo div2BizBin (BinP a) b in
+  rewrite testbitOfN1 (bipIter binDivTwo (BinP a) b) 0 uninhabited in
+  shiftrSpec (BinP a) (BinP b) 0
+shiftrSpecAux (BizP a) (BizP b) (BizP c) _    _    =
+  rewrite sym $ iterSwapGen toBizBin binDivTwo bizDivTwo div2BizBin (BinP a) b in
+  rewrite testbitOfN1 (bipIter binDivTwo (BinP a) b) (BizP c) uninhabited in
+  shiftrSpec (BinP a) (BinP b) (BinP c)
+shiftrSpecAux (BizM a) (BizP b)  BizO    _    _    =
+  rewrite sym $ iterSwapGen BizM bipDivTwoCeil bizDivTwo (\_ => Refl) a b in
+  rewrite testbitZneg (bipIter bipDivTwoCeil a b) 0 uninhabited in
+  rewrite iterSwapGen bipPredBin bipDivTwoCeil binDivTwo div2BipBin a b in
+  cong $ shiftrSpec (bipPredBin a) (BinP b) 0
+shiftrSpecAux (BizM a) (BizP b) (BizP c) _    _    =
+  rewrite sym $ iterSwapGen BizM bipDivTwoCeil bizDivTwo (\_ => Refl) a b in
+  rewrite iterSwapGen bipPredBin bipDivTwoCeil binDivTwo div2BipBin a b in
+  cong $ shiftrSpec (bipPredBin a) (BinP b) (BinP c)

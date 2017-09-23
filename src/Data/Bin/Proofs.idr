@@ -1335,6 +1335,11 @@ posPredShiftlLow p (BinP a) m mltn =
 
 -- pos_pred_shiftl_high
 
+dmoPredDPO : (a : Bip) -> BinP (bipDMO a) = binDPO (bipPredBin a)
+dmoPredDPO  U    = Refl
+dmoPredDPO (O _) = Refl
+dmoPredDPO (I _) = Refl
+
 posPredShiftlHigh  : (p : Bip) -> (n, m : Bin) -> n `Le` m -> binTestBit (bipPredBin (bipShiftL p n)) m = binTestBit (binShiftL (bipPredBin p) n) m
 posPredShiftlHigh p n m nlem =
   peanoRect
@@ -1360,10 +1365,6 @@ posPredShiftlHigh p n m nlem =
     n
     m nlem
   where
-  dmoPredDPO : (a : Bip) -> BinP (bipDMO a) = binDPO (bipPredBin a)
-  dmoPredDPO U = Refl
-  dmoPredDPO (O a) = Refl
-  dmoPredDPO (I a) = Refl
   aux : (a : Bip) -> (n : Bin) -> bipPredBin $ bipShiftL a (binSucc n) = binDPO $ bipPredBin (bipShiftL a n)
   aux a BinO = dmoPredDPO a
   aux a (BinP b) = rewrite iterSucc O a b in

@@ -195,7 +195,7 @@ toBipBiz  _        = U
 ||| Iteration
 bizIter : (f : ty -> ty) -> (a : Biz) -> (b : ty) -> ty
 bizIter f (BizP a') b = bipIter f b a'
-bizIter f  _        b = b
+bizIter _  _        b = b
 
 ||| Euclidean division on Biz and Bin
 
@@ -377,12 +377,12 @@ bizTestBit  a         BizO     = bizOdd a
 bizTestBit  BizO     (BizP b') = False
 bizTestBit (BizP a') (BizP b') = bipTestBit a' (BinP b')
 bizTestBit (BizM a') (BizP b') = not (binTestBit (bipPredBin a') (BinP b'))
-bizTestBit  _        (BizM _)  = False
+bizTestBit  _        (BizM _ ) = False
 
 ||| Shift left
 bizShiftL : (a, b : Biz) -> Biz
 bizShiftL a  BizO     = a
-bizShiftL a (BizP b') = bipIter (bizMult (BizP (O U))) a b'
+bizShiftL a (BizP b') = bipIter (bizMult (BizP (O U))) a b'  -- TODO should this be just `bizD`?
 bizShiftL a (BizM b') = bipIter bizDivTwo a b'
 
 ||| Shift right
