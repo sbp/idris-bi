@@ -1687,7 +1687,7 @@ testbitNegR (BizM _) (BizM _) _    = Refl
 
 -- testbit_odd_0
 
-testbitOdd0 : (a : Biz) -> bizTestBit (2*a+1) 0 = True
+testbitOdd0 : (a : Biz) -> bizTestBit (bizDPO a) 0 = True
 testbitOdd0  BizO        = Refl
 testbitOdd0 (BizP  _   ) = Refl
 testbitOdd0 (BizM  U   ) = Refl
@@ -1696,7 +1696,78 @@ testbitOdd0 (BizM (I _)) = Refl
 
 -- testbit_even_0
 
-testbitEven0 : (a : Biz) -> bizTestBit (2*a) 0 = False
+testbitEven0 : (a : Biz) -> bizTestBit (bizD a) 0 = False
 testbitEven0  BizO    = Refl
 testbitEven0 (BizP _) = Refl
 testbitEven0 (BizM _) = Refl
+
+-- testbit_odd_succ
+
+testbitOddSucc : (a, n : Biz) -> 0 `Le` n -> bizTestBit (bizDPO a) (bizSucc n) = bizTestBit a n
+testbitOddSucc  BizO         BizO    _    = Refl
+testbitOddSucc (BizP  U   )  BizO    _    = Refl
+testbitOddSucc (BizP (O _))  BizO    _    = Refl
+testbitOddSucc (BizP (I _))  BizO    _    = Refl
+testbitOddSucc (BizM  U   )  BizO    _    = Refl
+testbitOddSucc (BizM (O a))  BizO    _    = rewrite zeroBitDMO a in
+                                            Refl
+testbitOddSucc (BizM (I _))  BizO    _    = Refl
+testbitOddSucc  BizO        (BizP _) _    = Refl
+testbitOddSucc (BizP  U   ) (BizP b) _    =
+  rewrite add1R b in
+  rewrite predBinSucc b in
+  Refl
+testbitOddSucc (BizP (O _)) (BizP b) _    =
+  rewrite add1R b in
+  rewrite predBinSucc b in
+  Refl
+testbitOddSucc (BizP (I _)) (BizP b) _    =
+  rewrite add1R b in
+  rewrite predBinSucc b in
+  Refl
+testbitOddSucc (BizM  U   ) (BizP _) _    = Refl
+testbitOddSucc (BizM (O _)) (BizP b) _    =
+  rewrite add1R b in
+  rewrite predBinSucc b in
+  Refl
+testbitOddSucc (BizM (I _)) (BizP b) _    =
+  rewrite add1R b in
+  rewrite predBinSucc b in
+  Refl
+testbitOddSucc  _           (BizM _) zlen = absurd $ zlen Refl
+
+-- testbit_even_succ
+
+testbitEvenSucc : (a, n : Biz) -> 0 `Le` n -> bizTestBit (bizD a) (bizSucc n) = bizTestBit a n
+testbitEvenSucc  BizO         BizO    _    = Refl
+testbitEvenSucc (BizP  U   )  BizO    _    = Refl
+testbitEvenSucc (BizP (O _))  BizO    _    = Refl
+testbitEvenSucc (BizP (I _))  BizO    _    = Refl
+testbitEvenSucc (BizM  U   )  BizO    _    = Refl
+testbitEvenSucc (BizM (O a))  BizO    _    = rewrite zeroBitDMO a in
+                                             Refl
+testbitEvenSucc (BizM (I _))  BizO    _    = Refl
+testbitEvenSucc  BizO        (BizP _) _    = Refl
+testbitEvenSucc (BizP  U   ) (BizP b) _    =
+  rewrite add1R b in
+  rewrite predBinSucc b in
+  Refl
+testbitEvenSucc (BizP (O _)) (BizP b) _    =
+  rewrite add1R b in
+  rewrite predBinSucc b in
+  Refl
+testbitEvenSucc (BizP (I _)) (BizP b) _    =
+  rewrite add1R b in
+  rewrite predBinSucc b in
+  Refl
+testbitEvenSucc (BizM  U   ) (BizP _) _    = Refl
+testbitEvenSucc (BizM (O _)) (BizP b) _    =
+  rewrite add1R b in
+  rewrite predBinSucc b in
+  Refl
+testbitEvenSucc (BizM (I _)) (BizP b) _    =
+  rewrite add1R b in
+  rewrite predBinSucc b in
+  Refl
+testbitEvenSucc  _           (BizM _) zlen = absurd $ zlen Refl
+
