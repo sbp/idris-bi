@@ -346,17 +346,29 @@ bizGGCD : (a, b : Biz) -> (Biz, (Biz, Biz))
 bizGGCD  BizO      b        = (bizAbs b, (BizO, bizSign b))
 bizGGCD  a         BizO     = (bizAbs a, (bizSign a, BizO))
 bizGGCD (BizP a') (BizP b') =
-  let (g, (aa, bb)) = bipGGCD a' b' in
-      (BizP g, (BizP aa, BizP bb))
+  let gaabb = bipGGCD a' b'
+      g = fst gaabb
+      aa = fst $ snd gaabb
+      bb = snd $ snd gaabb in
+  (BizP g, (BizP aa, BizP bb))
 bizGGCD (BizP a') (BizM b') =
-  let (g, (aa, bb)) = bipGGCD a' b' in
-      (BizP g, (BizP aa, BizM bb))
+  let gaabb = bipGGCD a' b'
+      g = fst gaabb
+      aa = fst $ snd gaabb
+      bb = snd $ snd gaabb in
+  (BizP g, (BizP aa, BizM bb))
 bizGGCD (BizM a') (BizP b') =
-  let (g, (aa, bb)) = bipGGCD a' b' in
-      (BizP g, (BizM aa, BizP bb))
+  let gaabb = bipGGCD a' b'
+      g = fst gaabb
+      aa = fst $ snd gaabb
+      bb = snd $ snd gaabb in
+  (BizP g, (BizM aa, BizP bb))
 bizGGCD (BizM a') (BizM b') =
-  let (g, (aa, bb)) = bipGGCD a' b' in
-      (BizP g, (BizM aa, BizM bb))
+  let gaabb = bipGGCD a' b'
+      g = fst gaabb
+      aa = fst $ snd gaabb
+      bb = snd $ snd gaabb in
+  (BizP g, (BizM aa, BizM bb))
 
 -- TODO: Should be a Biz -> Bin -> Biz version of this
 ||| Test bit

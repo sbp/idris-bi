@@ -820,6 +820,11 @@ minR n m mlen = rewrite compareAntisym m n in
 
 -- Specification of absolute value
 
+absNonneg : (a : Biz) -> 0 `Le` bizAbs a
+absNonneg  BizO    = uninhabited
+absNonneg (BizP _) = uninhabited
+absNonneg (BizM _) = uninhabited
+
 -- abs_eq
 
 absEq : (n : Biz) -> 0 `Le` n -> abs n = n
@@ -1521,3 +1526,107 @@ divideZposZnegLTo _ p (z ** prf) = (-z ** rewrite mulOppOpp z (BizP p) in
 divideZposZnegLFro : (n : Biz) -> (p : Bip) -> bizDivides (BizM p) n -> bizDivides (BizP p) n
 divideZposZnegLFro _ p (z ** prf) = (-z ** rewrite mulOppOpp z (BizM p) in
                                            prf)
+
+-- Correctness proofs for gcd
+
+ggcdGcd : (a, b : Biz) -> fst (bizGGCD a b) = bizGCD a b
+ggcdGcd  BizO     _       = Refl
+ggcdGcd (BizP _)  BizO    = Refl
+ggcdGcd (BizM _)  BizO    = Refl
+ggcdGcd (BizP a) (BizP b) = cong $ ggcdGcd a b
+ggcdGcd (BizP a) (BizM b) = cong $ ggcdGcd a b
+ggcdGcd (BizM a) (BizP b) = cong $ ggcdGcd a b
+ggcdGcd (BizM a) (BizM b) = cong $ ggcdGcd a b
+
+-- ggcd_correct_divisors
+
+ggcdCorrectDivisors : (a, b : Biz) -> let gaabb = bizGGCD a b
+                                          g = fst gaabb
+                                          aa = fst $ snd gaabb
+                                          bb = snd $ snd gaabb in
+                                      (a = g*aa, b = g*bb)
+ggcdCorrectDivisors  BizO     BizO    = (Refl, Refl)
+ggcdCorrectDivisors  BizO    (BizP b) = (Refl, cong $ sym $ mul1R b)
+ggcdCorrectDivisors  BizO    (BizM b) = (Refl, cong $ sym $ mul1R b)
+ggcdCorrectDivisors (BizP a)  BizO    = (cong $ sym $ mul1R a, Refl)
+ggcdCorrectDivisors (BizP a) (BizP b) = let (aa, bb) = ggcdCorrectDivisors a b in
+                                        (cong aa, cong bb)
+ggcdCorrectDivisors (BizP a) (BizM b) = let (aa, bb) = ggcdCorrectDivisors a b in
+                                        (cong aa, cong bb)
+ggcdCorrectDivisors (BizM a)  BizO    = (cong $ sym $ mul1R a, Refl)
+ggcdCorrectDivisors (BizM a) (BizP b) = let (aa, bb) = ggcdCorrectDivisors a b in
+                                        (cong aa, cong bb)
+ggcdCorrectDivisors (BizM a) (BizM b) = let (aa, bb) = ggcdCorrectDivisors a b in
+                                        (cong aa, cong bb)
+
+-- gcd_divide_l
+
+gcdDivideL : (a, b : Biz) -> bizDivides (bizGCD a b) a
+gcdDivideL a b =
+  rewrite sym $ ggcdGcd a b in
+  (fst $ snd $ bizGGCD a b **
+     rewrite mulComm (fst $ snd $ bizGGCD a b) (fst $ bizGGCD a b) in
+     fst $ ggcdCorrectDivisors a b
+  )
+
+-- gcd_divide_r
+
+gcdDivideR : (a, b : Biz) -> bizDivides (bizGCD a b) b
+gcdDivideR a b =
+  rewrite sym $ ggcdGcd a b in
+  (snd $ snd $ bizGGCD a b **
+     rewrite mulComm (snd $ snd $ bizGGCD a b) (fst $ bizGGCD a b) in
+     snd $ ggcdCorrectDivisors a b
+  )
+
+-- gcd_greatest
+
+gcdGreatestPos : (p, q : Bip) -> (r : Biz) -> bizDivides r (BizP p) -> bizDivides r (BizP q) -> bizDivides r (BizP $ bipGCD p q)
+gcdGreatestPos _ _  BizO    (z ** prf) _  = absurd $ replace (mul0R z) prf
+gcdGreatestPos p q (BizP a)  rp        rq = divideZposFro a (bipGCD p q) $
+                                            gcdGreatest p q a (divideZposTo a p rp) (divideZposTo a q rq)
+gcdGreatestPos p q (BizM a)  rp        rq =
+  divideZposZnegLTo (BizP $ bipGCD p q) a $
+  divideZposFro a (bipGCD p q) $
+  gcdGreatest p q a
+    (divideZposTo a p $ divideZposZnegLFro (BizP p) a rp)
+    (divideZposTo a q $ divideZposZnegLFro (BizP q) a rq)
+
+gcdGreatest : (a, b, c : Biz) -> bizDivides c a -> bizDivides c b -> bizDivides c (bizGCD a b)
+gcdGreatest  BizO     BizO    _ _  _  = (0 ** Refl)
+gcdGreatest  BizO    (BizP _) _ _  cb = cb
+gcdGreatest  BizO    (BizM b) c _  cb = divideZposZnegRFro c b cb
+gcdGreatest (BizP _)  BizO    _ ca _  = ca
+gcdGreatest (BizP a) (BizP b) c ca cb = gcdGreatestPos a b c ca cb
+gcdGreatest (BizP a) (BizM b) c ca cb = gcdGreatestPos a b c ca (divideZposZnegRFro c b cb)
+gcdGreatest (BizM a)  BizO    c ca _  = divideZposZnegRFro c a ca
+gcdGreatest (BizM a) (BizP b) c ca cb = gcdGreatestPos a b c (divideZposZnegRFro c a ca) cb
+gcdGreatest (BizM a) (BizM b) c ca cb = gcdGreatestPos a b c (divideZposZnegRFro c a ca) (divideZposZnegRFro c b cb)
+
+-- gcd_nonneg
+
+gcdNonneg : (a, b : Biz) -> 0 `Le` bizGCD a b
+gcdNonneg  BizO     b       = absNonneg b
+gcdNonneg (BizP _)  BizO    = uninhabited
+gcdNonneg (BizM _)  BizO    = uninhabited
+gcdNonneg (BizP a) (BizP b) = uninhabited
+gcdNonneg (BizP a) (BizM b) = uninhabited
+gcdNonneg (BizM a) (BizP b) = uninhabited
+gcdNonneg (BizM a) (BizM b) = uninhabited
+
+-- ggcd and opp : an auxiliary result used in QArith
+
+-- ggcd_opp
+
+ggcdOpp : (a, b : Biz) -> let gaabb = bizGGCD a b
+                              g = fst gaabb
+                              aa = fst $ snd gaabb
+                              bb = snd $ snd gaabb in
+                          bizGGCD (-a) b = (g,(-aa,bb))
+ggcdOpp  BizO     _       = Refl
+ggcdOpp (BizP _)  BizO    = Refl
+ggcdOpp (BizM _)  BizO    = Refl
+ggcdOpp (BizP _) (BizP _) = Refl
+ggcdOpp (BizP _) (BizM _) = Refl
+ggcdOpp (BizM _) (BizP _) = Refl
+ggcdOpp (BizM _) (BizM _) = Refl
