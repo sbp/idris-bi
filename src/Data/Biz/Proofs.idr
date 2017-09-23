@@ -1832,7 +1832,7 @@ shiftlSpecLow  a       (BizP b)  BizO    _    =
       rewrite iterSucc (bizMult 2) a (bipPred b) in
       rewrite sym $ doubleSpec (bipIter (bizMult 2) a (bipPred b)) in
       testbitEven0 (bipIter (bizMult 2) a (bipPred b))
-shiftlSpecLow  BizO    (BizP b) (BizP c) mltn =
+shiftlSpecLow  BizO    (BizP b) (BizP c) _    =
   let zeroIterMul2 = iterInvariant (bizMult 2) (\x=>x=0) b (\_,prf => rewrite prf in Refl) 0 Refl in
   rewrite zeroIterMul2 in
   Refl
@@ -1844,3 +1844,52 @@ shiftlSpecLow (BizM a) (BizP b) (BizP c) mltn =
   cong {f=not} $ posPredShiftlLow a (BinP b) (BinP c) mltn
 shiftlSpecLow  _       (BizM _)  BizO    mltn = absurd mltn
 shiftlSpecLow  _       (BizM _) (BizP _) mltn = absurd mltn
+
+-- shiftl_spec_high
+
+minusBiz : (p, q : Bip) -> bimToBin $ bimMinus p q = toBinBiz $ bipMinusBiz p q
+minusBiz p q = case ltTotal p q of
+  Left $ Left pq =>
+    rewrite subMaskNeg p q pq in
+    rewrite posSubLt p q pq in
+    Refl
+  Right eq =>
+    rewrite eq in
+    rewrite subMaskDiag q in
+    rewrite posSubDiag q in
+    Refl
+  Left $ Right qp =>
+    let (_**prf) = subMaskPos p q qp in
+    rewrite prf in
+    rewrite posSubGt p q qp in
+    cong {f = BinP . bipMinusHelp} $ sym prf
+
+shiftlSpecHigh : (a, n, m : Biz) -> 0 `Le` m -> n `Le` m -> bizTestBit (bizShiftL a n) m = bizTestBit a (m-n)
+shiftlSpecHigh  _        BizO     m       _    _    = rewrite add0R m in
+                                                      Refl
+shiftlSpecHigh  a       (BizM b)  m       zlem _    = shiftrSpecAux a (BizP b) m uninhabited zlem
+shiftlSpecHigh  _       (BizP _)  BizO    _    nlem = absurd $ nlem Refl
+shiftlSpecHigh  BizO    (BizP b) (BizP c) _    _    =
+  let zeroIterMul2 = iterInvariant (bizMult 2) (\x=>x=0) b (\_,prf => rewrite prf in Refl) 0 Refl in
+  rewrite zeroIterMul2 in
+  sym $ testbit0L (bipMinusBiz c b)
+shiftlSpecHigh (BizP a) (BizP b) (BizP c) _    nlem =
+  rewrite sym $ iterSwapGen BizP O (bizMult 2) (\_ => Refl) a b in
+  rewrite shiftlSpecHigh (BinP a) (BinP b) (BinP c) nlem in
+  rewrite testbitZpos a (bipMinusBiz c b) $
+            geLe (bipMinusBiz c b) 0 $
+            rewrite sym $ compareSub (BizP c) (BizP b) in
+            leGe b c nlem
+    in
+  cong $ minusBiz c b
+shiftlSpecHigh (BizM a) (BizP b) (BizP c) _    nlem =
+  rewrite sym $ iterSwapGen BizM O (bizMult 2) (\_ => Refl) a b in
+  rewrite posPredShiftlHigh a (BinP b) (BinP c) nlem in
+  rewrite testbitZneg a (bipMinusBiz c b) $
+            geLe (bipMinusBiz c b) 0 $
+            rewrite sym $ compareSub (BizP c) (BizP b) in
+            leGe b c nlem
+    in
+  rewrite shiftlSpecHigh (bipPredBin a) (BinP b) (BinP c) nlem in
+  cong {f = not . binTestBit (bipPredBin a)} $ minusBiz c b
+shiftlSpecHigh  _        _       (BizM _) zlem _    = absurd $ zlem Refl
