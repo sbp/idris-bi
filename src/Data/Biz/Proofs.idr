@@ -1786,13 +1786,14 @@ div2BipBin (O a) = rewrite dmoPredDPO a in
 div2BipBin (I a) = predBinSucc a
 
 -- shiftr_spec_aux
+
 shiftrSpecAux : (a, n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> bizTestBit (bizShiftR a n) m = bizTestBit a (m+n)
 shiftrSpecAux  _       (BizM _)  _       zlen _    = absurd $ zlen Refl
 shiftrSpecAux  _        _       (BizM _) _    zlem = absurd $ zlem Refl
 shiftrSpecAux  _        BizO     BizO    _    _    = Refl
 shiftrSpecAux  _        BizO    (BizP _) _    _    = Refl
 shiftrSpecAux  BizO    (BizP b)  m       _    _    =
-  let zeroIterDiv2 = iterInvariant Biz.bizDivTwo (\x=>x=0) b (\_,prf => rewrite prf in Refl) 0 Refl in
+  let zeroIterDiv2 = iterInvariant bizDivTwo (\x=>x=0) b (\_,prf => rewrite prf in Refl) 0 Refl in
   rewrite zeroIterDiv2 in
   rewrite testbit0L (m+(BizP b)) in
   testbit0L m
@@ -1813,3 +1814,33 @@ shiftrSpecAux (BizM a) (BizP b) (BizP c) _    _    =
   rewrite sym $ iterSwapGen BizM bipDivTwoCeil bizDivTwo (\_ => Refl) a b in
   rewrite iterSwapGen bipPredBin bipDivTwoCeil binDivTwo div2BipBin a b in
   cong $ shiftrSpec (bipPredBin a) (BinP b) (BinP c)
+
+-- shiftl_spec_low
+
+shiftlSpecLow : (a, n, m : Biz) -> m `Lt` n -> bizTestBit (bizShiftL a n) m = False
+shiftlSpecLow  _        BizO     BizO    mltn = absurd mltn
+shiftlSpecLow  _        BizO    (BizP _) mltn = absurd mltn
+shiftlSpecLow  a        n       (BizM c) _    = testbitNegR (bizShiftL a n) (BizM c) Refl
+shiftlSpecLow  a       (BizP b)  BizO    _    =
+  case succPredOr b of
+    Left  lprf =>
+      rewrite lprf in
+      rewrite sym $ doubleSpec a in
+      testbitEven0 a
+    Right rprf =>
+      rewrite sym rprf in
+      rewrite iterSucc (bizMult 2) a (bipPred b) in
+      rewrite sym $ doubleSpec (bipIter (bizMult 2) a (bipPred b)) in
+      testbitEven0 (bipIter (bizMult 2) a (bipPred b))
+shiftlSpecLow  BizO    (BizP b) (BizP c) mltn =
+  let zeroIterMul2 = iterInvariant (bizMult 2) (\x=>x=0) b (\_,prf => rewrite prf in Refl) 0 Refl in
+  rewrite zeroIterMul2 in
+  Refl
+shiftlSpecLow (BizP a) (BizP b) (BizP c) mltn =
+  rewrite sym $ iterSwapGen BizP O (bizMult 2) (\_ => Refl) a b in
+  shiftlSpecLow (BinP a) (BinP b) (BinP c) mltn
+shiftlSpecLow (BizM a) (BizP b) (BizP c) mltn =
+  rewrite sym $ iterSwapGen BizM O (bizMult 2) (\_ => Refl) a b in
+  cong {f=not} $ posPredShiftlLow a (BinP b) (BinP c) mltn
+shiftlSpecLow  _       (BizM _)  BizO    mltn = absurd mltn
+shiftlSpecLow  _       (BizM _) (BizP _) mltn = absurd mltn
