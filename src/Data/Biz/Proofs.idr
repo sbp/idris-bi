@@ -1630,3 +1630,73 @@ ggcdOpp (BizP _) (BizP _) = Refl
 ggcdOpp (BizP _) (BizM _) = Refl
 ggcdOpp (BizM _) (BizP _) = Refl
 ggcdOpp (BizM _) (BizM _) = Refl
+
+-- Conversions between [Z.testbit] and [N.testbit]
+
+-- testbit_of_N
+
+testbitOfN : (a, n : Bin) -> bizTestBit (toBizBin a) (toBizBin n) = binTestBit a n
+testbitOfN  BinO         BinO    = Refl
+testbitOfN  BinO        (BinP _) = Refl
+testbitOfN (BinP  U   )  BinO    = Refl
+testbitOfN (BinP (O _))  BinO    = Refl
+testbitOfN (BinP (I _))  BinO    = Refl
+testbitOfN (BinP  _   ) (BinP _) = Refl
+
+-- testbit_of_N'
+
+testbitOfN1 : (a : Bin) -> (n : Biz) -> 0 `Le` n -> bizTestBit (toBizBin a) n = binTestBit a (toBinBiz n)
+testbitOfN1 a  BizO    _    = testbitOfN a BinO
+testbitOfN1 a (BizP b) _    = testbitOfN a (BinP b)
+testbitOfN1 _ (BizM _) zlen = absurd $ zlen Refl
+
+-- testbit_Zpos
+
+testbitZpos : (a : Bip) -> (n : Biz) -> 0 `Le` n -> bizTestBit (BizP a) n = binTestBit (BinP a) (toBinBiz n)
+testbitZpos a = testbitOfN1 (BinP a)
+
+-- testbit_Zneg
+
+testbitZneg : (a : Bip) -> (n : Biz) -> 0 `Le` n -> bizTestBit (BizM a) n = not (binTestBit (bipPredBin a) (toBinBiz n))
+testbitZneg  U     BizO    _    = Refl
+testbitZneg (O a)  BizO    _    = rewrite zeroBitDMO a in
+                                  Refl
+testbitZneg (I _)  BizO    _    = Refl
+testbitZneg  _    (BizP _) _    = Refl
+testbitZneg  _    (BizM _) zlen = absurd $ zlen Refl
+
+-- Proofs of specifications for bitwise operations
+
+-- div2_spec is trivial
+
+-- testbit_0_l
+
+testbit0L : (n : Biz) -> bizTestBit 0 n = False
+testbit0L  BizO    = Refl
+testbit0L (BizP _) = Refl
+testbit0L (BizM _) = Refl
+
+-- testbit_neg_r
+
+testbitNegR : (a, n : Biz) -> n `Lt` 0 -> bizTestBit a n = False
+testbitNegR  _        BizO    nlt0 = absurd nlt0
+testbitNegR  _       (BizP _) nlt0 = absurd nlt0
+testbitNegR  BizO    (BizM _) _    = Refl
+testbitNegR (BizP _) (BizM _) _    = Refl
+testbitNegR (BizM _) (BizM _) _    = Refl
+
+-- testbit_odd_0
+
+testbitOdd0 : (a : Biz) -> bizTestBit (2*a+1) 0 = True
+testbitOdd0  BizO        = Refl
+testbitOdd0 (BizP  _   ) = Refl
+testbitOdd0 (BizM  U   ) = Refl
+testbitOdd0 (BizM (O _)) = Refl
+testbitOdd0 (BizM (I _)) = Refl
+
+-- testbit_even_0
+
+testbitEven0 : (a : Biz) -> bizTestBit (2*a) 0 = False
+testbitEven0  BizO    = Refl
+testbitEven0 (BizP _) = Refl
+testbitEven0 (BizM _) = Refl

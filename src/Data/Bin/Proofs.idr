@@ -1302,6 +1302,11 @@ leGe n m nlem = rewrite compareAntisym n m in
 
 -- Auxiliary results about right shift on positive numbers
 
+zeroBitDMO : (p : Bip) -> bipTestBit (bipDMO p) 0 = True
+zeroBitDMO  U    = Refl
+zeroBitDMO (O _) = Refl
+zeroBitDMO (I _) = Refl
+
 -- pos_pred_shiftl_low
 
 posPredShiftlLow : (p : Bip) -> (n, m : Bin) -> m `Lt` n -> binTestBit (bipPredBin (bipShiftL p n)) m = True
@@ -1327,11 +1332,6 @@ posPredShiftlLow p (BinP a) m mltn =
     )
     a
     m mltn
-  where
-  zeroBitDMO : (p : Bip) -> bipTestBit (bipDMO p) 0 = True
-  zeroBitDMO  U    = Refl
-  zeroBitDMO (O _) = Refl
-  zeroBitDMO (I _) = Refl
 
 -- pos_pred_shiftl_high
 
