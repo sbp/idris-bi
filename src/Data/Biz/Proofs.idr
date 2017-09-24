@@ -621,11 +621,11 @@ lebLeFro n m nlem with (n `compare` m)
   | EQ = Refl
   | GT = absurd $ nlem Refl
 
-ltLeIncl : (p, q : Biz) -> p `Lt` q -> p `Le` q
-ltLeIncl p q pltq pgtq with (p `compare` q)
-  | LT = uninhabited pgtq
-  | EQ = uninhabited pgtq
-  | GT = uninhabited pltq
+ltLeIncl : (n, m : Biz) -> n `Lt` m -> n `Le` m
+ltLeIncl n m nltm ngtm with (n `compare` m)
+  | LT = uninhabited ngtm
+  | EQ = uninhabited ngtm
+  | GT = uninhabited nltm
 
 -- compare_eq_iff
 -- TODO split into `to` and `fro`
@@ -698,6 +698,22 @@ compareOpp n m =
   rewrite compareSub (-m) (-n) in
   rewrite oppInvolutive n in
   rewrite addComm n (-m) in
+  Refl
+
+-- gt_lt
+
+gtLt : (p, q : Biz) -> p `Gt` q -> q `Lt` p
+gtLt p q pgtq =
+  rewrite compareAntisym p q in
+  rewrite pgtq in
+  Refl
+
+-- lt_gt
+
+ltGt : (p, q : Biz) -> p `Lt` q -> q `Gt` p
+ltGt p q pltq =
+  rewrite compareAntisym p q in
+  rewrite pltq in
   Refl
 
 -- ge_le
@@ -1849,11 +1865,11 @@ shiftlSpecLow  _       (BizM _) (BizP _) mltn = absurd mltn
 
 minusBiz : (p, q : Bip) -> bimToBin $ bimMinus p q = toBinBiz $ bipMinusBiz p q
 minusBiz p q = case ltTotal p q of
-  Left $ Left pq =>
+  Left $ Left pq  =>
     rewrite subMaskNeg p q pq in
     rewrite posSubLt p q pq in
     Refl
-  Right eq =>
+  Right eq        =>
     rewrite eq in
     rewrite subMaskDiag q in
     rewrite posSubDiag q in
@@ -1893,3 +1909,17 @@ shiftlSpecHigh (BizM a) (BizP b) (BizP c) _    nlem =
   rewrite shiftlSpecHigh (bipPredBin a) (BinP b) (BinP c) nlem in
   cong {f = not . binTestBit (bipPredBin a)} $ minusBiz c b
 shiftlSpecHigh  _        _       (BizM _) zlem _    = absurd $ zlem Refl
+
+-- shiftr_spec
+
+shiftrSpec : (a, n, m : Biz) -> 0 `Le` m -> bizTestBit (bizShiftR a n) m = bizTestBit a (m+n)
+shiftrSpec a    BizO    m zlem = shiftrSpecAux a 0 m uninhabited zlem
+shiftrSpec a n@(BizP _) m zlem = shiftrSpecAux a n m uninhabited zlem
+shiftrSpec a   (BizM b) m zlem with ((BizP b) `compare` m) proof nm
+  | LT = shiftlSpecHigh a (BizP b) m zlem $ ltLeIncl (BizP b) m $ sym nm
+  | EQ = shiftlSpecHigh a (BizP b) m zlem $ rewrite sym nm in
+                                            uninhabited
+  | GT = rewrite shiftlSpecLow a (BizP b) m $ gtLt (BizP b) m $ sym nm in
+         sym $ testbitNegR a (m-(BizP b)) $
+           rewrite sym $ compareSub m (BizP b) in
+           gtLt (BizP b) m $ sym nm
