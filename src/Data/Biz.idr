@@ -419,7 +419,7 @@ bizDiff (BizP a') (BizP b') = toBizBin (bipDiff a' b')
 bizDiff (BizM a') (BizP b') =
   BizM (binSuccBip (binOr (bipPredBin a') (BinP b')))
 bizDiff (BizP a') (BizM b') = toBizBin (binAnd (BinP a') (bipPredBin b'))
-bizDiff (BizM a') (BizM b') = toBizBin (binDiff (bipPredBin a') (bipPredBin b'))
+bizDiff (BizM a') (BizM b') = toBizBin (binDiff (bipPredBin b') (bipPredBin a'))
 
 ||| Logical OR
 bizXor : (a, b : Biz) -> Biz

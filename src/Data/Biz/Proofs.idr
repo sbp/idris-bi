@@ -2056,3 +2056,53 @@ landSpec a b n@(BizP _) = landSpecNonneg a b n uninhabited
 landSpec a b n@(BizM _) =
   rewrite testbitNegR a n Refl in
   testbitNegR (bizAnd a b) n Refl
+
+-- ldiff_spec
+
+diff0R : (n : Biz) -> bizDiff n BizO = n
+diff0R  BizO    = Refl
+diff0R (BizP _) = Refl
+diff0R (BizM _) = Refl
+
+ldiffSpecNonneg : (a, b, n : Biz) -> 0 `Le` n -> bizTestBit (bizDiff a b) n = bizTestBit a n && not (bizTestBit b n)
+ldiffSpecNonneg  BizO     _       n _    = rewrite testbit0L n in
+                                           Refl
+
+ldiffSpecNonneg  a        BizO    n _    =
+  rewrite diff0R a in
+  rewrite testbit0L n in
+  sym $ andTrue (bizTestBit a n)
+ldiffSpecNonneg (BizP a) (BizP b) n zlen =
+  rewrite testbitOfN1 (bipDiff a b) n zlen in
+  rewrite ldiffSpec (BinP a) (BinP b) (toBinBiz n) in
+  rewrite testbitZpos a n zlen in
+  rewrite testbitZpos b n zlen in
+  Refl
+ldiffSpecNonneg (BizP a) (BizM b) n zlen =
+  rewrite testbitOfN1 (binAnd (BinP a) (bipPredBin b)) n zlen in
+  rewrite landSpec (BinP a) (bipPredBin b) (toBinBiz n) in
+  rewrite testbitZpos a n zlen in
+  rewrite testbitZneg b n zlen in
+  rewrite notNot (binTestBit (bipPredBin b) (toBinBiz n)) in
+  Refl
+ldiffSpecNonneg (BizM a) (BizP b) n zlen =
+  rewrite testbitZneg (binSuccBip (binOr (bipPredBin a) (BinP b))) n zlen in
+  rewrite posPredSucc (binOr (bipPredBin a) (BinP b)) in
+  rewrite lorSpec (bipPredBin a) (BinP b)  (toBinBiz n) in
+  rewrite testbitZneg a n zlen in
+  rewrite testbitZpos b n zlen in
+  notOr (binTestBit (bipPredBin a) (toBinBiz n)) (bipTestBit b (toBinBiz n))
+ldiffSpecNonneg (BizM a) (BizM b) n zlen =
+  rewrite testbitOfN1 (binDiff (bipPredBin b) (bipPredBin a)) n zlen in
+  rewrite ldiffSpec (bipPredBin b) (bipPredBin a) (toBinBiz n) in
+  rewrite testbitZneg a n zlen in
+  rewrite testbitZneg b n zlen in
+  rewrite notNot (binTestBit (bipPredBin b) (toBinBiz n)) in
+  andComm (binTestBit (bipPredBin b) (toBinBiz n)) (not (binTestBit (bipPredBin a) (toBinBiz n)))
+
+ldiffSpec : (a, b, n : Biz) -> bizTestBit (bizDiff a b) n = bizTestBit a n && not (bizTestBit b n)
+ldiffSpec a b    BizO    = ldiffSpecNonneg a b 0 uninhabited
+ldiffSpec a b n@(BizP _) = ldiffSpecNonneg a b n uninhabited
+ldiffSpec a b n@(BizM _) =
+  rewrite testbitNegR a n Refl in
+  testbitNegR (bizDiff a b) n Refl
