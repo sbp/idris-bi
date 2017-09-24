@@ -691,7 +691,7 @@ ltSuccRTo p q pltsq =
   in
     aux tt
   where
-  aux : LT = switchEq LT (p `compare` q) -> (p `Le` q)
+  aux : LT = switchEq LT (p `compare` q) -> p `Le` q
   aux prf prf1 with (p `compare` q)
     | LT = uninhabited prf1
     | EQ = uninhabited prf1
