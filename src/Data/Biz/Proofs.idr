@@ -692,6 +692,8 @@ compareAntisym (BizM _)  BizO    = Refl
 compareAntisym (BizM _) (BizP _) = Refl
 compareAntisym (BizM a) (BizM b) = compareAntisym b a
 
+-- Comparison and opposite
+-- compare_opp
 compareOpp : (n, m : Biz) -> n `compare` m = (-m) `compare` (-n)
 compareOpp n m =
   rewrite compareSub n m in
@@ -2175,3 +2177,95 @@ lxorSpec a b n@(BizM _) =
   rewrite testbitNegR a n Refl in
   rewrite testbitNegR b n Refl in
   testbitNegR (bizXor a b) n Refl
+
+-- peano_ind
+-- TODO rename all versions to peanoInd ?
+peanoRect : (P : Biz -> Type) -> (f0 : P BizO)
+-> (fs : (x : Biz) -> P x -> P (bizSucc x))
+-> (fp : (x : Biz) -> P x -> P (bizPred x))
+-> (z : Biz) -> P z
+peanoRect _ f0 _  _   BizO    = f0
+peanoRect P f0 fs _  (BizP a) = peanoRect (P . BizP) (fs BizO f0) (\p => rewrite sym $ add1R p in
+                                                                fs $ BizP p) a
+peanoRect P f0 _  fp (BizM a) = peanoRect (P . BizM) (fp BizO f0) (\p => rewrite sym $ add1R p in
+                                                                fp $ BizM p) a
+-- TODO bi_induction
+
+-- TODO boolean comparisons ?
+
+-- add_reg_l
+
+-- TODO import Control.Pipeline from contrib
+infixl 9 |>
+(|>) : a -> (a -> b) -> b
+a |> f = f a
+
+addRegR : (n, m, p : Biz) -> m + n = p + n -> m = p
+addRegR n m p prf =
+     cong {f=\x=>x-n} prf
+  |> replace {P=\x=>x=p+n-n}   (sym $ addAssoc m n (-n))
+  |> replace {P=\x=>m+x=p+n-n} (addOppDiagR n)
+  |> replace {P=\x=>x=p+n-n}   (add0R m)
+  |> replace {P=\x=>m=x}       (sym $ addAssoc p n (-n))
+  |> replace {P=\x=>m=p+x}     (addOppDiagR n)
+  |> replace {P=\x=>m=x}       (add0R p)
+
+addRegL : (n, m, p : Biz) -> n + m = n + p -> m = p
+addRegL n m p =
+  rewrite addComm n m in
+  rewrite addComm n p in
+  addRegR n m p
+
+-- mul_reg_l
+
+mulRegL : (n, m, p : Biz) -> Not (p = 0) -> p * n = p * m -> n = m
+mulRegL n m p pnz prf with (p `compare` 0) proof pz
+  | LT =    compareEqIffFro (p*n) (p*m) prf
+         |> replace {P=\x=>x=EQ}                      (compareOpp (p*n) (p*m))
+         |> replace {P=\x=>(-(p*m)) `compare` x = EQ} (sym $ mulOppL p n)
+         |> replace {P=\x=>x `compare` ((-p)*n) = EQ} (sym $ mulOppL p m)
+         |> replace {P=\x=>x=EQ}                      (mulCompareMonoL (-p) m n $
+                                                         rewrite compareOpp 0 (-p) in
+                                                         rewrite oppInvolutive p in
+                                                         sym pz)
+         |> compareEqIffTo m n
+         |> sym
+  | EQ = absurd $ pnz $ compareEqIffTo p 0 $ sym pz
+  | GT =    compareEqIffFro (p*n) (p*m) prf
+         |> replace {P=\x=>x=EQ} (mulCompareMonoL p n m $ gtLt p 0 $ sym pz)
+         |> compareEqIffTo n m
+
+-- mul_reg_r
+
+mulRegR : (n, m, p : Biz) -> Not (p = 0) -> n * p = m * p -> n = m
+mulRegR n m p =
+  rewrite mulComm n p in
+  rewrite mulComm m p in
+  mulRegL n m p
+
+-- opp_eq_mul_m1
+
+oppEqMulM1 : (n : Biz) -> -n = n * (-1)
+oppEqMulM1  BizO    = Refl
+oppEqMulM1 (BizP a) = cong $ sym $ mul1R a
+oppEqMulM1 (BizM a) = cong $ sym $ mul1R a
+
+-- add_diag
+
+addDiag : (n : Biz) -> n + n = 2 * n
+addDiag n =
+  rewrite mulAddDistrR 1 1 n in
+  rewrite mul1L n in
+  Refl
+
+-- Comparison and addition
+-- add_compare_mono_l
+addCompareMonoL : (n, m, p : Biz) -> (n + m) `compare` (n + p) = m `compare` p
+addCompareMonoL n m p =
+  rewrite compareSub (n+m) (n+p) in
+  rewrite oppAddDistr n p in
+  rewrite addAssoc (n+m) (-n) (-p) in
+  rewrite addComm (n+m) (-n) in
+  rewrite addAssoc (-n) n m in
+  rewrite addOppDiagL n in
+  sym $ compareSub m p
