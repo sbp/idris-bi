@@ -1956,25 +1956,46 @@ notOr True  False = Refl
 notOr False True  = Refl
 notOr False False = Refl
 
+notXorR : (x, y : Bool) -> not (x `xor` y) = x `xor` (not y)
+notXorR True  True  = Refl
+notXorR True  False = Refl
+notXorR False True  = Refl
+notXorR False False = Refl
+
+notXorL : (x, y : Bool) -> not (x `xor` y) = (not x) `xor` y
+notXorL True  True  = Refl
+notXorL True  False = Refl
+notXorL False True  = Refl
+notXorL False False = Refl
+
+notXor2 : (x, y : Bool) -> x `xor` y = (not x) `xor` (not y)
+notXor2 True  True  = Refl
+notXor2 True  False = Refl
+notXor2 False True  = Refl
+notXor2 False False = Refl
+
 ------------------------------------------------
 
 -- lor_spec
 
+or0R : (n : Biz) -> bizOr n BizO = n
+or0R  BizO    = Refl
+or0R (BizP _) = Refl
+or0R (BizM _) = Refl
+
 lorSpecNonneg : (a, b, n : Biz) -> 0 `Le` n -> bizTestBit (bizOr a b) n = bizTestBit a n || bizTestBit b n
-lorSpecNonneg  BizO     BizO     n _    = rewrite testbit0L n in
-                                          Refl
-lorSpecNonneg  BizO    (BizP _)  n _    = rewrite testbit0L n in
-                                          Refl
-lorSpecNonneg  BizO    (BizM _)  n _    = rewrite testbit0L n in
-                                          Refl
-lorSpecNonneg (BizP a)  BizO     n _    = rewrite testbit0L n in
-                                          sym $ orFalse $ bizTestBit (BizP a) n
-lorSpecNonneg (BizP a) (BizP b)  n zlen =
+lorSpecNonneg  BizO     _       n _    = rewrite testbit0L n in
+                                         Refl
+lorSpecNonneg  a        BizO    n _    =
+  rewrite or0R a in
+  rewrite testbit0L n in
+  sym $ orFalse (bizTestBit a n)
+lorSpecNonneg (BizP a) (BizP b) n zlen =
   rewrite testbitZpos (bipOr a b) n zlen in
   rewrite testbitZpos a n zlen in
   rewrite testbitZpos b n zlen in
   posLorSpec a b (toBinBiz n)
-lorSpecNonneg (BizP a) (BizM b)  n zlen =
+lorSpecNonneg (BizP a) (BizM b) n zlen =
   rewrite testbitZneg (binSuccBip (binDiff (bipPredBin b) (BinP a))) n zlen in
   rewrite posPredSucc (binDiff (bipPredBin b) (BinP a)) in
   rewrite ldiffSpec (bipPredBin b) (BinP a) (toBinBiz n) in
@@ -1983,9 +2004,7 @@ lorSpecNonneg (BizP a) (BizM b)  n zlen =
   rewrite notAnd (binTestBit (bipPredBin b) (toBinBiz n)) (not (bipTestBit a (toBinBiz n))) in
   rewrite notNot (bipTestBit a (toBinBiz n)) in
   orComm (not (binTestBit (bipPredBin b) (toBinBiz n))) (bipTestBit a (toBinBiz n))
-lorSpecNonneg (BizM a)  BizO     n zlen = rewrite testbit0L n in
-                                          sym $ orFalse $ bizTestBit (BizM a) n
-lorSpecNonneg (BizM a) (BizP b)  n zlen =
+lorSpecNonneg (BizM a) (BizP b) n zlen =
   rewrite testbitZneg (binSuccBip (binDiff (bipPredBin a) (BinP b))) n zlen in
   rewrite posPredSucc (binDiff (bipPredBin a) (BinP b)) in
   rewrite ldiffSpec (bipPredBin a) (BinP b) (toBinBiz n) in
@@ -1994,7 +2013,7 @@ lorSpecNonneg (BizM a) (BizP b)  n zlen =
   rewrite notAnd (binTestBit (bipPredBin a) (toBinBiz n)) (not (bipTestBit b (toBinBiz n))) in
   rewrite notNot (bipTestBit b (toBinBiz n)) in
   Refl
-lorSpecNonneg (BizM a) (BizM b)  n zlen =
+lorSpecNonneg (BizM a) (BizM b) n zlen =
   rewrite testbitZneg (binSuccBip (binAnd (bipPredBin a) (bipPredBin b))) n zlen in
   rewrite posPredSucc (binAnd (bipPredBin a) (bipPredBin b)) in
   rewrite landSpec (bipPredBin a) (bipPredBin b) (toBinBiz n) in
@@ -2106,3 +2125,53 @@ ldiffSpec a b n@(BizP _) = ldiffSpecNonneg a b n uninhabited
 ldiffSpec a b n@(BizM _) =
   rewrite testbitNegR a n Refl in
   testbitNegR (bizDiff a b) n Refl
+
+--lxor_spec
+
+xor0R : (n : Biz) -> bizXor n BizO = n
+xor0R  BizO    = Refl
+xor0R (BizP _) = Refl
+xor0R (BizM _) = Refl
+
+lxorSpecNonneg : (a, b, n : Biz) -> 0 `Le` n -> bizTestBit (bizXor a b) n = (bizTestBit a n) `xor` (bizTestBit b n)
+lxorSpecNonneg  BizO     b       n _    = rewrite testbit0L n in
+                                          sym $ xorFalse (bizTestBit b n)
+lxorSpecNonneg  a        BizO    n _    =
+  rewrite testbit0L n in
+  rewrite xor0R a in
+  rewrite xorComm (bizTestBit a n) False in
+  sym $ xorFalse (bizTestBit a n)
+lxorSpecNonneg (BizP a) (BizP b) n zlen =
+  rewrite testbitOfN1 (bipXor a b) n zlen in
+  rewrite lxorSpec (BinP a) (BinP b) (toBinBiz n) in
+  rewrite testbitZpos a n zlen in
+  rewrite testbitZpos b n zlen in
+  Refl
+lxorSpecNonneg (BizP a) (BizM b) n zlen =
+  rewrite testbitZneg (binSuccBip (binXor (BinP a) (bipPredBin b))) n zlen in
+  rewrite posPredSucc (binXor (BinP a) (bipPredBin b)) in
+  rewrite lxorSpec (BinP a) (bipPredBin b) (toBinBiz n) in
+  rewrite testbitZpos a n zlen in
+  rewrite testbitZneg b n zlen in
+  notXorR (bipTestBit a (toBinBiz n)) (binTestBit (bipPredBin b) (toBinBiz n))
+lxorSpecNonneg (BizM a) (BizP b) n zlen =
+  rewrite testbitZneg (binSuccBip (binXor (bipPredBin a) (BinP b))) n zlen in
+  rewrite posPredSucc (binXor (bipPredBin a) (BinP b)) in
+  rewrite lxorSpec (bipPredBin a) (BinP b) (toBinBiz n) in
+  rewrite testbitZneg a n zlen in
+  rewrite testbitZpos b n zlen in
+  notXorL (binTestBit (bipPredBin a) (toBinBiz n)) (bipTestBit b (toBinBiz n))
+lxorSpecNonneg (BizM a) (BizM b) n zlen =
+  rewrite testbitOfN1 (binXor (bipPredBin a) (bipPredBin b)) n zlen in
+  rewrite lxorSpec (bipPredBin a) (bipPredBin b) (toBinBiz n) in
+  rewrite testbitZneg a n zlen in
+  rewrite testbitZneg b n zlen in
+  notXor2 (binTestBit (bipPredBin a) (toBinBiz n)) (binTestBit (bipPredBin b) (toBinBiz n))
+
+lxorSpec : (a, b, n : Biz) -> bizTestBit (bizXor a b) n = (bizTestBit a n) `xor` (bizTestBit b n)
+lxorSpec a b    BizO    = lxorSpecNonneg a b 0 uninhabited
+lxorSpec a b n@(BizP _) = lxorSpecNonneg a b n uninhabited
+lxorSpec a b n@(BizM _) =
+  rewrite testbitNegR a n Refl in
+  rewrite testbitNegR b n Refl in
+  testbitNegR (bizXor a b) n Refl
