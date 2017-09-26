@@ -1,6 +1,7 @@
 module Data.Biz.Nat
 
 import Data.Bip
+import Data.Bip.AddMul
 import Data.Bip.OrdSub
 import Data.Bip.Nat
 
@@ -202,7 +203,7 @@ injSubMax (BinP _)  BinO    = Refl
 injSubMax (BinP a) (BinP b) =
   rewrite posSubSpec a b in
   rewrite compareSubMask a b in
-  ?injSubMax_rhs3
+  aux
   where
   aux : toBizBin (bimToBin (bimMinus a b)) = bizMinMaxHelp 0 (posSubSpecHelp a b (mask2cmp (bimMinus a b))) (bizCompare 0 (posSubSpecHelp a b (mask2cmp (bimMinus a b))))
   aux with (bimMinus a b) proof ab
@@ -221,3 +222,47 @@ injSub n m mlen =
   rewrite sym $ compareSub (toBizBin n) (toBizBin m) in
   rewrite sym $ compareAntisym (toBizBin n) (toBizBin m) in
   injLeTo m n mlen
+
+-- inj_succ
+
+injSucc : (n : Bin) -> toBizBin (binSucc n) = bizSucc (toBizBin n)
+injSucc  BinO    = Refl
+injSucc (BinP a) = cong $ sym $ add1R a
+
+-- inj_pred_max
+
+injPredMax : (n : Bin) -> toBizBin (binPred n) = 0 `max` bizPred (toBizBin n)
+injPredMax n = rewrite predSub n in
+               injSubMax n 1
+
+-- inj_pred
+
+injPred : (n : Bin) -> 0 `Lt` n -> toBizBin (binPred n) = bizPred (toBizBin n)
+injPred n zltn = rewrite predSub n in
+                 injSub n 1 $ leSuccLFro 0 n zltn
+
+-- inj_min
+
+injMin : (n, m : Bin) -> toBizBin (n `binMin` m) = toBizBin n `min` toBizBin m
+injMin n m =
+  rewrite injCompare n m in
+  aux
+  where
+  aux : toBizBin (n `binMin` m) = bizMinMaxHelp (toBizBin m) (toBizBin n) (n `compare` m)
+  aux with (n `compare` m) proof nm
+    | LT = Refl
+    | EQ = cong $ compareEqIffTo n m $ sym nm  -- this is needed because binMin and bizMin use different arguments for the EQ case
+    | GT = Refl
+
+-- inj_max
+
+injMax : (n, m : Bin) -> toBizBin (n `binMax` m) = toBizBin n `max` toBizBin m
+injMax n m =
+  rewrite injCompare n m in
+  aux
+  where
+  aux : toBizBin (n `binMax` m) = bizMinMaxHelp (toBizBin n) (toBizBin m) (n `compare` m)
+  aux with (n `compare` m) proof nm
+    | LT = Refl
+    | EQ = cong $ sym $ compareEqIffTo n m $ sym nm  -- this is needed because binMax and bizMax use different arguments for the EQ case
+    | GT = Refl

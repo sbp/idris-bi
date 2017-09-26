@@ -408,6 +408,13 @@ succLePos : (x, y : Bin) -> binSucc x `Le` y -> (a ** y = BinP a)
 succLePos x  BinO    sxley = absurd $ sxley $ ltGt 0 (binSucc x) $ ltSuccRFro 0 x $ leZeroL x
 succLePos _ (BinP a) _     = (a**Refl)
 
+-- TODO leSuccLTo ?
+
+leSuccLFro : (p, q : Bin) -> p `Lt` q -> binSucc p `Le` q
+leSuccLFro  BinO     BinO    = absurd
+leSuccLFro  BinO    (BinP b) = const $ le1L b
+leSuccLFro (BinP _)  BinO    = absurd
+leSuccLFro (BinP a) (BinP b) = leSuccLFro a b
 
 -- Properties of double and succ_double
 

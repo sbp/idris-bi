@@ -81,19 +81,18 @@ binCompare (BinP a) (BinP b) = bipCompare a b EQ
 -- Boolean equality and comparison
 -- Implemented below in Ord
 
+-- Helper for binMin and binMax, to work around #4001
+binMinMaxHelp : (a, b : Bin) -> Ordering -> Bin
+binMinMaxHelp _ b GT = b
+binMinMaxHelp a _ _  = a
+
 ||| Min
 binMin : (a, b : Bin) -> Bin
-binMin a b = case binCompare a b of
-               LT => a
-               EQ => a
-               GT => b
+binMin a b = binMinMaxHelp a b $ binCompare a b
 
 ||| Max
 binMax : (a, b : Bin) -> Bin
-binMax a b = case binCompare a b of
-               LT => b
-               EQ => b
-               GT => a
+binMax a b = binMinMaxHelp b a $ binCompare a b
 
 ||| Dividing by 2
 binDivTwo : (a : Bin) -> Bin
