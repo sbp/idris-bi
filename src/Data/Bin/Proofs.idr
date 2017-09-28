@@ -69,11 +69,11 @@ predSucc  BinO     = Refl
 predSucc (BinP a') = rewrite predBinSucc a' in Refl
 
 -- pred_sub
-predSub : (a : Bin) -> binPred a = a-(BinP U)
-predSub  BinO         = Refl
-predSub (BinP  U    ) = Refl
-predSub (BinP (O a')) = Refl
-predSub (BinP (I a')) = Refl
+predSub : (a : Bin) -> binPred a = a-1
+predSub  BinO        = Refl
+predSub (BinP  U   ) = Refl
+predSub (BinP (O _)) = Refl
+predSub (BinP (I _)) = Refl
 
 -- succ_0_discr
 succZeroDiscr : (a : Bin) -> Not (binSucc a = 0)

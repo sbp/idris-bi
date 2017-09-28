@@ -884,6 +884,20 @@ sgnNeg (BizM _) = const Refl
 
 -- pow_0_r is trivial
 
+-- pow_0_l
+
+pow0L : (a : Biz) -> Not (a=0) -> bizPow 0 a = 0
+pow0L  BizO    anz = absurd $ anz Refl
+pow0L (BizP a) _   =
+  case succPredOr a of
+    Left equ  => rewrite equ in
+                 Refl
+    Right eqs =>
+      rewrite sym eqs in
+      rewrite iterSucc (bizMult 0) 1 (bipPred a) in
+      Refl
+pow0L (BizM _) _   = Refl
+
 -- pow_succ_r
 
 powSuccR : (n, m : Biz) -> 0 `Le` m -> bizPow n (bizSucc m) = n * bizPow n m

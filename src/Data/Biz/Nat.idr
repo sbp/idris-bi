@@ -121,55 +121,55 @@ isNonneg (BinP _) = uninhabited
 
 -- inj_compare
 
-injCompare : (n, m : Bin) -> toBizBin n `compare` toBizBin m = n `compare` m
-injCompare  BinO     BinO    = Refl
-injCompare  BinO    (BinP _) = Refl
-injCompare (BinP _)  BinO    = Refl
-injCompare (BinP _) (BinP _) = Refl
+toBizBinInjCompare : (n, m : Bin) -> toBizBin n `compare` toBizBin m = n `compare` m
+toBizBinInjCompare  BinO     BinO    = Refl
+toBizBinInjCompare  BinO    (BinP _) = Refl
+toBizBinInjCompare (BinP _)  BinO    = Refl
+toBizBinInjCompare (BinP _) (BinP _) = Refl
 
 -- inj_le
 -- TODO split into `to` and `fro`
 
-injLeTo : (n, m : Bin) -> n `Le` m -> toBizBin n `Le` toBizBin m
-injLeTo n m nlem = rewrite injCompare n m in
-                   nlem
+toBizBinInjLeTo : (n, m : Bin) -> n `Le` m -> toBizBin n `Le` toBizBin m
+toBizBinInjLeTo n m nlem = rewrite toBizBinInjCompare n m in
+                           nlem
 
-injLeFro : (n, m : Bin) -> toBizBin n `Le` toBizBin m -> n `Le` m
-injLeFro n m nlem = rewrite sym $ injCompare n m in
-                    nlem
+toBizBinInjLeFro : (n, m : Bin) -> toBizBin n `Le` toBizBin m -> n `Le` m
+toBizBinInjLeFro n m nlem = rewrite sym $ toBizBinInjCompare n m in
+                            nlem
 
 -- inj_lt
 -- TODO split into `to` and `fro`
 
-injLtTo : (n, m : Bin) -> n `Lt` m -> toBizBin n `Lt` toBizBin m
-injLtTo n m nltm = rewrite injCompare n m in
-                   nltm
+toBizBinInjLtTo : (n, m : Bin) -> n `Lt` m -> toBizBin n `Lt` toBizBin m
+toBizBinInjLtTo n m nltm = rewrite toBizBinInjCompare n m in
+                           nltm
 
-injLtFro : (n, m : Bin) -> toBizBin n `Lt` toBizBin m -> n `Lt` m
-injLtFro n m nltm = rewrite sym $ injCompare n m in
-                    nltm
+toBizBinInjLtFro : (n, m : Bin) -> toBizBin n `Lt` toBizBin m -> n `Lt` m
+toBizBinInjLtFro n m nltm = rewrite sym $ toBizBinInjCompare n m in
+                            nltm
 
 -- inj_ge
 -- TODO split into `to` and `fro`
 
-injGeTo : (n, m : Bin) -> n `Ge` m -> toBizBin n `Ge` toBizBin m
-injGeTo n m ngem = rewrite injCompare n m in
-                   ngem
+toBizBinInjGeTo : (n, m : Bin) -> n `Ge` m -> toBizBin n `Ge` toBizBin m
+toBizBinInjGeTo n m ngem = rewrite toBizBinInjCompare n m in
+                           ngem
 
-injGeFro : (n, m : Bin) -> toBizBin n `Ge` toBizBin m -> n `Ge` m
-injGeFro n m ngem = rewrite sym $ injCompare n m in
-                    ngem
+toBizBinInjGeFro : (n, m : Bin) -> toBizBin n `Ge` toBizBin m -> n `Ge` m
+toBizBinInjGeFro n m ngem = rewrite sym $ toBizBinInjCompare n m in
+                            ngem
 
 -- inj_gt
 -- TODO split into `to` and `fro`
 
-injGtTo : (n, m : Bin) -> n `Gt` m -> toBizBin n `Gt` toBizBin m
-injGtTo n m ngtm = rewrite injCompare n m in
-                   ngtm
+toBizBinInjGtTo : (n, m : Bin) -> n `Gt` m -> toBizBin n `Gt` toBizBin m
+toBizBinInjGtTo n m ngtm = rewrite toBizBinInjCompare n m in
+                           ngtm
 
-injGtFro : (n, m : Bin) -> toBizBin n `Gt` toBizBin m -> n `Gt` m
-injGtFro n m ngtm = rewrite sym $ injCompare n m in
-                    ngtm
+toBizBinInjGtFro : (n, m : Bin) -> toBizBin n `Gt` toBizBin m -> n `Gt` m
+toBizBinInjGtFro n m ngtm = rewrite sym $ toBizBinInjCompare n m in
+                            ngtm
 
 -- inj_abs_N
 
@@ -180,19 +180,19 @@ injAbsN (BizM _) = Refl
 
 -- inj_add
 
-injAdd : (n, m : Bin) -> toBizBin (n+m) = toBizBin n + toBizBin m
-injAdd  BinO     BinO    = Refl
-injAdd  BinO    (BinP _) = Refl
-injAdd (BinP _)  BinO    = Refl
-injAdd (BinP _) (BinP _) = Refl
+toBizBinInjAdd : (n, m : Bin) -> toBizBin (n+m) = toBizBin n + toBizBin m
+toBizBinInjAdd  BinO     BinO    = Refl
+toBizBinInjAdd  BinO    (BinP _) = Refl
+toBizBinInjAdd (BinP _)  BinO    = Refl
+toBizBinInjAdd (BinP _) (BinP _) = Refl
 
 -- inj_mul
 
-injMul : (n, m : Bin) -> toBizBin (n*m) = toBizBin n * toBizBin m
-injMul  BinO     BinO    = Refl
-injMul  BinO    (BinP _) = Refl
-injMul (BinP _)  BinO    = Refl
-injMul (BinP _) (BinP _) = Refl
+toBizBinInjMul : (n, m : Bin) -> toBizBin (n*m) = toBizBin n * toBizBin m
+toBizBinInjMul  BinO     BinO    = Refl
+toBizBinInjMul  BinO    (BinP _) = Refl
+toBizBinInjMul (BinP _)  BinO    = Refl
+toBizBinInjMul (BinP _) (BinP _) = Refl
 
 -- inj_sub_max
 
@@ -214,38 +214,38 @@ injSubMax (BinP a) (BinP b) =
 
 -- inj_sub
 
-injSub : (n, m : Bin) -> m `Le` n -> toBizBin (n-m) = toBizBin n - toBizBin m
-injSub n m mlen =
+toBizBinInjSub : (n, m : Bin) -> m `Le` n -> toBizBin (n-m) = toBizBin n - toBizBin m
+toBizBinInjSub n m mlen =
   rewrite injSubMax n m in
   maxR 0 (toBizBin n - toBizBin m) $
   rewrite compareAntisym (toBizBin n - toBizBin m) 0 in
   rewrite sym $ compareSub (toBizBin n) (toBizBin m) in
   rewrite sym $ compareAntisym (toBizBin n) (toBizBin m) in
-  injLeTo m n mlen
+  toBizBinInjLeTo m n mlen
 
 -- inj_succ
 
-injSucc : (n : Bin) -> toBizBin (binSucc n) = bizSucc (toBizBin n)
-injSucc  BinO    = Refl
-injSucc (BinP a) = cong $ sym $ add1R a
+toBizBinInjSucc : (n : Bin) -> toBizBin (binSucc n) = bizSucc (toBizBin n)
+toBizBinInjSucc  BinO    = Refl
+toBizBinInjSucc (BinP a) = cong $ sym $ add1R a
 
 -- inj_pred_max
 
-injPredMax : (n : Bin) -> toBizBin (binPred n) = 0 `max` bizPred (toBizBin n)
-injPredMax n = rewrite predSub n in
-               injSubMax n 1
+toBizBinInjPredMax : (n : Bin) -> toBizBin (binPred n) = 0 `max` bizPred (toBizBin n)
+toBizBinInjPredMax n = rewrite predSub n in
+                       injSubMax n 1
 
 -- inj_pred
 
-injPred : (n : Bin) -> 0 `Lt` n -> toBizBin (binPred n) = bizPred (toBizBin n)
-injPred n zltn = rewrite predSub n in
-                 injSub n 1 $ leSuccLFro 0 n zltn
+toBizBinInjPred : (n : Bin) -> 0 `Lt` n -> toBizBin (binPred n) = bizPred (toBizBin n)
+toBizBinInjPred n zltn = rewrite predSub n in
+                         toBizBinInjSub n 1 $ leSuccLFro 0 n zltn
 
 -- inj_min
 
-injMin : (n, m : Bin) -> toBizBin (n `binMin` m) = toBizBin n `min` toBizBin m
-injMin n m =
-  rewrite injCompare n m in
+toBizBinInjMin : (n, m : Bin) -> toBizBin (n `binMin` m) = toBizBin n `min` toBizBin m
+toBizBinInjMin n m =
+  rewrite toBizBinInjCompare n m in
   aux
   where
   aux : toBizBin (n `binMin` m) = bizMinMaxHelp (toBizBin m) (toBizBin n) (n `compare` m)
@@ -256,9 +256,9 @@ injMin n m =
 
 -- inj_max
 
-injMax : (n, m : Bin) -> toBizBin (n `binMax` m) = toBizBin n `max` toBizBin m
-injMax n m =
-  rewrite injCompare n m in
+toBizBinInjMax : (n, m : Bin) -> toBizBin (n `binMax` m) = toBizBin n `max` toBizBin m
+toBizBinInjMax n m =
+  rewrite toBizBinInjCompare n m in
   aux
   where
   aux : toBizBin (n `binMax` m) = bizMinMaxHelp (toBizBin n) (toBizBin m) (n `compare` m)
@@ -266,3 +266,224 @@ injMax n m =
     | LT = Refl
     | EQ = cong $ sym $ compareEqIffTo n m $ sym nm  -- this is needed because binMax and bizMax use different arguments for the EQ case
     | GT = Refl
+
+-- TODO inj_div
+-- TODO inj_mod
+-- TODO inj_quot
+-- TODO inj_rem
+-- these require `div_mod_unique` lemma
+
+-- inj_div2
+
+toBizBinInjDiv2 : (n : Bin) -> toBizBin (binDivTwo n) = bizDivTwo (toBizBin n)
+toBizBinInjDiv2  BinO        = Refl
+toBizBinInjDiv2 (BinP  U   ) = Refl
+toBizBinInjDiv2 (BinP (O _)) = Refl
+toBizBinInjDiv2 (BinP (I _)) = Refl
+
+-- inj_quot2
+
+toBizBinInjQuot2 : (n : Bin) -> toBizBin (binDivTwo n) = bizQuotTwo (toBizBin n)
+toBizBinInjQuot2  BinO        = Refl
+toBizBinInjQuot2 (BinP  U   ) = Refl
+toBizBinInjQuot2 (BinP (O _)) = Refl
+toBizBinInjQuot2 (BinP (I _)) = Refl
+
+-- inj_pow
+
+toBizBinInjPow : (n, m : Bin) -> toBizBin (binPow n m) = bizPow (toBizBin n) (toBizBin m)
+toBizBinInjPow  BinO     BinO    = Refl
+toBizBinInjPow  BinO    (BinP a) = sym $ pow0L (BizP a) uninhabited
+toBizBinInjPow (BinP _)  BinO    = Refl
+toBizBinInjPow (BinP a) (BinP b) = sym $ powZpos a b
+
+-- [Z.to_N] is a bijection between non-negative [Z] and [N], with [Pos.of_N] as
+-- reciprocal
+
+-- id
+
+toBinBizId : (n : Biz) -> 0 `Le` n -> toBizBin (toBinBiz n) = n
+toBinBizId  BizO    _    = Refl
+toBinBizId (BizP _) _    = Refl
+toBinBizId (BizM _) zlen = absurd $ zlen Refl
+
+-- [Z.to_N] is hence injective for non-negative integers
+
+-- inj
+
+toBinBizInj : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> toBinBiz n = toBinBiz m -> n = m
+toBinBizInj n m zlen zlem prf =
+  rewrite sym $ toBinBizId n zlen in
+  rewrite sym $ toBinBizId m zlem in
+  cong prf
+
+-- inj_iff is just inj+cong
+
+-- [Z.to_N], basic equations
+
+-- inj_0 is trivial
+-- inj_pos is trivial
+-- inj_neg is trivial
+
+-- [Z.to_N] and operations
+
+-- inj_add
+
+toBinBizInjAdd : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> toBinBiz (n+m) = (toBinBiz n + toBinBiz m)
+toBinBizInjAdd  BizO     BizO    _    _    = Refl
+toBinBizInjAdd  BizO    (BizP a) _    _    = Refl
+toBinBizInjAdd (BizP a)  BizO    _    _    = Refl
+toBinBizInjAdd (BizP a) (BizP b) _    _    = Refl
+toBinBizInjAdd (BizM _)  _       zlen _    = absurd $ zlen Refl
+toBinBizInjAdd _        (BizM a) _    zlem = absurd $ zlem Refl
+
+-- inj_mul
+
+toBinBizInjMul : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> toBinBiz (n*m) = (toBinBiz n * toBinBiz m)
+toBinBizInjMul  BizO     BizO    _    _    = Refl
+toBinBizInjMul  BizO    (BizP a) _    _    = Refl
+toBinBizInjMul (BizP a)  BizO    _    _    = Refl
+toBinBizInjMul (BizP a) (BizP b) _    _    = Refl
+toBinBizInjMul (BizM _)  _       zlen _    = absurd $ zlen Refl
+toBinBizInjMul _        (BizM a) _    zlem = absurd $ zlem Refl
+
+-- inj_succ
+
+toBinBizInjSucc : (n : Biz) -> 0 `Le` n -> toBinBiz (bizSucc n) = binSucc (toBinBiz n)
+toBinBizInjSucc  BizO    _    = Refl
+toBinBizInjSucc (BizP a) _    = cong $ add1R a
+toBinBizInjSucc (BizM _) zlen = absurd $ zlen Refl
+
+-- inj_sub
+
+toBinBizInjSub : (n, m : Biz) -> 0 `Le` m -> toBinBiz (n-m) = toBinBiz n - toBinBiz m
+toBinBizInjSub  n        BizO    _    =
+  rewrite add0R n in
+  rewrite subZeroR $ toBinBiz n in
+  Refl
+toBinBizInjSub  BizO    (BizP _) _    = Refl
+toBinBizInjSub (BizP a) (BizP b) _    =
+  rewrite posSubSpec a b in
+  rewrite compareSubMask a b in
+  aux
+  where
+  aux : toBinBiz $ posSubSpecHelp a b $ mask2cmp $ bimMinus a b = bimToBin $ bimMinus a b
+  aux with (bimMinus a b) proof ab
+    | BimO   = Refl
+    | BimP _ = rewrite sym ab in
+               Refl
+    | BimM   = Refl
+toBinBizInjSub (BizM _) (BizP _) _    = Refl
+toBinBizInjSub  _       (BizM _) zlem = absurd $ zlem Refl
+
+-- inj_pred
+
+toBinBizInjPred : (n : Biz) -> toBinBiz (bizPred n) = binPred (toBinBiz n)
+toBinBizInjPred n = rewrite predSub (toBinBiz n) in
+                    toBinBizInjSub n 1 uninhabited
+
+-- inj_compare
+
+toBinBizInjСompare : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> toBinBiz n `compare` toBinBiz m = n `compare` m
+toBinBizInjСompare n m zlen zlem =
+  rewrite sym $ toBizBinInjCompare (toBinBiz n) (toBinBiz m) in
+  rewrite toBinBizId n zlen in
+  rewrite toBinBizId m zlem in
+  Refl
+
+-- inj_le
+-- TODO split into `to` and `fro`
+
+toBinBizInjLeTo : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> n `Le` m -> toBinBiz n `Le` toBinBiz m
+toBinBizInjLeTo n m zlen zlem nlem = rewrite toBinBizInjСompare n m zlen zlem in
+                                     nlem
+
+toBinBizInjLeFro : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> toBinBiz n `Le` toBinBiz m -> n `Le` m
+toBinBizInjLeFro n m zlen zlem nlem = rewrite sym $ toBinBizInjСompare n m zlen zlem in
+                                      nlem
+
+-- inj_lt
+-- TODO split into `to` and `fro`
+
+toBinBizInjLtTo : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> n `Lt` m -> toBinBiz n `Lt` toBinBiz m
+toBinBizInjLtTo n m zlen zlem nltm = rewrite toBinBizInjСompare n m zlen zlem in
+                                     nltm
+
+toBinBizInjLtFro : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> toBinBiz n `Lt` toBinBiz m -> n `Lt` m
+toBinBizInjLtFro n m zlen zlem nltm = rewrite sym $ toBinBizInjСompare n m zlen zlem in
+                                      nltm
+
+-- inj_min
+
+toBinBizInjMin : (n, m : Biz) -> toBinBiz (n `min` m) = (toBinBiz n) `binMin` (toBinBiz m)
+toBinBizInjMin  BizO     BizO    = Refl
+toBinBizInjMin  BizO    (BizP _) = Refl
+toBinBizInjMin  BizO    (BizM _) = Refl
+toBinBizInjMin (BizP _)  BizO    = Refl
+toBinBizInjMin (BizP a) (BizP b) with (a `compare` b) proof ab
+  | LT = Refl
+  | EQ = cong $ sym $ compareEqIffTo a b $ sym ab
+  | GT = Refl
+toBinBizInjMin (BizP _) (BizM _) = Refl
+toBinBizInjMin (BizM _)  BizO    = Refl
+toBinBizInjMin (BizM _) (BizP _) = Refl
+toBinBizInjMin (BizM a) (BizM b) with (b `compare` a)
+  | LT = Refl
+  | EQ = Refl
+  | GT = Refl
+
+-- inj_max
+
+toBinBizInjMax : (n, m : Biz) -> toBinBiz (n `max` m) = (toBinBiz n) `binMax` (toBinBiz m)
+toBinBizInjMax  BizO     BizO    = Refl
+toBinBizInjMax  BizO    (BizP _) = Refl
+toBinBizInjMax  BizO    (BizM _) = Refl
+toBinBizInjMax (BizP _)  BizO    = Refl
+toBinBizInjMax (BizP a) (BizP b) with (a `compare` b) proof ab
+  | LT = Refl
+  | EQ = cong $ compareEqIffTo a b $ sym ab
+  | GT = Refl
+toBinBizInjMax (BizP _) (BizM _) = Refl
+toBinBizInjMax (BizM _)  BizO    = Refl
+toBinBizInjMax (BizM _) (BizP _) = Refl
+toBinBizInjMax (BizM a) (BizM b)with (b `compare` a)
+  | LT = Refl
+  | EQ = Refl
+  | GT = Refl
+
+-- TODO inj_div
+-- TODO inj_mod
+-- TODO inj_quot
+-- TODO inj_rem
+-- these require `toBizBin` versions above and `div_mod_unique` lemma
+
+-- inj_div2
+
+toBinBizInjDiv2 : (n : Biz) -> toBinBiz (bizDivTwo n) = binDivTwo (toBinBiz n)
+toBinBizInjDiv2  BizO        = Refl
+toBinBizInjDiv2 (BizP  U   ) = Refl
+toBinBizInjDiv2 (BizP (O _)) = Refl
+toBinBizInjDiv2 (BizP (I _)) = Refl
+toBinBizInjDiv2 (BizM  _   ) = Refl
+
+-- inj_quot2
+
+toBinBizInjQuot2 : (n : Biz) -> toBinBiz (bizQuotTwo n) = binDivTwo (toBinBiz n)
+toBinBizInjQuot2  BizO        = Refl
+toBinBizInjQuot2 (BizP  U   ) = Refl
+toBinBizInjQuot2 (BizP (O _)) = Refl
+toBinBizInjQuot2 (BizP (I _)) = Refl
+toBinBizInjQuot2 (BizM  U   ) = Refl
+toBinBizInjQuot2 (BizM (O _)) = Refl
+toBinBizInjQuot2 (BizM (I _)) = Refl
+
+-- inj_pow
+
+toBinBizInjPow : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> toBinBiz (bizPow n m) = binPow (toBinBiz n) (toBinBiz m)
+toBinBizInjPow _  BizO    _    _    = Refl
+toBinBizInjPow n (BizP a) zlen _    =
+  rewrite sym $ toBizBinId (binPow (toBinBiz n) (BinP a)) in
+  rewrite toBizBinInjPow (toBinBiz n) (BinP a) in
+  rewrite toBinBizId n zlen in
+  Refl
+toBinBizInjPow _ (BizM _) _    zlem = absurd $ zlem Refl
