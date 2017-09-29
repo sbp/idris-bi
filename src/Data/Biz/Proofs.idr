@@ -763,6 +763,12 @@ mulCompareMonoL (BizP a) (BizM b) (BizM c) _    = mulCompareMonoL a c b
 
 -- Remaining specification of [lt] and [le]
 
+leLtOrEq : (x, y : Biz) -> x `Le` y -> Either (x `Lt` y) (x=y)
+leLtOrEq x y xley with (x `compare` y) proof xy
+  | LT = Left Refl
+  | EQ = Right $ compareEqIffTo x y (sym xy)
+  | GT = absurd $ xley Refl
+
 -- lt_succ_r
 -- TODO split into `to` and `fro`
 
@@ -1389,7 +1395,6 @@ modPosBound (BizM a)   (BizP b) _    with (snd $ bipzDivEuclid a (BizP b)) proof
 -- `zler does not have a function type ((\x => ([__])) (BizM _))`
           --absurd $ zler Refl
           really_believe_me zler
-
 
 -- mod_neg_bound
 
@@ -2203,7 +2208,18 @@ peanoRect P f0 fs _  (BizP a) = peanoRect (P . BizP) (fs BizO f0) (\p => rewrite
                                                                 fs $ BizP p) a
 peanoRect P f0 _  fp (BizM a) = peanoRect (P . BizM) (fp BizO f0) (\p => rewrite sym $ add1R p in
                                                                 fp $ BizM p) a
--- TODO bi_induction
+-- bi_induction
+
+biInduction : (P : Biz -> Type) -> (f0 : P BizO)
+           -> (fto  : (x : Biz) -> P x -> P (bizSucc x))
+           -> (ffro : (x : Biz) -> P (bizSucc x) -> P x)
+           -> (z : Biz) -> P z
+biInduction P f0 fto ffro z =
+  peanoRect P f0 fto (\x, psx =>
+    ffro (x-1) $
+      rewrite sym $ addAssoc x (-1) 1 in
+      rewrite add0R x in
+      psx) z
 
 -- TODO boolean comparisons ?
 
@@ -2283,3 +2299,61 @@ addCompareMonoL n m p =
   rewrite addAssoc (-n) n m in
   rewrite addOppDiagL n in
   sym $ compareSub m p
+
+addCompareMonoR : (n, m, p : Biz) -> (n + p) `compare` (m + p) = n `compare` m
+addCompareMonoR n m p =
+  rewrite addComm n p in
+  rewrite addComm m p in
+  addCompareMonoL p n m
+
+ltTrans : (p, q, r : Biz) -> p `Lt` q -> q `Lt` r -> p `Lt` r
+ltTrans p q r =
+  biInduction
+    (\x => (s, t : Biz) -> s `Lt` t -> t `Lt` x -> s `Lt` x)
+    base
+    (\x,prf,s,t,sltt,tltsx =>
+      case leLtOrEq t x $ ltSuccRTo t x tltsx of
+        Left tltx =>
+          ltSuccRFro s x $
+          ltLeIncl s x $
+          prf s t sltt tltx
+        Right teqx =>
+          rewrite sym teqx in
+          ltSuccRFro s t $
+          ltLeIncl s t sltt
+    )
+    (\x,prf,s,t,sltt,tltx =>
+      let tltsx = ltSuccRFro t x $ ltLeIncl t x tltx
+          slex = ltSuccRTo s x $ prf s t sltt tltsx
+      in
+      case leLtOrEq s x slex of
+        Left sltx => sltx
+        Right seqx =>
+          let xltt = replace {P=\x=>x `Lt` t} seqx sltt
+              xget = leGe t x $ ltLeIncl t x tltx in
+          absurd $ xget xltt
+    )
+    r p q
+  where
+  base : (n, m : Biz) -> n `Lt` m -> m `Lt` 0 -> n `Lt` 0
+  base  _        BizO    _    mltz = absurd mltz
+  base  _       (BizP _) _    mltz = absurd mltz
+  base  BizO    (BizM _) nltm _    = absurd nltm
+  base (BizP _) (BizM _) nltm _    = absurd nltm
+  base (BizM _) (BizM _) _    _    = Refl
+
+leLtTrans : (p, q, r : Biz) -> p `Le` q -> q `Lt` r -> p `Lt` r
+leLtTrans p q r pleq qltr with (p `compare` q) proof pq
+  | LT = ltTrans p q r (sym pq) qltr
+  | EQ = rewrite compareEqIffTo p q (sym pq) in
+         qltr
+  | GT = absurd $ pleq Refl
+
+leTrans : (p, q, r : Biz) -> p `Le` q -> q `Le` r -> p `Le` r
+leTrans p q r pleq qler pgtr with (q `compare` r) proof qr
+  | LT = uninhabited $ the (GT=LT) $
+           rewrite sym pgtr in
+           leLtTrans p q r pleq (sym qr)
+  | EQ = pleq $ rewrite compareEqIffTo q r (sym qr) in
+                pgtr
+  | GT = absurd $ qler Refl

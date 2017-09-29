@@ -82,6 +82,8 @@ zAbsNatN (BizM a) = positiveNatN a
 
 -- Conversions between [Z] and [N]
 
+-- N2Z
+
 -- [Z.of_N] is a bijection between [N] and non-negative [Z], with [Z.to_N] (or
 -- [Z.abs_N]) as reciprocal.
 
@@ -297,6 +299,8 @@ toBizBinInjPow  BinO    (BinP a) = sym $ pow0L (BizP a) uninhabited
 toBizBinInjPow (BinP _)  BinO    = Refl
 toBizBinInjPow (BinP a) (BinP b) = sym $ powZpos a b
 
+-- Z2N
+
 -- [Z.to_N] is a bijection between non-negative [Z] and [N], with [Pos.of_N] as
 -- reciprocal
 
@@ -384,8 +388,8 @@ toBinBizInjPred n = rewrite predSub (toBinBiz n) in
 
 -- inj_compare
 
-toBinBizInjСompare : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> toBinBiz n `compare` toBinBiz m = n `compare` m
-toBinBizInjСompare n m zlen zlem =
+toBinBizInjCompare : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> toBinBiz n `compare` toBinBiz m = n `compare` m
+toBinBizInjCompare n m zlen zlem =
   rewrite sym $ toBizBinInjCompare (toBinBiz n) (toBinBiz m) in
   rewrite toBinBizId n zlen in
   rewrite toBinBizId m zlem in
@@ -395,22 +399,22 @@ toBinBizInjСompare n m zlen zlem =
 -- TODO split into `to` and `fro`
 
 toBinBizInjLeTo : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> n `Le` m -> toBinBiz n `Le` toBinBiz m
-toBinBizInjLeTo n m zlen zlem nlem = rewrite toBinBizInjСompare n m zlen zlem in
+toBinBizInjLeTo n m zlen zlem nlem = rewrite toBinBizInjCompare n m zlen zlem in
                                      nlem
 
 toBinBizInjLeFro : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> toBinBiz n `Le` toBinBiz m -> n `Le` m
-toBinBizInjLeFro n m zlen zlem nlem = rewrite sym $ toBinBizInjСompare n m zlen zlem in
+toBinBizInjLeFro n m zlen zlem nlem = rewrite sym $ toBinBizInjCompare n m zlen zlem in
                                       nlem
 
 -- inj_lt
 -- TODO split into `to` and `fro`
 
 toBinBizInjLtTo : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> n `Lt` m -> toBinBiz n `Lt` toBinBiz m
-toBinBizInjLtTo n m zlen zlem nltm = rewrite toBinBizInjСompare n m zlen zlem in
+toBinBizInjLtTo n m zlen zlem nltm = rewrite toBinBizInjCompare n m zlen zlem in
                                      nltm
 
 toBinBizInjLtFro : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> toBinBiz n `Lt` toBinBiz m -> n `Lt` m
-toBinBizInjLtFro n m zlen zlem nltm = rewrite sym $ toBinBizInjСompare n m zlen zlem in
+toBinBizInjLtFro n m zlen zlem nltm = rewrite sym $ toBinBizInjCompare n m zlen zlem in
                                       nltm
 
 -- inj_min
@@ -487,3 +491,167 @@ toBinBizInjPow n (BizP a) zlen _    =
   rewrite toBinBizId n zlen in
   Refl
 toBinBizInjPow _ (BizM _) _    zlem = absurd $ zlem Refl
+
+-- Zabs2N
+
+-- Results about [Z.abs_N], converting absolute values of [Z] integers to [N].
+
+-- abs_N_spec
+
+absNSpec : (n : Biz) -> bizAbsBin n = toBinBiz (bizAbs n)
+absNSpec  BizO    = Refl
+absNSpec (BizP _) = Refl
+absNSpec (BizM _) = Refl
+
+-- abs_N_nonneg
+
+absNNonneg : (n : Biz) -> 0 `Le` n -> bizAbsBin n = toBinBiz n
+absNNonneg  BizO    _    = Refl
+absNNonneg (BizP _) _    = Refl
+absNNonneg (BizM _) zlen = absurd $ zlen Refl
+
+-- id_abs
+
+idAbs : (n : Biz) -> toBizBin (bizAbsBin n) = bizAbs n
+idAbs  BizO    = Refl
+idAbs (BizP _) = Refl
+idAbs (BizM _) = Refl
+
+-- id
+
+bizAbsBinId : (n : Bin) -> bizAbsBin (toBizBin n) = n
+bizAbsBinId  BinO    = Refl
+bizAbsBinId (BinP _) = Refl
+
+-- [Z.abs_N], basic equations
+
+-- inj_0 is trivial
+-- inj_pos is trivial
+-- inj_neg is trivial
+
+-- [Z.abs_N] and usual operations, with non-negative integers
+
+-- inj_opp
+
+injOpp : (n : Biz) -> bizAbsBin (-n) = bizAbsBin n
+injOpp  BizO    = Refl
+injOpp (BizP _) = Refl
+injOpp (BizM _) = Refl
+
+-- inj_succ
+
+bizAbsBinInjSucc : (n : Biz) -> 0 `Le` n -> bizAbsBin (bizSucc n) = binSucc (bizAbsBin n)
+bizAbsBinInjSucc n zlen =
+  rewrite absNNonneg n zlen in
+  rewrite absNNonneg (n+1) $ ltLeIncl 0 (n+1) $ ltSuccRFro 0 n zlen in
+  toBinBizInjSucc n zlen
+
+-- inj_add
+
+bizAbsBinInjAdd : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> bizAbsBin (n+m) = bizAbsBin n + bizAbsBin m
+bizAbsBinInjAdd n m zlen zlem =
+  rewrite absNNonneg n zlen in
+  rewrite absNNonneg m zlem in
+  let nltnm = zlem
+           |> replace {P=\x=>Not (x=GT)}    (sym $ addCompareMonoL n 0 m)
+           |> replace {P=\x=> x `Le` (n+m)} (add0R n)
+   in
+  rewrite absNNonneg (n+m) (leTrans 0 n (n+m) zlen nltnm) in
+  toBinBizInjAdd n m zlen zlem
+
+-- inj_mul
+
+bizAbsBinInjMul : (n, m : Biz) -> bizAbsBin (n*m) = bizAbsBin n * bizAbsBin m
+bizAbsBinInjMul  BizO     m       = sym $ mulZeroL (bizAbsBin m)
+bizAbsBinInjMul  n        BizO    = rewrite mul0R n in
+                                    sym $ mulZeroR (bizAbsBin n)
+bizAbsBinInjMul (BizP _) (BizP _) = Refl
+bizAbsBinInjMul (BizP _) (BizM _) = Refl
+bizAbsBinInjMul (BizM _) (BizP _) = Refl
+bizAbsBinInjMul (BizM _) (BizM _) = Refl
+
+-- inj_sub
+
+bizAbsBinInjSub : (n, m : Biz) -> 0 `Le` m -> m `Le` n -> bizAbsBin (n-m) = bizAbsBin n - bizAbsBin m
+bizAbsBinInjSub n m zlem mlen =
+  rewrite absNNonneg n $ leTrans 0 m n zlem mlen in
+  rewrite absNNonneg m zlem in
+  let zlenm = mlen
+           |> replace {P=\x=>Not (x=GT)}   (sym $ addCompareMonoR m n (-m))
+           |> replace {P=\x=>x `Le` (n-m)} (addOppDiagR m)
+  in
+  rewrite absNNonneg (n-m) zlenm in
+  toBinBizInjSub n m zlem
+
+-- inj_pred
+
+bizAbsBinInjPred : (n : Biz) -> 0 `Lt` n -> bizAbsBin (bizPred n) = binPred (bizAbsBin n)
+bizAbsBinInjPred n zltn =
+  rewrite absNNonneg n $ ltLeIncl 0 n zltn in
+  rewrite absNNonneg (bizPred n) $
+            ltSuccRTo 0 (n-1) $
+            rewrite sym $ addAssoc n (-1) 1 in
+            rewrite add0R n in
+            zltn
+    in
+  toBinBizInjPred n
+
+-- inj_compare
+
+bizAbsBinInjCompare : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> bizAbsBin n `compare` bizAbsBin m = n `compare` m
+bizAbsBinInjCompare n m zlen zlem =
+  rewrite absNNonneg n zlen in
+  rewrite absNNonneg m zlem in
+  toBinBizInjCompare n m zlen zlem
+
+-- inj_le
+-- TODO split into `to` and `fro`
+
+bizAbsBinInjLeTo : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> n `Le` m -> bizAbsBin n `Le` bizAbsBin m
+bizAbsBinInjLeTo n m zlen zlem nlem = rewrite bizAbsBinInjCompare n m zlen zlem in
+                                      nlem
+
+bizAbsBinInjLeFro : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> bizAbsBin n `Le` bizAbsBin m -> n `Le` m
+bizAbsBinInjLeFro n m zlen zlem nlem = rewrite sym $ bizAbsBinInjCompare n m zlen zlem in
+                                       nlem
+
+-- inj_lt
+-- TODO split into `to` and `fro`
+
+bizAbsBinInjLtTo : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> n `Lt` m -> bizAbsBin n `Lt` bizAbsBin m
+bizAbsBinInjLtTo n m zlen zlem nltm = rewrite bizAbsBinInjCompare n m zlen zlem in
+                                      nltm
+
+bizAbsBinInjLtFro : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> bizAbsBin n `Lt` bizAbsBin m -> n `Lt` m
+bizAbsBinInjLtFro n m zlen zlem nltm = rewrite sym $ bizAbsBinInjCompare n m zlen zlem in
+                                       nltm
+
+-- inj_min
+
+bizAbsBinInjMin : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> bizAbsBin (n `min` m) = bizAbsBin n `binMin` bizAbsBin m
+bizAbsBinInjMin n m zlen zlem =
+  rewrite absNNonneg n zlen in
+  rewrite absNNonneg m zlem in
+  rewrite absNNonneg (n `min` m) aux in
+  toBinBizInjMin n m
+  where
+  aux : 0 `Le` (n `min` m)
+  aux prf with (n `compare` m)
+    | LT = absurd $ zlen prf
+    | EQ = absurd $ zlem prf
+    | GT = absurd $ zlem prf
+
+-- inj_max
+
+bizAbsBinInjMax : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> bizAbsBin (n `max` m) = bizAbsBin n `binMax` bizAbsBin m
+bizAbsBinInjMax n m zlen zlem =
+  rewrite absNNonneg n zlen in
+  rewrite absNNonneg m zlem in
+  rewrite absNNonneg (n `max` m) aux in
+  toBinBizInjMax n m
+  where
+  aux : 0 `Le` (n `max` m)
+  aux prf with (n `compare` m)
+    | LT = absurd $ zlem prf
+    | EQ = absurd $ zlen prf
+    | GT = absurd $ zlen prf

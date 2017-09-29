@@ -151,13 +151,13 @@ mulSuccL (BinP a') (BinP b') = cong $ mulSuccL a' b'
 
 -- eqb_eq
 -- TODO split into `to` and `fro`
-eqbEqTo : (p, q : Bin) -> (p == q = True) -> p=q
+eqbEqTo : (p, q : Bin) -> p == q = True -> p = q
 eqbEqTo  BinO     BinO    = const Refl
 eqbEqTo  BinO    (BinP a) = absurd
 eqbEqTo (BinP a)  BinO    = absurd
 eqbEqTo (BinP a) (BinP b) = cong . eqbEqTo a b
 
-eqbEqFro : (p, q : Bin) -> p=q -> (p == q = True)
+eqbEqFro : (p, q : Bin) -> p = q -> p == q = True
 eqbEqFro  BinO     BinO    _   = Refl
 eqbEqFro  BinO    (BinP _) Refl impossible
 eqbEqFro (BinP _)  BinO    Refl impossible
