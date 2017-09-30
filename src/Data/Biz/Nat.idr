@@ -832,3 +832,102 @@ toBizNatInjPred n ulen =
 -- inj_min
 -- inj_max
 -- TODO these depend on `toBinInj` versions, see Bin.Nat
+
+-- Z2Nat
+
+-- [Z.to_nat] is a bijection between non-negative [Z] and [nat], with
+-- [Pos.of_nat] as reciprocal
+
+-- id
+
+toNatBizId : (n : Biz) -> 0 `Le` n -> toBizNat (toNatBiz n) = n
+toNatBizId n zlen =
+  rewrite sym $ zNNat n in
+  rewrite sym $ natNZ (toNatBin $ toBinBiz n) in
+  rewrite toNatId (toBinBiz n) in
+  toBinBizId n zlen
+
+-- [Z.to_nat] is hence injective for non-negative integers
+
+-- inj
+
+toNatBizInj : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> toNatBiz n = toNatBiz m -> n = m
+toNatBizInj n m zlen zlem prf =
+  rewrite sym $ toNatBizId n zlen in
+  rewrite sym $ toNatBizId m zlem in
+  cong prf
+
+-- inj_iff is just inj + cong
+
+-- [Z.to_nat], basic equations
+
+-- inj_0 is trivial
+-- inj_pos is trivial
+-- inj_neg is trivial
+
+-- [Z.to_nat] and operations
+
+-- inj_add
+
+toNatBizInjAdd : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> toNatBiz (n+m) = toNatBiz n + toNatBiz m
+toNatBizInjAdd n m zlen zlem =
+  rewrite sym $ zNNat (n+m) in
+  rewrite toBinBizInjAdd n m zlen zlem in
+  rewrite sym $ zNNat n in
+  rewrite sym $ zNNat m in
+  toNatInjAdd (toBinBiz n) (toBinBiz m)
+
+-- inj_mul
+
+toNatBizInjMul : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> toNatBiz (n*m) = toNatBiz n * toNatBiz m
+toNatBizInjMul n m zlen zlem =
+  rewrite sym $ zNNat (n*m) in
+  rewrite toBinBizInjMul n m zlen zlem in
+  rewrite sym $ zNNat n in
+  rewrite sym $ zNNat m in
+  toNatInjMul (toBinBiz n) (toBinBiz m)
+
+-- inj_succ
+
+toNatBizInjSucc : (n : Biz) -> 0 `Le` n -> toNatBiz (bizSucc n) = S (toNatBiz n)
+toNatBizInjSucc n zlen =
+  rewrite sym $ zNNat (bizSucc n) in
+  rewrite toBinBizInjSucc n zlen in
+  rewrite sym $ zNNat n in
+  toNatInjSucc (toBinBiz n)
+
+-- inj_sub
+
+toNatBizInjSub : (n, m : Biz) -> 0 `Le` m -> toNatBiz (n - m) = toNatBiz n `minus` toNatBiz m
+toNatBizInjSub n m zlem =
+  rewrite sym $ zNNat (n-m) in
+  rewrite toBinBizInjSub n m zlem in
+  rewrite sym $ zNNat n in
+  rewrite sym $ zNNat m in
+  toNatInjSub (toBinBiz n) (toBinBiz m)
+
+-- inj_pred
+
+toNatBizInjPred : (n : Biz) -> toNatBiz (bizPred n) = pred (toNatBiz n)
+toNatBizInjPred n =
+  rewrite sym $ zNNat (bizPred n) in
+  rewrite toBinBizInjPred n in
+  rewrite sym $ zNNat n in
+  toNatInjPred (toBinBiz n)
+
+-- inj_compare
+
+toNatBizInjCompare : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> toNatBiz n `compare` toNatBiz m = n `compare` m
+toNatBizInjCompare n m zlen zlem =
+  rewrite sym $ toBizNatInjCompare (toNatBiz n) (toNatBiz m) in
+  rewrite toNatBizId n zlen in
+  rewrite toNatBizId m zlem in
+  Refl
+
+-- inj_le
+-- inj_lt
+-- TODO `Lt`/`Le` are not defined for Nats, but these are pretty simple anyway
+
+-- inj_min
+-- inj_max
+-- TODO these depend on `toNatInj` versions, see Bin.Nat
