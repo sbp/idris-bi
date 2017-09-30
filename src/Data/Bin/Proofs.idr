@@ -408,7 +408,11 @@ succLePos : (x, y : Bin) -> binSucc x `Le` y -> (a ** y = BinP a)
 succLePos x  BinO    sxley = absurd $ sxley $ ltGt 0 (binSucc x) $ ltSuccRFro 0 x $ leZeroL x
 succLePos _ (BinP a) _     = (a**Refl)
 
--- TODO leSuccLTo ?
+leSuccLTo : (p, q : Bin) -> binSucc p `Le` q -> p `Lt` q
+leSuccLTo  BinO     BinO    prf = absurd $ prf Refl
+leSuccLTo  BinO    (BinP _) _   = Refl
+leSuccLTo (BinP _)  BinO    prf = absurd $ prf Refl
+leSuccLTo (BinP a) (BinP b) prf = leSuccLTo a b prf
 
 leSuccLFro : (p, q : Bin) -> p `Lt` q -> binSucc p `Le` q
 leSuccLFro  BinO     BinO    = absurd

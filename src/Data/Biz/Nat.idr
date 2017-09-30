@@ -109,9 +109,9 @@ toBizBinInj (BinP _) (BinP _) = cong . bizPInj
 
 -- is_nonneg
 
-isNonneg : (n : Bin) -> 0 `Le` toBizBin n
-isNonneg  BinO    = uninhabited
-isNonneg (BinP _) = uninhabited
+toBizBinIsNonneg : (n : Bin) -> 0 `Le` toBizBin n
+toBizBinIsNonneg  BinO    = uninhabited
+toBizBinIsNonneg (BinP _) = uninhabited
 
 -- [Z.of_N], basic equations
 
@@ -181,28 +181,16 @@ injAbsN (BizP _) = Refl
 injAbsN (BizM _) = Refl
 
 -- inj_add
-
-toBizBinInjAdd : (n, m : Bin) -> toBizBin (n+m) = toBizBin n + toBizBin m
-toBizBinInjAdd  BinO     BinO    = Refl
-toBizBinInjAdd  BinO    (BinP _) = Refl
-toBizBinInjAdd (BinP _)  BinO    = Refl
-toBizBinInjAdd (BinP _) (BinP _) = Refl
-
 -- inj_mul
-
-toBizBinInjMul : (n, m : Bin) -> toBizBin (n*m) = toBizBin n * toBizBin m
-toBizBinInjMul  BinO     BinO    = Refl
-toBizBinInjMul  BinO    (BinP _) = Refl
-toBizBinInjMul (BinP _)  BinO    = Refl
-toBizBinInjMul (BinP _) (BinP _) = Refl
+-- TODO defined in Biz.Proofs for now
 
 -- inj_sub_max
 
-injSubMax : (n, m : Bin) -> toBizBin (n-m) = 0 `max` (toBizBin n - toBizBin m)
-injSubMax  BinO     BinO    = Refl
-injSubMax  BinO    (BinP _) = Refl
-injSubMax (BinP _)  BinO    = Refl
-injSubMax (BinP a) (BinP b) =
+toBizBinInjSubMax : (n, m : Bin) -> toBizBin (n-m) = 0 `max` (toBizBin n - toBizBin m)
+toBizBinInjSubMax  BinO     BinO    = Refl
+toBizBinInjSubMax  BinO    (BinP _) = Refl
+toBizBinInjSubMax (BinP _)  BinO    = Refl
+toBizBinInjSubMax (BinP a) (BinP b) =
   rewrite posSubSpec a b in
   rewrite compareSubMask a b in
   aux
@@ -218,7 +206,7 @@ injSubMax (BinP a) (BinP b) =
 
 toBizBinInjSub : (n, m : Bin) -> m `Le` n -> toBizBin (n-m) = toBizBin n - toBizBin m
 toBizBinInjSub n m mlen =
-  rewrite injSubMax n m in
+  rewrite toBizBinInjSubMax n m in
   maxR 0 (toBizBin n - toBizBin m) $
   rewrite compareAntisym (toBizBin n - toBizBin m) 0 in
   rewrite sym $ compareSub (toBizBin n) (toBizBin m) in
@@ -235,7 +223,7 @@ toBizBinInjSucc (BinP a) = cong $ sym $ add1R a
 
 toBizBinInjPredMax : (n : Bin) -> toBizBin (binPred n) = 0 `max` bizPred (toBizBin n)
 toBizBinInjPredMax n = rewrite predSub n in
-                       injSubMax n 1
+                       toBizBinInjSubMax n 1
 
 -- inj_pred
 
@@ -706,3 +694,141 @@ bizAbsBinInjMulAbs (BizP _) (BizP _) = Refl
 bizAbsBinInjMulAbs (BizP _) (BizM _) = Refl
 bizAbsBinInjMulAbs (BizM _) (BizP _) = Refl
 bizAbsBinInjMulAbs (BizM _) (BizM _) = Refl
+
+-- Conversions between [Z] and [nat]
+
+-- Nat2Z
+
+-- [Z.of_nat]
+
+-- inj_0 is trivial
+
+-- inj_succ
+
+toBizNatInjSucc : (n : Nat) -> toBizNat (S n) = bizSucc (toBizNat n)
+toBizNatInjSucc  Z    = Refl
+toBizNatInjSucc (S k) = cong $ sym $ add1R (toBipNatSucc k)
+
+-- [Z.of_N] produce non-negative integers
+
+-- is_nonneg
+
+toBizNatIsNonneg : (n : Nat) -> 0 `Le` toBizNat n
+toBizNatIsNonneg  Z    = uninhabited
+toBizNatIsNonneg (S _) = uninhabited
+
+-- [Z.of_nat] is a bijection between [nat] and non-negative [Z], with [Z.to_nat]
+-- (or [Z.abs_nat]) as reciprocal.
+
+-- id
+
+toBizNatId : (n : Nat) -> toNatBiz (toBizNat n) = n
+toBizNatId n =
+  rewrite sym $ natNZ n in
+  rewrite sym $ zNNat (toBizBin $ toBinNat n) in
+  rewrite toBizBinId (toBinNat n) in
+  toBinId n
+
+-- [Z.of_nat] is hence injective
+
+-- inj
+
+toBizNatInj : (n, m : Nat) -> toBizNat n = toBizNat m -> n = m
+toBizNatInj n m prf =
+  rewrite sym $ toBizNatId n in
+  rewrite sym $ toBizNatId m in
+  cong prf
+
+-- inj_iff is just inj + cong
+
+-- [Z.of_nat] and usual operations
+
+-- inj_compare
+
+toBizNatInjCompare : (n, m : Nat) -> toBizNat n `compare` toBizNat m = n `compare` m
+toBizNatInjCompare n m =
+  rewrite sym $ natNZ n in
+  rewrite sym $ natNZ m in
+  rewrite toBizBinInjCompare (toBinNat n) (toBinNat m) in
+  sym $ toBinInjCompare n m
+
+-- inj_le
+-- inj_lt
+-- inj_ge
+-- inj_gt
+-- TODO `Lt`/`Le`/etc are not defined for Nats, but these are pretty simple anyway
+
+-- inj_abs_nat
+
+toBizNatInjAbsNat : (z : Biz) -> toBizNat (bizAbsNat z) = abs z
+toBizNatInjAbsNat  BizO    = Refl
+toBizNatInjAbsNat (BizP a) =
+  let (b**prf) = isSucc a in
+  rewrite prf in
+  cong $ toBipSuccInv b a prf
+toBizNatInjAbsNat (BizM a) =
+  let (b**prf) = isSucc a in
+  rewrite prf in
+  cong $ toBipSuccInv b a prf
+
+-- inj_add
+
+toBizNatInjAdd : (n, m : Nat) -> toBizNat (n+m) = toBizNat n + toBizNat m
+toBizNatInjAdd n m =
+  rewrite sym $ natNZ (n+m) in
+  rewrite toBinInjAdd n m in
+  rewrite sym $ natNZ n in
+  rewrite sym $ natNZ m in
+  toBizBinInjAdd (toBinNat n) (toBinNat m)
+
+-- inj_mul
+
+toBizNatInjMul : (n, m : Nat) -> toBizNat (n*m) = toBizNat n * toBizNat m
+toBizNatInjMul n m =
+  rewrite sym $ natNZ (n*m) in
+  rewrite toBinInjMul n m in
+  rewrite sym $ natNZ n in
+  rewrite sym $ natNZ m in
+  toBizBinInjMul (toBinNat n) (toBinNat m)
+
+-- inj_sub_max
+
+toBizNatInjSubMax : (n, m : Nat) -> toBizNat (n `minus` m) = 0 `max` (toBizNat n - toBizNat m)
+toBizNatInjSubMax n m =
+  rewrite sym $ natNZ (n `minus` m) in
+  rewrite toBinInjSub n m in
+  rewrite sym $ natNZ n in
+  rewrite sym $ natNZ m in
+  toBizBinInjSubMax (toBinNat n) (toBinNat m)
+
+-- inj_sub
+
+toBizNatInjSub : (n, m : Nat) -> m `LTE` n -> toBizNat (n `minus` m) = toBizNat n - toBizNat m
+toBizNatInjSub n m mlen =
+  rewrite sym $ natNZ (n `minus` m) in
+  rewrite toBinInjSub n m in
+  rewrite sym $ natNZ n in
+  rewrite sym $ natNZ m in
+  toBizBinInjSub (toBinNat n) (toBinNat m) (natBinLe m n mlen)
+
+-- inj_pred_max
+
+toBizNatInjPredMax : (n : Nat) -> toBizNat (pred n) = 0 `max` bizPred (toBizNat n)
+toBizNatInjPredMax n =
+  rewrite sym $ natNZ (pred n) in
+  rewrite toBinInjPred n in
+  rewrite sym $ natNZ n in
+  toBizBinInjPredMax (toBinNat n)
+
+-- inj_pred
+-- TODO using 1 `LTE` here instead of 0 `LT` because it clashes with Ord
+toBizNatInjPred : (n : Nat) -> 1 `LTE` n -> toBizNat (pred n) = bizPred (toBizNat n)
+toBizNatInjPred n ulen =
+  rewrite sym $ natNZ (pred n) in
+  rewrite toBinInjPred n in
+  rewrite sym $ natNZ n in
+  toBizBinInjPred (toBinNat n) (leSuccLTo 0 (toBinNat n) $ natBinLe 1 n ulen)
+
+-- inj_min
+-- inj_max
+-- TODO these depend on `toBinInj` versions, see Bin.Nat
