@@ -175,7 +175,7 @@ toBizBinInjGtFro n m ngtm = rewrite sym $ toBizBinInjCompare n m in
 
 -- inj_abs_N
 
-injAbsN : (z : Biz) -> toBizBin (bizAbsBin z) = bizAbs z
+injAbsN : (z : Biz) -> toBizBin (bizAbsBin z) = abs z
 injAbsN  BizO    = Refl
 injAbsN (BizP _) = Refl
 injAbsN (BizM _) = Refl
@@ -498,7 +498,7 @@ toBinBizInjPow _ (BizM _) _    zlem = absurd $ zlem Refl
 
 -- abs_N_spec
 
-absNSpec : (n : Biz) -> bizAbsBin n = toBinBiz (bizAbs n)
+absNSpec : (n : Biz) -> bizAbsBin n = toBinBiz (abs n)
 absNSpec  BizO    = Refl
 absNSpec (BizP _) = Refl
 absNSpec (BizM _) = Refl
@@ -512,7 +512,7 @@ absNNonneg (BizM _) zlen = absurd $ zlen Refl
 
 -- id_abs
 
-idAbs : (n : Biz) -> toBizBin (bizAbsBin n) = bizAbs n
+idAbs : (n : Biz) -> toBizBin (bizAbsBin n) = abs n
 idAbs  BizO    = Refl
 idAbs (BizP _) = Refl
 idAbs (BizM _) = Refl
@@ -655,3 +655,54 @@ bizAbsBinInjMax n m zlen zlem =
     | LT = absurd $ zlem prf
     | EQ = absurd $ zlen prf
     | GT = absurd $ zlen prf
+
+-- TODO inj_quot
+-- TODO inj_rem
+-- these require `toBinBiz` versions above
+
+-- inj_pow
+
+bizAbsBinInjPow : (n, m : Biz) -> 0 `Le` m -> bizAbsBin (bizPow n m) = (binPow (bizAbsBin n) (bizAbsBin m))
+bizAbsBinInjPow n m zlem =
+  rewrite absNNonneg m zlem in
+  rewrite absNSpec n in
+  rewrite absNSpec (bizPow n m) in
+  rewrite absPow n m in
+  toBinBizInjPow (abs n) m (absNonneg n) zlem
+
+-- [Z.abs_N] and usual operations, statements with [Z.abs]
+
+-- inj_succ_abs
+
+bizAbsBinInjSuccAbs : (n : Biz) -> bizAbsBin (bizSucc (abs n)) = binSucc (bizAbsBin n)
+bizAbsBinInjSuccAbs  BizO    = Refl
+bizAbsBinInjSuccAbs (BizP a) = cong $ add1R a
+bizAbsBinInjSuccAbs (BizM a) = cong $ add1R a
+
+-- inj_add_abs
+
+bizAbsBinInjAddAbs : (n, m : Biz) -> bizAbsBin (abs n + abs m) = bizAbsBin n + bizAbsBin m
+bizAbsBinInjAddAbs  BizO     m       =
+  rewrite addZeroL (bizAbsBin m) in
+  rewrite absNNonneg (abs m) (absNonneg m) in
+  sym $ absNSpec m
+bizAbsBinInjAddAbs  n        BizO    =
+  rewrite add0R (abs n) in
+  rewrite addZeroR (bizAbsBin n) in
+  rewrite absNNonneg (abs n) (absNonneg n) in
+  sym $ absNSpec n
+bizAbsBinInjAddAbs (BizP _) (BizP _) = Refl
+bizAbsBinInjAddAbs (BizP _) (BizM _) = Refl
+bizAbsBinInjAddAbs (BizM _) (BizP _) = Refl
+bizAbsBinInjAddAbs (BizM _) (BizM _) = Refl
+
+-- inj_mul_abs
+
+bizAbsBinInjMulAbs : (n, m : Biz) -> bizAbsBin (abs n * abs m) = bizAbsBin n * bizAbsBin m
+bizAbsBinInjMulAbs  BizO     m       = sym $ mulZeroL (bizAbsBin m)
+bizAbsBinInjMulAbs  n        BizO    = rewrite mul0R (abs n) in
+                                       sym $ mulZeroR (bizAbsBin n)
+bizAbsBinInjMulAbs (BizP _) (BizP _) = Refl
+bizAbsBinInjMulAbs (BizP _) (BizM _) = Refl
+bizAbsBinInjMulAbs (BizM _) (BizP _) = Refl
+bizAbsBinInjMulAbs (BizM _) (BizM _) = Refl

@@ -1,4 +1,4 @@
-module Data.Bip.OrdSub
+module Data.Bip.IterPow
 
 import Data.Bip
 import Data.Bip.AddMul

@@ -13,6 +13,12 @@ import Data.Biz
 %default total
 %access public export
 
+Even : Biz -> Type
+Even a = (b ** a = 2*b)
+
+Odd : Biz -> Type
+Odd a = (b ** a = 2*b+1)
+
 -- Properties of [pos_sub]
 
 -- [pos_sub] can be written in term of positive comparison and subtraction (cf.
@@ -844,10 +850,15 @@ minR n m mlen = rewrite compareAntisym m n in
 
 -- Specification of absolute value
 
-absNonneg : (a : Biz) -> 0 `Le` bizAbs a
+absNonneg : (a : Biz) -> 0 `Le` abs a
 absNonneg  BizO    = uninhabited
 absNonneg (BizP _) = uninhabited
 absNonneg (BizM _) = uninhabited
+
+absOpp : (n : Biz) -> abs (-n) = abs n
+absOpp  BizO    = Refl
+absOpp (BizP _) = Refl
+absOpp (BizM _) = Refl
 
 -- abs_eq
 
@@ -922,6 +933,54 @@ powNegR _ (BizM _) = const Refl
 -- For folding back a [pow_pos] into a [pow]
 
 -- pow_pos_fold is trivial
+
+powDoubleOpp : (a : Biz) -> (b : Bip) -> bizPow (-a) (BizP (O b)) = bizPow a (BizP (O b))
+powDoubleOpp a b =
+  peanoRect
+    (\x => bizPow (-a) (BizP (O x)) = bizPow a (BizP (O x)))
+    (rewrite mul1R a in
+     rewrite mul1R (-a) in
+     mulOppOpp a a
+    )
+    (\x, prf =>
+      rewrite iterSucc (bizMult a) 1 x in
+      rewrite iterSwap (bizMult a) (bizPow a (BizP x)) (bipSucc x) in
+      rewrite iterSucc (bizMult a) (bizPow a (BizP x)) x in
+      rewrite mulAssoc a a (bizPow a (BizP (O x))) in
+      rewrite iterSucc (bizMult (-a)) 1 x in
+      rewrite iterSwap (bizMult (-a)) (bizPow (-a) (BizP x)) (bipSucc x) in
+      rewrite iterSucc (bizMult (-a)) (bizPow (-a) (BizP x)) x in
+      rewrite mulAssoc (-a) (-a) (bizPow (-a) (BizP (O x))) in
+      rewrite mulOppOpp a a in
+      cong prf
+    )
+    b
+
+-- pow_opp_even
+
+powOppEven : (a, b : Biz) -> Even b -> bizPow (-a) b = bizPow a b
+powOppEven _  BizO     _              = Refl
+powOppEven _ (BizP _) (BizO   ** prf) = absurd prf
+powOppEven a (BizP b) (BizP x ** prf) =
+  rewrite bizPInj prf in
+  powDoubleOpp a x
+powOppEven _ (BizP _) (BizM _ ** prf) = absurd prf
+powOppEven _ (BizM _)  _              = Refl
+
+-- pow_opp_odd
+
+powOppOdd : (a, b : Biz) -> Odd b -> bizPow (-a) b = -(bizPow a b)
+powOppOdd _  BizO    (BizO   ** prf) = absurd prf
+powOppOdd _  BizO    (BizP _ ** prf) = absurd prf
+powOppOdd _  BizO    (BizM _ ** prf) = absurd prf
+powOppOdd a (BizP _) (BizO   ** prf) = rewrite bizPInj prf in
+                                       mulOppL a 1
+powOppOdd a (BizP _) (BizP x ** prf) =
+  rewrite bizPInj prf in
+  rewrite powDoubleOpp a x in
+  mulOppL a (bizPow a (BizP (O x)))
+powOppOdd _ (BizP _) (BizM _ ** prf) = absurd prf
+powOppOdd _ (BizM _)  _              = Refl
 
 -- Specification of square
 
@@ -1009,12 +1068,6 @@ log2Nonpos (BizP _) nle0 = absurd $ nle0 Refl
 log2Nonpos (BizM _) _    = Refl
 
 -- Specification of parity functions
-
-Even : Biz -> Type
-Even a = (b ** a = 2*b)
-
-Odd : Biz -> Type
-Odd a = (b ** a = 2*b+1)
 
 -- even_spec
 -- TODO split into `to` and `fro`
@@ -2305,6 +2358,60 @@ addCompareMonoR n m p =
   rewrite addComm n p in
   rewrite addComm m p in
   addCompareMonoL p n m
+
+-- Even_or_Odd
+
+evenOrOdd : (a : Biz) -> Either (Even a) (Odd a)
+evenOrOdd =
+  biInduction
+    (\x => Either (Even x) (Odd x))
+    (Left (0 ** Refl))
+    (\x, prf =>
+      case prf of
+        Left  (b ** prf) => Right (b ** cong {f=\x=>x+1} prf)
+        Right (b ** prf) => Left ((b+1) ** rewrite prf in
+                                           rewrite mulAddDistrL 2 b 1 in
+                                           rewrite sym $ addAssoc (2*b) 1 1 in
+                                           Refl)
+    )
+    (\x, prf =>
+      case prf of
+        Left  (b ** prf) => Right ((b-1) ** addRegR 1 x (2*(b-1)+1) $
+                                            rewrite mulAddDistrL 2 b (-1) in
+                                            rewrite sym $ addAssoc (2*b) (-2) 1 in
+                                            rewrite sym $ addAssoc (2*b) (-1) 1 in
+                                            rewrite add0R (2*b) in
+                                            prf)
+        Right (b ** prf) => Left  (b ** addRegR 1 x (2*b) prf)
+    )
+
+-- abs_pow
+
+absPowPos : (a, b : Bip) -> bizAbs (bizPow (BizP a) (BizP b)) = bizPow (BizP a) (BizP b)
+absPowPos a b =
+  absEq (bizPow (BizP a) (BizP b)) $
+  ltLeIncl 0 (bizPow (BizP a) (BizP b)) $
+  iterInvariant (bizMult (BizP a)) (\x => 0 `Lt` x) b
+    (\x,prf => rewrite mulCompareMonoL (BizP a) 0 x Refl in
+               prf) 1 Refl
+
+absPow : (a, b : Biz) -> bizAbs (bizPow a b) = bizPow (bizAbs a) b
+absPow  _        BizO    = Refl
+absPow  BizO    (BizP b) = rewrite pow0L (BizP b) uninhabited in
+                           Refl
+absPow (BizP a) (BizP b) = absPowPos a b
+absPow (BizM a) (BizP b) =
+  case evenOrOdd (BizP b) of
+    Left  eprf => rewrite sym $ powOppEven (BizM a) (BizP b) eprf in
+                  absPowPos a b
+    Right oprf => let absM = powOppOdd (BizM a) (BizP b) oprf
+                          |> cong {f=bizOpp}
+                          |> replace (oppInvolutive (bizPow (BizM a) (BizP b)))
+                   in
+                  rewrite sym absM in
+                  rewrite absOpp (bizPow (BizP a) (BizP b)) in
+                  absPowPos a b
+absPow  _       (BizM _) = Refl
 
 ltTrans : (p, q, r : Biz) -> p `Lt` q -> q `Lt` r -> p `Lt` r
 ltTrans p q r =
