@@ -500,10 +500,10 @@ absNNonneg (BizM _) zlen = absurd $ zlen Refl
 
 -- id_abs
 
-idAbs : (n : Biz) -> toBizBin (bizAbsBin n) = abs n
-idAbs  BizO    = Refl
-idAbs (BizP _) = Refl
-idAbs (BizM _) = Refl
+idAbsBin : (n : Biz) -> toBizBin (bizAbsBin n) = abs n
+idAbsBin  BizO    = Refl
+idAbsBin (BizP _) = Refl
+idAbsBin (BizM _) = Refl
 
 -- id
 
@@ -931,3 +931,143 @@ toNatBizInjCompare n m zlen zlem =
 -- inj_min
 -- inj_max
 -- TODO these depend on `toNatInj` versions, see Bin.Nat
+
+-- Zabs2Nat
+
+-- Results about [Z.abs_nat], converting absolute values of [Z] integers to
+-- [nat].
+
+-- abs_nat_spec
+
+absNatSpec : (n : Biz) -> bizAbsNat n = toNatBiz (abs n)
+absNatSpec  BizO    = Refl
+absNatSpec (BizP _) = Refl
+absNatSpec (BizM _) = Refl
+
+-- abs_nat_nonneg
+
+absNatNonneg : (n : Biz) -> 0 `Le` n -> bizAbsNat n = toNatBiz n
+absNatNonneg  BizO    _    = Refl
+absNatNonneg (BizP _) _    = Refl
+absNatNonneg (BizM _) zlen = absurd $ zlen Refl
+
+-- id_abs
+
+idAbsNat : (n : Biz) -> toBizNat (bizAbsNat n) = abs n
+idAbsNat n =
+  rewrite sym $ zAbsNNat n in
+  rewrite nNatZ (bizAbsBin n) in
+  injAbsN n
+
+-- id
+
+bizAbsNatId : (n : Nat) -> bizAbsNat (toBizNat n) = n
+bizAbsNatId n =
+  rewrite sym $ zAbsNNat (toBizNat n) in
+  rewrite sym $ natNZ n in
+  rewrite bizAbsBinId (toBinNat n) in
+  toBinId n
+
+-- [Z.abs_nat], basic equations
+
+-- inj_0 is trivial
+-- inj_pos is trivial
+-- inj_neg is trivial
+
+-- [Z.abs_nat] and usual operations, with non-negative integers
+
+-- inj_succ
+
+bizAbsNatInjSucc : (n : Biz) -> 0 `Le` n -> bizAbsNat (bizSucc n) = S (bizAbsNat n)
+bizAbsNatInjSucc n zlen =
+  rewrite sym $ zAbsNNat (bizSucc n) in
+  rewrite bizAbsBinInjSucc n zlen in
+  rewrite sym $ zAbsNNat n in
+  toNatInjSucc (bizAbsBin n)
+
+-- inj_add
+
+bizAbsNatInjAdd : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> bizAbsNat (n+m) = bizAbsNat n + bizAbsNat m
+bizAbsNatInjAdd n m zlen zlem =
+  rewrite sym $ zAbsNNat (n+m) in
+  rewrite bizAbsBinInjAdd n m zlen zlem in
+  rewrite sym $ zAbsNNat n in
+  rewrite sym $ zAbsNNat m in
+  toNatInjAdd (bizAbsBin n) (bizAbsBin m)
+
+-- inj_mul
+
+bizAbsNatInjMul : (n, m : Biz) -> bizAbsNat (n*m) = bizAbsNat n * bizAbsNat m
+bizAbsNatInjMul n m =
+  rewrite sym $ zAbsNNat (n*m) in
+  rewrite bizAbsBinInjMul n m in
+  rewrite sym $ zAbsNNat n in
+  rewrite sym $ zAbsNNat m in
+  toNatInjMul (bizAbsBin n) (bizAbsBin m)
+
+-- inj_sub
+
+bizAbsNatInjSub : (n, m : Biz) -> 0 `Le` m -> m `Le` n -> bizAbsNat (n-m) = bizAbsNat n `minus` bizAbsNat m
+bizAbsNatInjSub n m zlem mlen =
+  rewrite sym $ zAbsNNat (n-m) in
+  rewrite bizAbsBinInjSub n m zlem mlen in
+  rewrite sym $ zAbsNNat n in
+  rewrite sym $ zAbsNNat m in
+  toNatInjSub (bizAbsBin n) (bizAbsBin m)
+
+-- inj_pred
+
+bizAbsNatInjPred : (n : Biz) -> 0 `Lt` n -> bizAbsNat (bizPred n) = pred (bizAbsNat n)
+bizAbsNatInjPred n zltn =
+  rewrite sym $ zAbsNNat (bizPred n) in
+  rewrite bizAbsBinInjPred n zltn in
+  rewrite sym $ zAbsNNat n in
+  toNatInjPred (bizAbsBin n)
+
+-- inj_compare
+
+bizAbsNatInjCompare : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> bizAbsNat n `compare` bizAbsNat m = n `compare` m
+bizAbsNatInjCompare n m zlen zlem =
+  rewrite sym $ zAbsNNat n in
+  rewrite sym $ zAbsNNat m in
+  rewrite sym $ toNatInjCompare (bizAbsBin n) (bizAbsBin m) in
+  bizAbsBinInjCompare n m zlen zlem
+
+-- inj_le
+-- inj_lt
+-- TODO `Lt`/`Le` are not defined for Nats
+
+-- inj_min
+-- inj_max
+-- TODO these depend on `toNatInj` versions, see Bin.Nat
+
+-- [Z.abs_nat] and usual operations, statements with [Z.abs]
+
+-- inj_succ_abs
+
+bizAbsNatInjSuccAbs : (n : Biz) -> bizAbsNat (bizSucc (abs n)) = S (bizAbsNat n)
+bizAbsNatInjSuccAbs n =
+  rewrite sym $ zAbsNNat (bizSucc (abs n)) in
+  rewrite bizAbsBinInjSuccAbs n in
+  rewrite sym $ zAbsNNat n in
+  toNatInjSucc (bizAbsBin n)
+
+-- inj_add_abs
+
+bizAbsNatInjAddAbs : (n, m : Biz) -> bizAbsNat (abs n + abs m) = bizAbsNat n + bizAbsNat m
+bizAbsNatInjAddAbs n m =
+  rewrite sym $ zAbsNNat (abs n + abs m) in
+  rewrite bizAbsBinInjAddAbs n m  in
+  rewrite sym $ zAbsNNat n in
+  rewrite sym $ zAbsNNat m in
+  toNatInjAdd (bizAbsBin n) (bizAbsBin m)
+
+-- inj_mul_abs
+
+bizAbsNatInjMulAbs : (n, m : Biz) -> bizAbsNat (abs n * abs m) = bizAbsNat n * bizAbsNat m
+bizAbsNatInjMulAbs n m =
+  rewrite sym $ zAbsNNat (abs n * abs m) in
+  rewrite bizAbsBinInjMulAbs n m  in
+  rewrite sym $ zAbsNNat n in
+  rewrite sym $ zAbsNNat m in
+  toNatInjMul (bizAbsBin n) (bizAbsBin m)
