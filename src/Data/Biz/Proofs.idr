@@ -2464,3 +2464,89 @@ leTrans p q r pleq qler pgtr with (q `compare` r) proof qr
   | EQ = pleq $ rewrite compareEqIffTo q r (sym qr) in
                 pgtr
   | GT = absurd $ qler Refl
+
+divModUniqueAux : (b, q1, q2, r1, r2 : Biz) -> b*q1+r1 = b*q2+r2
+   -> 0 `Le` r1 -> r1 `Lt` b
+   -> 0 `Le` r2
+   -> q1 `Ge` q2
+divModUniqueAux b q1 q2 r1 r2 prf zler1 r1ltab zler2 q1ltq2 =
+  let (q3**(zltq3,q2eq)) = minusPos q1 q2 q1ltq2
+      r1prf = prf
+           |> replace {P = \x => b*q1+r1 = b*x+r2 } q2eq
+           |> replace {P = \x => b*q1+r1 = x+r2 }   (mulAddDistrL b q1 q3)
+           |> replace (sym $ addAssoc (b*q1) (b*q3) r2)
+           |> addRegL (b*q1) r1 ((b*q3)+r2)
+      geprf = linearGe b q3 r2 (leLtTrans 0 r1 b zler1 r1ltab) zltq3 zler2
+      r1geb = replace {P = \x => x `Ge` b} (sym r1prf) geprf
+  in
+    absurd $ r1geb r1ltab
+  where
+  minusPos : (n, m : Biz) -> n `Lt` m -> (p ** (0 `Lt` p, m = n + p))
+  minusPos n m nltm = ((m-n)**( rewrite compareAntisym (m-n) 0 in
+                            rewrite sym $ compareSub m n in
+                            rewrite compareAntisym n m in
+                            cong {f=compareOp . compareOp} nltm
+                          , rewrite addComm m (-n) in
+                            rewrite addAssoc n (-n) m in
+                            rewrite addOppDiagR n in
+                            Refl
+                          ))
+  linearGe : (n, m, p : Biz) -> 0 `Lt` n -> 0 `Lt` m -> 0 `Le` p -> n*m+p `Ge` n
+  linearGe  BizO     _        _       zltn _    _    = absurd zltn
+  linearGe (BizM _)  _        _       zltn _    _    = absurd zltn
+  linearGe  _        BizO     _       _    zltm _    = absurd zltm
+  linearGe (BizP a) (BizP b)  BizO    _    _    _    =
+    rewrite sym $ mul1R a in
+    rewrite sym $ mulAssoc a 1 b in
+    rewrite mulCompareMonoL a b 1 in
+    nlt1R b
+  linearGe (BizP a) (BizP b) (BizP c) _    _    _    =
+    leGe a ((a*b)+c) $
+    leTrans a (a*b) ((a*b)+c)
+      (rewrite sym $ mul1R a in
+       rewrite sym $ mulAssoc a 1 b in
+       rewrite mulCompareMonoL a 1 b in
+       le1L b)
+      (geLe ((a*b)+c) (a*b) $
+       ltNotAddL (a*b) c)
+  linearGe  _       (BizM _)  _       _    zltm _    = absurd zltm
+  linearGe  _        _       (BizM _) _    _    zlep = absurd $ zlep Refl
+
+divModUnique : (b, q1, q2, r1, r2 : Biz)
+           -> 0 `Le` r1 -> r1 `Lt` bizAbs b
+           -> 0 `Le` r2 -> r2 `Lt` bizAbs b
+           -> b*q1+r1 = b*q2+r2
+           -> (q1 = q2, r1 = r2)
+divModUnique  BizO    _  _  r1 _  zler1 r1ltab _     _      _   = absurd $ zler1 $ ltGt r1 0 r1ltab
+divModUnique (BizP a) q1 q2 r1 r2 zler1 r1ltab zler2 r2ltab prf with (q1 `compare` q2) proof q1q2
+  | LT = let q1geq2 = divModUniqueAux (BizP a) q1 q2 r1 r2 prf zler1 r1ltab zler2 in
+         absurd $ q1geq2 $ sym q1q2
+  | EQ = let qeq = compareEqIffTo q1 q2 $ sym q1q2
+             req = prf
+                |> replace {P=\x=> (BizP a)*x+r1 = (BizP a)*q2+r2} qeq
+                |> addRegL ((BizP a)*q2) r1 r2
+         in
+         (qeq, req)
+  | GT = let q2geq1 = divModUniqueAux (BizP a) q2 q1 r2 r1 (sym prf) zler2 r2ltab zler1 in
+         absurd $ q2geq1 $ gtLt q1 q2 $ sym q1q2
+divModUnique (BizM a) q1 q2 r1 r2 zler1 r1ltab zler2 r2ltab prf with (q1 `compare` q2) proof q1q2
+  | LT = let q2geq1op = divModUniqueAux (BizP a) (-q2) (-q1) r2 r1
+                          (rewrite sym $ mulOppComm (BizP a) q1 in
+                           rewrite sym $ mulOppComm (BizP a) q2 in
+                           sym prf) zler2 r2ltab zler1
+             q2q1op = replace {P=\x=>x=LT} (compareOpp q1 q2) (sym q1q2)
+          in
+          absurd $ q2geq1op q2q1op
+  | EQ = let qeq = compareEqIffTo q1 q2 $ sym q1q2
+             req = prf
+                |> replace {P=\x=> (BizM a)*x+r1 = (BizM a)*q2+r2} qeq
+                |> addRegL ((BizM a)*q2) r1 r2
+         in
+          (qeq, req)
+  | GT = let q1geq2op = divModUniqueAux (BizP a) (-q1) (-q2) r1 r2
+                          (rewrite sym $ mulOppComm (BizP a) q1 in
+                           rewrite sym $ mulOppComm (BizP a) q2 in
+                           prf) zler1 r1ltab zler2
+             q1q2op = replace {P=\x=>x=LT} (compareOpp q2 q1) (gtLt q1 q2 $ sym q1q2)
+          in
+          absurd $ q1geq2op q1q2op

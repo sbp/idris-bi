@@ -435,12 +435,12 @@ compareContGtGtFro p q prf = rewrite compareContSpec p q GT in
 
 -- compare_xI_xO
 
-compareXIXO : (p, q : Bip) -> (I p `compare` O q) = switchEq GT (p `compare` q)
+compareXIXO : (p, q : Bip) -> I p `compare` O q = switchEq GT (p `compare` q)
 compareXIXO p q = compareContSpec p q GT
 
 -- compare_xO_xI
 
-compareXOXI : (p, q : Bip) -> (O p `compare` I q) = switchEq LT (p `compare` q)
+compareXOXI : (p, q : Bip) -> O p `compare` I q = switchEq LT (p `compare` q)
 compareXOXI p q = compareContSpec p q LT
 
 -- mask2cmp
