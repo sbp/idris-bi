@@ -2465,11 +2465,11 @@ leTrans p q r pleq qler pgtr with (q `compare` r) proof qr
                 pgtr
   | GT = absurd $ qler Refl
 
-divModUniqueAux : (b, q1, q2, r1, r2 : Biz) -> b*q1+r1 = b*q2+r2
+divModUniquePosAux : (b, q1, q2, r1, r2 : Biz) -> b*q1+r1 = b*q2+r2
    -> 0 `Le` r1 -> r1 `Lt` b
    -> 0 `Le` r2
    -> q1 `Ge` q2
-divModUniqueAux b q1 q2 r1 r2 prf zler1 r1ltab zler2 q1ltq2 =
+divModUniquePosAux b q1 q2 r1 r2 prf zler1 r1ltab zler2 q1ltq2 =
   let (q3**(zltq3,q2eq)) = minusPos q1 q2 q1ltq2
       r1prf = prf
            |> replace {P = \x => b*q1+r1 = b*x+r2 } q2eq
@@ -2513,15 +2513,16 @@ divModUniqueAux b q1 q2 r1 r2 prf zler1 r1ltab zler2 q1ltq2 =
   linearGe  _        _       (BizM _) _    _    zlep = absurd $ zlep Refl
 
 -- TODO q1/2 and b are flipped?
+-- TODO a *Neg version of this where `b<r1<=0` and `b<r2<=0` ?
 
-divModUnique : (b, q1, q2, r1, r2 : Biz)
+divModUniquePos : (b, q1, q2, r1, r2 : Biz)
            -> 0 `Le` r1 -> r1 `Lt` bizAbs b
            -> 0 `Le` r2 -> r2 `Lt` bizAbs b
            -> b*q1+r1 = b*q2+r2
            -> (q1 = q2, r1 = r2)
-divModUnique  BizO    _  _  r1 _  zler1 r1ltab _     _      _   = absurd $ zler1 $ ltGt r1 0 r1ltab
-divModUnique (BizP a) q1 q2 r1 r2 zler1 r1ltab zler2 r2ltab prf with (q1 `compare` q2) proof q1q2
-  | LT = let q1geq2 = divModUniqueAux (BizP a) q1 q2 r1 r2 prf zler1 r1ltab zler2 in
+divModUniquePos  BizO    _  _  r1 _  zler1 r1ltab _     _      _   = absurd $ zler1 $ ltGt r1 0 r1ltab
+divModUniquePos (BizP a) q1 q2 r1 r2 zler1 r1ltab zler2 r2ltab prf with (q1 `compare` q2) proof q1q2
+  | LT = let q1geq2 = divModUniquePosAux (BizP a) q1 q2 r1 r2 prf zler1 r1ltab zler2 in
          absurd $ q1geq2 $ sym q1q2
   | EQ = let qeq = compareEqIffTo q1 q2 $ sym q1q2
              req = prf
@@ -2529,10 +2530,10 @@ divModUnique (BizP a) q1 q2 r1 r2 zler1 r1ltab zler2 r2ltab prf with (q1 `compar
                 |> addRegL ((BizP a)*q2) r1 r2
          in
          (qeq, req)
-  | GT = let q2geq1 = divModUniqueAux (BizP a) q2 q1 r2 r1 (sym prf) zler2 r2ltab zler1 in
+  | GT = let q2geq1 = divModUniquePosAux (BizP a) q2 q1 r2 r1 (sym prf) zler2 r2ltab zler1 in
          absurd $ q2geq1 $ gtLt q1 q2 $ sym q1q2
-divModUnique (BizM a) q1 q2 r1 r2 zler1 r1ltab zler2 r2ltab prf with (q1 `compare` q2) proof q1q2
-  | LT = let q2geq1op = divModUniqueAux (BizP a) (-q2) (-q1) r2 r1
+divModUniquePos (BizM a) q1 q2 r1 r2 zler1 r1ltab zler2 r2ltab prf with (q1 `compare` q2) proof q1q2
+  | LT = let q2geq1op = divModUniquePosAux (BizP a) (-q2) (-q1) r2 r1
                           (rewrite sym $ mulOppComm (BizP a) q1 in
                            rewrite sym $ mulOppComm (BizP a) q2 in
                            sym prf) zler2 r2ltab zler1
@@ -2545,7 +2546,7 @@ divModUnique (BizM a) q1 q2 r1 r2 zler1 r1ltab zler2 r2ltab prf with (q1 `compar
                 |> addRegL ((BizM a)*q2) r1 r2
          in
           (qeq, req)
-  | GT = let q1geq2op = divModUniqueAux (BizP a) (-q1) (-q2) r1 r2
+  | GT = let q1geq2op = divModUniquePosAux (BizP a) (-q1) (-q2) r1 r2
                           (rewrite sym $ mulOppComm (BizP a) q1 in
                            rewrite sym $ mulOppComm (BizP a) q2 in
                            prf) zler1 r1ltab zler2
@@ -2553,15 +2554,15 @@ divModUnique (BizM a) q1 q2 r1 r2 zler1 r1ltab zler2 r2ltab prf with (q1 `compar
           in
           absurd $ q1geq2op q1q2op
 
--- TODO this has more strict `r<b` instead of `r<abs b`, because we don't assume that mod is always positive
+-- TODO a *Neg version, see above
 
-modUnique : (a, b, q, r : Biz) -> 0 `Le` r -> r `Lt` b -> a = q*b + r -> r = a `bizMod` b
-modUnique _  BizO    _ r zler rltb _   = absurd $ zler $ ltGt r 0 rltb
-modUnique a (BizP b) q r zler rltb prf =
-  let (zlem, mltb) = modPosBound a (BizP b) Refl in
-  snd $ divModUnique (BizP b) q (a `bizDiv` (BizP b)) r (a `bizMod` (BizP b)) zler rltb zlem mltb $
-    rewrite mulComm (BizP b) (a `bizDiv` (BizP b)) in
-    rewrite sym $ divEuclEq a (BizP b) uninhabited in
-    rewrite mulComm (BizP b) q in
-    sym prf
-modUnique _ (BizM b) _ r zler rltb _   = absurd $ zler $ ltGt r 0 $ ltTrans r (BizM b) 0 rltb Refl
+divModPos : (a, b, q, r : Biz) -> 0 `Le` r -> r `Lt` b -> a = q*b + r -> (q = a `bizDiv` b, r = a `bizMod` b)
+divModPos _  BizO    _ r zler rltb _   = absurd $ zler $ ltGt r 0 rltb
+divModPos a (BizP b) q r zler rltb prf =
+    let (zlem, mltb) = modPosBound a (BizP b) Refl in
+    divModUniquePos (BizP b) q (a `bizDiv` (BizP b)) r (a `bizMod` (BizP b)) zler rltb zlem mltb $
+      rewrite mulComm (BizP b) (a `bizDiv` (BizP b)) in
+      rewrite sym $ divEuclEq a (BizP b) uninhabited in
+      rewrite mulComm (BizP b) q in
+      sym prf
+divModPos _ (BizM b) _ r zler rltb _   = absurd $ zler $ ltGt r 0 $ ltTrans r (BizM b) 0 rltb Refl

@@ -257,11 +257,39 @@ toBizBinInjMax n m =
     | EQ = cong $ sym $ compareEqIffTo n m $ sym nm  -- this is needed because binMax and bizMax use different arguments for the EQ case
     | GT = Refl
 
--- TODO inj_div
--- TODO inj_mod
+-- inj_div
+
+toBizBinInjDiv : (n, m : Bin) -> toBizBin (n `div` m) = toBizBin n `bizDiv` toBizBin m
+toBizBinInjDiv    BinO       BinO    = Refl
+toBizBinInjDiv   (BinP _)    BinO    = Refl
+toBizBinInjDiv    BinO      (BinP _) = Refl
+toBizBinInjDiv n@(BinP _) m@(BinP _) =
+  fst $ divModPos (toBizBin n) (toBizBin m) (toBizBin $ n `div` m) (toBizBin $ n `mod` m)
+          (toBizBinIsNonneg $ n `mod` m)
+          (toBizBinInjLtTo (n `mod` m) m $
+           modLt n m uninhabited)
+          (rewrite sym $ toBizBinInjMul (n `div` m) m in
+           rewrite sym $ toBizBinInjAdd ((n `div` m)*m) (n `mod` m) in
+           rewrite mulComm (n `div` m) m in
+           cong {f=toBizBin} $ divEuclSpec n m)
+
+-- inj_mod
+
+toBizBinInjMod : (n, m : Bin) -> Not (m=0) -> toBizBin (n `mod` m) = toBizBin n `bizMod` toBizBin m
+toBizBinInjMod    _          BinO    mnz = absurd $ mnz Refl
+toBizBinInjMod    BinO      (BinP _) _   = Refl
+toBizBinInjMod n@(BinP _) m@(BinP _) _   =
+  snd $ divModPos (toBizBin n) (toBizBin m) (toBizBin $ n `div` m) (toBizBin $ n `mod` m)
+          (toBizBinIsNonneg $ n `mod` m)
+          (toBizBinInjLtTo (n `mod` m) m $
+           modLt n m uninhabited)
+          (rewrite sym $ toBizBinInjMul (n `div` m) m in
+           rewrite sym $ toBizBinInjAdd ((n `div` m)*m) (n `mod` m) in
+           rewrite mulComm (n `div` m) m in
+           cong {f=toBizBin} $ divEuclSpec n m)
+
 -- TODO inj_quot
 -- TODO inj_rem
--- these require `div_mod_unique` lemma
 
 -- inj_div2
 
