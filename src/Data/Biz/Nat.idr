@@ -718,9 +718,31 @@ bizAbsBinInjMax n m zlen zlem =
     | EQ = absurd $ zlen prf
     | GT = absurd $ zlen prf
 
--- TODO inj_quot
--- TODO inj_rem
--- these require `toBinBiz` versions above
+-- inj_quot
+
+bizAbsBinInjQuot : (n, m : Biz) -> bizAbsBin (n `bizQuot` m) = bizAbsBin n `div` bizAbsBin m
+bizAbsBinInjQuot  BizO     _       = Refl
+bizAbsBinInjQuot (BizP _)  BizO    = Refl
+bizAbsBinInjQuot (BizP a) (BizP b) = bizAbsBinId $ BinP a `div` BinP b
+bizAbsBinInjQuot (BizP a) (BizM b) = rewrite injOpp $ toBizBin $ BinP a `div` BinP b in
+                                     bizAbsBinId $ BinP a `div` BinP b
+bizAbsBinInjQuot (BizM _)  BizO    = Refl
+bizAbsBinInjQuot (BizM a) (BizP b) = rewrite injOpp $ toBizBin $ BinP a `div` BinP b in
+                                     bizAbsBinId $ BinP a `div` BinP b
+bizAbsBinInjQuot (BizM a) (BizM b) = bizAbsBinId $ BinP a `div` BinP b
+
+-- inj_rem
+
+bizAbsBinInjRem : (n, m : Biz) -> bizAbsBin (n `bizRem` m) = bizAbsBin n `mod` bizAbsBin m
+bizAbsBinInjRem  BizO     _       = Refl
+bizAbsBinInjRem (BizP _)  BizO    = Refl
+bizAbsBinInjRem (BizP a) (BizP b) = bizAbsBinId $ BinP a `mod` BinP b
+bizAbsBinInjRem (BizP a) (BizM b) = bizAbsBinId $ BinP a `mod` BinP b
+bizAbsBinInjRem (BizM _)  BizO    = Refl
+bizAbsBinInjRem (BizM a) (BizP b) = rewrite injOpp $ toBizBin $ BinP a `mod` BinP b in
+                                    bizAbsBinId $ BinP a `mod` BinP b
+bizAbsBinInjRem (BizM a) (BizM b) = rewrite injOpp $ toBizBin $ BinP a `mod` BinP b in
+                                    bizAbsBinId $ BinP a `mod` BinP b
 
 -- inj_pow
 
