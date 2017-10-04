@@ -260,9 +260,8 @@ toBizBinInjMax n m =
 -- inj_div
 
 toBizBinInjDiv : (n, m : Bin) -> toBizBin (n `div` m) = toBizBin n `bizDiv` toBizBin m
-toBizBinInjDiv    BinO       BinO    = Refl
+toBizBinInjDiv    BinO       _       = Refl
 toBizBinInjDiv   (BinP _)    BinO    = Refl
-toBizBinInjDiv    BinO      (BinP _) = Refl
 toBizBinInjDiv n@(BinP _) m@(BinP _) =
   fst $ divModPos (toBizBin n) (toBizBin m) (toBizBin $ n `div` m) (toBizBin $ n `mod` m)
           (toBizBinIsNonneg $ n `mod` m)
@@ -471,8 +470,31 @@ toBinBizInjMax (BizM a) (BizM b)with (b `compare` a)
   | EQ = Refl
   | GT = Refl
 
--- TODO inj_div
--- TODO inj_mod
+-- inj_div
+
+toBinBizInjDiv : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> toBinBiz (n `bizDiv` m) = toBinBiz n `div` toBinBiz m
+toBinBizInjDiv    BizO       _       _    _    = Refl
+toBinBizInjDiv   (BizP _)    BizO    _    _    = Refl
+toBinBizInjDiv n@(BizP _) m@(BizP _) _    _    =
+  rewrite sym $ toBizBinId (toBinBiz n `div` toBinBiz m) in
+  rewrite toBizBinInjDiv (toBinBiz n) (toBinBiz m) in
+  Refl
+toBinBizInjDiv   (BizM _)    _       zlen _    = absurd $ zlen Refl
+toBinBizInjDiv    _         (BizM _) _    zlem = absurd $ zlem Refl
+
+-- inj_mod
+
+toBinBizInjMod : (n, m : Biz) -> 0 `Le` n -> 0 `Lt` m -> toBinBiz (n `bizMod` m) = toBinBiz n `mod` toBinBiz m
+toBinBizInjMod    BizO       _       _    _    = Refl
+toBinBizInjMod    _          BizO    _    zltm = absurd zltm
+toBinBizInjMod n@(BizP _) m@(BizP _) _    _    =
+  rewrite sym $ toBizBinId (toBinBiz n `mod` toBinBiz m) in
+  rewrite toBizBinInjMod (toBinBiz n) (toBinBiz m) uninhabited in
+  Refl
+toBinBizInjMod   (BizM _)    _       zlen _    = absurd $ zlen Refl
+toBinBizInjMod    _         (BizM _) _    zltm = absurd zltm
+
+
 -- TODO inj_quot
 -- TODO inj_rem
 -- these require `toBizBin` versions above and `div_mod_unique` lemma
