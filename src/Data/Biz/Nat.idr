@@ -287,8 +287,19 @@ toBizBinInjMod n@(BinP _) m@(BinP _) _   =
            rewrite mulComm (n `div` m) m in
            cong {f=toBizBin} $ divEuclSpec n m)
 
--- TODO inj_quot
--- TODO inj_rem
+-- inj_quot
+
+toBizBinInjQuot : (n, m : Bin) -> toBizBin (n `div` m) = toBizBin n `bizQuot` toBizBin m
+toBizBinInjQuot  BinO     _       = Refl
+toBizBinInjQuot (BinP _)  BinO    = Refl
+toBizBinInjQuot (BinP _) (BinP _) = Refl
+
+-- inj_rem
+
+toBizBinInjRem : (n, m : Bin) -> toBizBin (n `mod` m) = toBizBin n `bizRem` toBizBin m
+toBizBinInjRem  BinO     _       = Refl
+toBizBinInjRem (BinP _)  BinO    = Refl
+toBizBinInjRem (BinP _) (BinP _) = Refl
 
 -- inj_div2
 
@@ -494,10 +505,23 @@ toBinBizInjMod n@(BizP _) m@(BizP _) _    _    =
 toBinBizInjMod   (BizM _)    _       zlen _    = absurd $ zlen Refl
 toBinBizInjMod    _         (BizM _) _    zltm = absurd zltm
 
+-- inj_quot
 
--- TODO inj_quot
--- TODO inj_rem
--- these require `toBizBin` versions above and `div_mod_unique` lemma
+toBinBizInjQuot : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> toBinBiz (n `bizQuot` m) = toBinBiz n `div` toBinBiz m
+toBinBizInjQuot  BizO     _       _    _    = Refl
+toBinBizInjQuot (BizP _)  BizO    _    _    = Refl
+toBinBizInjQuot (BizP a) (BizP b) _    _    = toBizBinId $ (BinP a) `div` (BinP b)
+toBinBizInjQuot (BizM _)  _       zlen _    = absurd $ zlen Refl
+toBinBizInjQuot  _       (BizM _) _    zlem = absurd $ zlem Refl
+
+-- inj_rem
+
+toBinBizInjRem : (n, m : Biz) -> 0 `Le` n -> 0 `Le` m -> toBinBiz (n `bizRem` m) = toBinBiz n `mod` toBinBiz m
+toBinBizInjRem  BizO     _       _    _    = Refl
+toBinBizInjRem (BizP _)  BizO    _    _    = Refl
+toBinBizInjRem (BizP a) (BizP b) _    _    = toBizBinId $ (BinP a) `mod` (BinP b)
+toBinBizInjRem (BizM _)  _       zlen _    = absurd $ zlen Refl
+toBinBizInjRem  _       (BizM _) _    zlem = absurd $ zlem Refl
 
 -- inj_div2
 
