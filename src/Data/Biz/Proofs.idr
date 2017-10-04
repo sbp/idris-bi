@@ -2512,6 +2512,8 @@ divModUniqueAux b q1 q2 r1 r2 prf zler1 r1ltab zler2 q1ltq2 =
   linearGe  _       (BizM _)  _       _    zltm _    = absurd zltm
   linearGe  _        _       (BizM _) _    _    zlep = absurd $ zlep Refl
 
+-- TODO q1/2 and b are flipped?
+
 divModUnique : (b, q1, q2, r1, r2 : Biz)
            -> 0 `Le` r1 -> r1 `Lt` bizAbs b
            -> 0 `Le` r2 -> r2 `Lt` bizAbs b
@@ -2550,3 +2552,16 @@ divModUnique (BizM a) q1 q2 r1 r2 zler1 r1ltab zler2 r2ltab prf with (q1 `compar
              q1q2op = replace {P=\x=>x=LT} (compareOpp q2 q1) (gtLt q1 q2 $ sym q1q2)
           in
           absurd $ q1geq2op q1q2op
+
+-- TODO this has more strict `r<b` instead of `r<abs b`, because we don't assume that mod is always positive
+
+modUnique : (a, b, q, r : Biz) -> 0 `Le` r -> r `Lt` b -> a = q*b + r -> r = a `bizMod` b
+modUnique _  BizO    _ r zler rltb _   = absurd $ zler $ ltGt r 0 rltb
+modUnique a (BizP b) q r zler rltb prf =
+  let (zlem, mltb) = modPosBound a (BizP b) Refl in
+  snd $ divModUnique (BizP b) q (a `bizDiv` (BizP b)) r (a `bizMod` (BizP b)) zler rltb zlem mltb $
+    rewrite mulComm (BizP b) (a `bizDiv` (BizP b)) in
+    rewrite sym $ divEuclEq a (BizP b) uninhabited in
+    rewrite mulComm (BizP b) q in
+    sym prf
+modUnique _ (BizM b) _ r zler rltb _   = absurd $ zler $ ltGt r 0 $ ltTrans r (BizM b) 0 rltb Refl
