@@ -1,5 +1,6 @@
 module Data.Bip
 
+import Data.Primitives.Views
 import public Data.Bi
 
 %default total
@@ -461,6 +462,10 @@ integerParity n =
       then Even
       else Odd
 
+fastHalf : Integer -> Integer
+fastHalf n with (divides n 2)
+  fastHalf ((2 * div) + rem) | (DivBy prf) = div
+
 mutual
   -- Helper for bipGGCDN, to work around #4001
   fromIntegerBipHelp : Integer -> Parity -> Bip
@@ -470,10 +475,8 @@ mutual
   fromIntegerBip : Integer -> Bip
   fromIntegerBip n =
     if n > 1
-      -- prim__sdivBigInt is total with divisor /= 0 as here
-      -- quotient is n / 2, hence quotient and quotient' are < n
-      -- this is true because n / 2 floors
-      then let quotient = (assert_total (prim__sdivBigInt n 2))
+      -- quotient' is < n because fastHalf n floors
+      then let quotient = (fastHalf n)
                quotient' = (assert_smaller n quotient) in
              fromIntegerBipHelp quotient' (integerParity n)
       else U
