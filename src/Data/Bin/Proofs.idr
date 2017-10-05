@@ -69,11 +69,11 @@ predSucc  BinO     = Refl
 predSucc (BinP a') = rewrite predBinSucc a' in Refl
 
 -- pred_sub
-predSub : (a : Bin) -> binPred a = a-(BinP U)
-predSub  BinO         = Refl
-predSub (BinP  U    ) = Refl
-predSub (BinP (O a')) = Refl
-predSub (BinP (I a')) = Refl
+predSub : (a : Bin) -> binPred a = a-1
+predSub  BinO        = Refl
+predSub (BinP  U   ) = Refl
+predSub (BinP (O _)) = Refl
+predSub (BinP (I _)) = Refl
 
 -- succ_0_discr
 succZeroDiscr : (a : Bin) -> Not (binSucc a = 0)
@@ -151,13 +151,13 @@ mulSuccL (BinP a') (BinP b') = cong $ mulSuccL a' b'
 
 -- eqb_eq
 -- TODO split into `to` and `fro`
-eqbEqTo : (p, q : Bin) -> (p == q = True) -> p=q
+eqbEqTo : (p, q : Bin) -> p == q = True -> p = q
 eqbEqTo  BinO     BinO    = const Refl
 eqbEqTo  BinO    (BinP a) = absurd
 eqbEqTo (BinP a)  BinO    = absurd
 eqbEqTo (BinP a) (BinP b) = cong . eqbEqTo a b
 
-eqbEqFro : (p, q : Bin) -> p=q -> (p == q = True)
+eqbEqFro : (p, q : Bin) -> p = q -> p == q = True
 eqbEqFro  BinO     BinO    _   = Refl
 eqbEqFro  BinO    (BinP _) Refl impossible
 eqbEqFro (BinP _)  BinO    Refl impossible
@@ -408,6 +408,17 @@ succLePos : (x, y : Bin) -> binSucc x `Le` y -> (a ** y = BinP a)
 succLePos x  BinO    sxley = absurd $ sxley $ ltGt 0 (binSucc x) $ ltSuccRFro 0 x $ leZeroL x
 succLePos _ (BinP a) _     = (a**Refl)
 
+leSuccLTo : (p, q : Bin) -> binSucc p `Le` q -> p `Lt` q
+leSuccLTo  BinO     BinO    prf = absurd $ prf Refl
+leSuccLTo  BinO    (BinP _) _   = Refl
+leSuccLTo (BinP _)  BinO    prf = absurd $ prf Refl
+leSuccLTo (BinP a) (BinP b) prf = leSuccLTo a b prf
+
+leSuccLFro : (p, q : Bin) -> p `Lt` q -> binSucc p `Le` q
+leSuccLFro  BinO     BinO    = absurd
+leSuccLFro  BinO    (BinP b) = const $ le1L b
+leSuccLFro (BinP _)  BinO    = absurd
+leSuccLFro (BinP a) (BinP b) = leSuccLFro a b
 
 -- Properties of double and succ_double
 
@@ -585,7 +596,7 @@ sizeGt (BinP a) = sizeGt a
 -- size_le
 
 sizeLe : (n : Bin) -> binPow 2 (binDigits n) `Le` binDPO n
-sizeLe BinO = uninhabited
+sizeLe  BinO    = uninhabited
 sizeLe (BinP a) =
   ltLeIncl (bipPow 2 (bipDigits a)) (I a) $
   ltSuccRFro (bipPow 2 (bipDigits a)) (O a) $
@@ -1302,6 +1313,11 @@ leGe n m nlem = rewrite compareAntisym n m in
 
 -- Auxiliary results about right shift on positive numbers
 
+zeroBitDMO : (p : Bip) -> bipTestBit (bipDMO p) 0 = True
+zeroBitDMO  U    = Refl
+zeroBitDMO (O _) = Refl
+zeroBitDMO (I _) = Refl
+
 -- pos_pred_shiftl_low
 
 posPredShiftlLow : (p : Bip) -> (n, m : Bin) -> m `Lt` n -> binTestBit (bipPredBin (bipShiftL p n)) m = True
@@ -1327,13 +1343,13 @@ posPredShiftlLow p (BinP a) m mltn =
     )
     a
     m mltn
-  where
-  zeroBitDMO : (p : Bip) -> bipTestBit (bipDMO p) 0 = True
-  zeroBitDMO  U    = Refl
-  zeroBitDMO (O _) = Refl
-  zeroBitDMO (I _) = Refl
 
 -- pos_pred_shiftl_high
+
+dmoPredDPO : (a : Bip) -> BinP (bipDMO a) = binDPO (bipPredBin a)
+dmoPredDPO  U    = Refl
+dmoPredDPO (O _) = Refl
+dmoPredDPO (I _) = Refl
 
 posPredShiftlHigh  : (p : Bip) -> (n, m : Bin) -> n `Le` m -> binTestBit (bipPredBin (bipShiftL p n)) m = binTestBit (binShiftL (bipPredBin p) n) m
 posPredShiftlHigh p n m nlem =
@@ -1360,10 +1376,6 @@ posPredShiftlHigh p n m nlem =
     n
     m nlem
   where
-  dmoPredDPO : (a : Bip) -> BinP (bipDMO a) = binDPO (bipPredBin a)
-  dmoPredDPO U = Refl
-  dmoPredDPO (O a) = Refl
-  dmoPredDPO (I a) = Refl
   aux : (a : Bip) -> (n : Bin) -> bipPredBin $ bipShiftL a (binSucc n) = binDPO $ bipPredBin (bipShiftL a n)
   aux a BinO = dmoPredDPO a
   aux a (BinP b) = rewrite iterSucc O a b in

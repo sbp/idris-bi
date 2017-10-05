@@ -255,3 +255,10 @@ toBinInjIter : (f : a -> a) -> (x : a) -> (n : Nat) -> natIter f x n = binIter f
 toBinInjIter f x n = rewrite toNatInjIter f x (toBinNat n) in
                      rewrite toBinId n in
                      Refl
+
+natBinLe : (n, m : Nat) -> n `LTE` m -> toBinNat n `Le` toBinNat m
+natBinLe  Z     Z    _    = uninhabited
+natBinLe  Z    (S _) _    = uninhabited
+natBinLe (S _)  Z    nlem = absurd $ succNotLTEzero nlem
+natBinLe (S k) (S l) nlem = rewrite sym $ toBinInjCompare (S k) (S l) in
+                            replace {P=\x=> Not (x=GT)} (sym $ toBinInjCompare k l) (natBinLe k l $ fromLteSucc nlem)

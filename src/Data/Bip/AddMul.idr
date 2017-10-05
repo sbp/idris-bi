@@ -34,14 +34,14 @@ predDoubleSucc (I a) = rewrite predDoubleSucc a in Refl
 
 -- pred_double_x0_discr
 
-predDoubleODiscr : (p : Bip) -> Not ((bipDMO p) = (O p))
+predDoubleODiscr : (p : Bip) -> Not (bipDMO p = O p)
 predDoubleODiscr  U    = absurd
 predDoubleODiscr (O _) = absurd
 predDoubleODiscr (I _) = absurd
 
 -- succ_not_1
 
-succNotU : (p : Bip) -> Not ((bipSucc p) = U)
+succNotU : (p : Bip) -> Not (bipSucc p = U)
 succNotU  U    = absurd
 succNotU (O _) = absurd
 succNotU (I _) = absurd
@@ -58,7 +58,7 @@ predSucc (I a) = case a of
 
 -- succ_pred_or
 
-succPredOr : (p : Bip) -> Either (p = U) ((bipSucc (bipPred p)) = p)
+succPredOr : (p : Bip) -> Either (p = U) (bipSucc (bipPred p) = p)
 succPredOr  U    = Left Refl
 succPredOr (O a) = case a of
   U     => Right Refl

@@ -435,12 +435,12 @@ compareContGtGtFro p q prf = rewrite compareContSpec p q GT in
 
 -- compare_xI_xO
 
-compareXIXO : (p, q : Bip) -> (I p `compare` O q) = switchEq GT (p `compare` q)
+compareXIXO : (p, q : Bip) -> I p `compare` O q = switchEq GT (p `compare` q)
 compareXIXO p q = compareContSpec p q GT
 
 -- compare_xO_xI
 
-compareXOXI : (p, q : Bip) -> (O p `compare` I q) = switchEq LT (p `compare` q)
+compareXOXI : (p, q : Bip) -> O p `compare` I q = switchEq LT (p `compare` q)
 compareXOXI p q = compareContSpec p q LT
 
 -- mask2cmp
@@ -691,7 +691,7 @@ ltSuccRTo p q pltsq =
   in
     aux tt
   where
-  aux : LT = switchEq LT (p `compare` q) -> (p `Le` q)
+  aux : LT = switchEq LT (p `compare` q) -> p `Le` q
   aux prf prf1 with (p `compare` q)
     | LT = uninhabited prf1
     | EQ = uninhabited prf1
@@ -889,7 +889,7 @@ addCompareMonoL p q r =
                 sqsr)
     p
   where
-    base : ((U+q) `compare` (U+r)) = (q `compare` r)
+    base : (U+q) `compare` (U+r) = q `compare` r
     base =
       rewrite add1L q in
       rewrite add1L r in
