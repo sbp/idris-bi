@@ -452,19 +452,22 @@ toBipNatSucc (S n') = bipSucc (toBipNatSucc n')
 
 data Parity = Even | Odd
 
-integerParity : Integer -> Parity
-integerParity n =
-  -- prim__sremBigInt is total with divisor /= 0 as here
-  -- abs is not necessary since we're checking on 0 or _
-  -- without abs, _ can be 1 or -1
-  let remainder = assert_total (prim__sremBigInt n 2) in
-    if remainder == 0
-      then Even
-      else Odd
-
 fastHalf : Integer -> Integer
 fastHalf n with (divides n 2)
   fastHalf ((2 * div) + rem) | (DivBy prf) = div
+
+fastHalfMod : Integer -> Integer
+fastHalfMod n with (divides n 2)
+  fastHalfMod ((2 * div) + rem) | (DivBy prf) = rem
+
+integerParity : Integer -> Parity
+integerParity n =
+  -- abs is not necessary since we're checking on 0 or _
+  -- without abs, _ can be 1 or -1
+  let remainder = (fastHalfMod n) in
+    if remainder == 0
+      then Even
+      else Odd
 
 mutual
   -- Helper for bipGGCDN, to work around #4001
