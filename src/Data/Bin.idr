@@ -59,7 +59,7 @@ bimToBin  _        = BinO
 binMinus : (a, b : Bin) -> Bin
 -- TODO here we could have `binMinus BinO _ = BinO` ?
 binMinus  BinO      BinO     = BinO
-binMinus  BinO     (BinP b') = BinO
+binMinus  BinO     (BinP _ ) = BinO
 binMinus (BinP a')  BinO     = BinP a'
 binMinus (BinP a') (BinP b') = bimToBin (bimMinus a' b')
 
@@ -67,15 +67,15 @@ binMinus (BinP a') (BinP b') = bimToBin (bimMinus a' b')
 binMult : (a, b : Bin) -> Bin
 -- TODO here we could have `binMult BinO _ = BinO` ?
 binMult  BinO      BinO     = BinO
-binMult  BinO     (BinP b') = BinO
-binMult (BinP a')  BinO     = BinO
+binMult  BinO     (BinP _ ) = BinO
+binMult (BinP _ )  BinO     = BinO
 binMult (BinP a') (BinP b') = BinP (bipMult a' b')
 
 ||| Order
 binCompare : (a, b : Bin) -> Ordering
 binCompare  BinO     BinO    = EQ
-binCompare  BinO    (BinP b) = LT
-binCompare (BinP a)  BinO    = GT
+binCompare  BinO    (BinP _) = LT
+binCompare (BinP _)  BinO    = GT
 binCompare (BinP a) (BinP b) = bipCompare a b EQ
 
 -- Boolean equality and comparison
@@ -143,7 +143,7 @@ binDigitsNat (BinP a') = bipDigitsNat a'
 bipDivEuclidHelp : (q, r, b : Bin) -> (o : Ordering) -> (Bin, Bin)
 bipDivEuclidHelp q r b LT = (binDPO q, binMinus r b)
 bipDivEuclidHelp q r b EQ = (binDPO q, binMinus r b)
-bipDivEuclidHelp q r b GT = (binD q, r)
+bipDivEuclidHelp q r _ GT = (binD q, r)
 
 ||| Euclidean division on Bip and Bin
 bipDivEuclid : (a : Bip) -> (b : Bin) -> (Bin, Bin)
@@ -218,13 +218,13 @@ binOr (BinP a') (BinP b') = BinP (bipOr a' b')
 
 ||| Logical AND
 binAnd : (a, b : Bin) -> Bin
-binAnd  BinO      b        = BinO
-binAnd  a         BinO     = BinO
+binAnd  BinO      _        = BinO
+binAnd  _         BinO     = BinO
 binAnd (BinP a') (BinP b') = bipAnd a' b'
 
 ||| Logical DIFF
 binDiff : (a, b : Bin) -> Bin
-binDiff  BinO      b        = BinO
+binDiff  BinO      _        = BinO
 binDiff  a         BinO     = a
 binDiff (BinP a') (BinP b') = bipDiff a' b'
 
@@ -267,7 +267,7 @@ toBinNat (S a') = BinP (toBipNatSucc a')
 -- Seems to be reversed from bipIter for no reason
 ||| Iteration of a function
 binIter : {ty : Type} -> (f : ty -> ty) -> (a : Bin) -> (b : ty) -> ty
-binIter f  BinO     b = b
+binIter _  BinO     b = b
 binIter f (BinP a') b = bipIter f b a'
 
 -- Idris specific
@@ -275,15 +275,15 @@ binIter f (BinP a') b = bipIter f b a'
 fromIntegerBin : Integer -> Bin
 fromIntegerBin 0 = BinO
 fromIntegerBin n =
-  if (n > 1)
+  if n > 1
     then BinP (fromIntegerBip n)
     else BinP U
 
 Eq Bin where
   BinO     ==  BinO    = True
-  BinO     == (BinP b) = False
-  (BinP a) ==  BinO    = False
-  (BinP a) == (BinP b) = (a == b)
+  BinO     == (BinP _) = False
+  (BinP _) ==  BinO    = False
+  (BinP a) == (BinP b) = a == b
 
 Cast Bin Nat where
   cast = toNatBin

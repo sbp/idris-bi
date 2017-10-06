@@ -366,8 +366,8 @@ binDouble (BinP a') = BinP (O a')
 bipAnd : (a, b: Bip) -> Bin
 bipAnd  U     (O _)  = BinO
 bipAnd  U      _     = BinP U
-bipAnd (O a')  U     = BinO
-bipAnd  a      U     = BinP U
+bipAnd (O _ )  U     = BinO
+bipAnd  _      U     = BinP U
 bipAnd (O a') (O b') = binDouble (bipAnd a' b')
 bipAnd (O a') (I b') = binDouble (bipAnd a' b')
 bipAnd (I a') (O b') = binDouble (bipAnd a' b')
@@ -413,14 +413,14 @@ bipShiftR a (BinP b') = bipIter bipDivTwo a b'
 bipTestBitNat : (a: Bip) -> (n: Nat) -> Bool
 bipTestBitNat  U      Z     = True
 bipTestBitNat  U     (S _)  = False
-bipTestBitNat (O a')  Z     = False
+bipTestBitNat (O _ )  Z     = False
 bipTestBitNat (O a') (S n') = bipTestBitNat a' n'
-bipTestBitNat (I a')  Z     = True
+bipTestBitNat (I _ )  Z     = True
 bipTestBitNat (I a') (S n') = bipTestBitNat a' n'
 
 ||| Checking whether a bit is set, with Bin
 bipTestBit : (a: Bip) -> (b: Bin) -> Bool
-bipTestBit (O a')  BinO     = False
+bipTestBit (O _ )  BinO     = False
 bipTestBit  _      BinO     = True
 bipTestBit  U      _        = False
 bipTestBit (O a') (BinP b') = bipTestBit a' (bipPredBin b')
@@ -454,17 +454,17 @@ data Parity = Even | Odd
 
 fastHalf : Integer -> Integer
 fastHalf n with (divides n 2)
-  fastHalf ((2 * div) + rem) | (DivBy prf) = div
+  fastHalf ((2 * div) + _) | DivBy _ = div
 
 fastHalfMod : Integer -> Integer
 fastHalfMod n with (divides n 2)
-  fastHalfMod ((2 * div) + rem) | (DivBy prf) = rem
+  fastHalfMod ((2 * _) + rem) | DivBy _ = rem
 
 integerParity : Integer -> Parity
 integerParity n =
   -- abs is not necessary since we're checking on 0 or _
   -- without abs, _ can be 1 or -1
-  let remainder = (fastHalfMod n) in
+  let remainder = fastHalfMod n in
     if remainder == 0
       then Even
       else Odd
@@ -479,15 +479,15 @@ mutual
   fromIntegerBip n =
     if n > 1
       -- quotient' is < n because fastHalf n floors
-      then let quotient = (fastHalf n)
-               quotient' = (assert_smaller n quotient) in
+      then let quotient = fastHalf n
+               quotient' = assert_smaller n quotient in
              fromIntegerBipHelp quotient' (integerParity n)
       else U
 
 Eq Bip where
   U     ==  U    = True
-  (O a) == (O b) = (a == b)
-  (I a) == (I b) = (a == b)
+  (O a) == (O b) = a == b
+  (I a) == (I b) = a == b
   _     ==  _    = False
 
 Cast Bip Nat where
