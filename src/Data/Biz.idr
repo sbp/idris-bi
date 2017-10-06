@@ -223,12 +223,12 @@ bipzDivEuclid (I a') b =
 ||| Euclidean division into remainder and modulo
 
 -- Helpers for bizDivEuclid, to work around #4001
-bizDivEuclidHelp1 : (q,r,s : Biz) -> (Biz, Biz)
-bizDivEuclidHelp1 q BizO s = (bizOpp q, BizO)
+bizDivEuclidHelp1 : (q, r, s : Biz) -> (Biz, Biz)
+bizDivEuclidHelp1 q BizO _ = (bizOpp q, BizO)
 bizDivEuclidHelp1 q r    s = (bizOpp (bizSucc q), bizMinus s r)
 
-bizDivEuclidHelp2 : (q,r,s : Biz) -> (Biz, Biz)
-bizDivEuclidHelp2 q BizO s = (bizOpp q, BizO)
+bizDivEuclidHelp2 : (q, r, s : Biz) -> (Biz, Biz)
+bizDivEuclidHelp2 q BizO _ = (bizOpp q, BizO)
 bizDivEuclidHelp2 q r    s = (bizOpp (bizSucc q), bizMinus r s)
 
 bizDivEuclid : (a, b : Biz) -> (Biz, Biz)
@@ -374,7 +374,7 @@ bizGGCD (BizM a') (BizM b') =
 ||| Test bit
 bizTestBit : (a, b : Biz) -> Bool
 bizTestBit  a         BizO     = bizOdd a
-bizTestBit  BizO     (BizP b') = False
+bizTestBit  BizO     (BizP _ ) = False
 bizTestBit (BizP a') (BizP b') = bipTestBit a' (BinP b')
 bizTestBit (BizM a') (BizP b') = not (binTestBit (bipPredBin a') (BinP b'))
 bizTestBit  _        (BizM _ ) = False
@@ -438,20 +438,20 @@ bizXor (BizM a') (BizM b') =
 fromIntegerBiz : Integer -> Biz
 fromIntegerBiz 0 = BizO
 fromIntegerBiz n =
-  if (n > 0)
+  if n > 0
     then BizP (fromIntegerBip n)
     else BizM (fromIntegerBip (-n))
 
 Eq Biz where
    BizO     ==  BizO    = True
-   BizO     == (BizP b) = False
-   BizO     == (BizM b) = False
-   (BizP a) ==  BizO    = False
-   (BizM a) ==  BizO    = False
-   (BizM a) == (BizP b) = False
-   (BizP a) == (BizM b) = False
-   (BizP a) == (BizP b) = (a == b)
-   (BizM a) == (BizM b) = (a == b)
+   BizO     == (BizP _) = False
+   BizO     == (BizM _) = False
+   (BizP _) ==  BizO    = False
+   (BizM _) ==  BizO    = False
+   (BizM _) == (BizP _) = False
+   (BizP _) == (BizM _) = False
+   (BizP a) == (BizP b) = a == b
+   (BizM a) == (BizM b) = a == b
 
 Cast Nat Biz where
   cast = toBizNat
