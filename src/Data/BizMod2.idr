@@ -2,30 +2,54 @@ module Data.BizMod2
 
 import public Data.Bip
 import public Data.Bip.AddMul
+import public Data.Bip.IterPow
 import public Data.Bip.OrdSub
+
 import public Data.Biz
 import public Data.Biz.Proofs
+import public Data.Biz.Nat
 
 %default total
 %access public export
 
+-- TODO add to Bip/Biz?
+
 twoPowerNat : Nat -> Bip
 twoPowerNat  Z    = U
 twoPowerNat (S k) = O (twoPowerNat k)
+
+twoP : (x : Biz) -> Biz
+twoP  BizO = 1
+twoP (BizP y) = BizP $ bipIter O 1 y
+twoP (BizM _) = 0
 
 -- TODO add %static on `n` everywhere to minimize recalculation
 
 modulus : (n : Nat) -> Biz
 modulus = BizP . twoPowerNat
 
+halfModulus : (n : Nat) -> Biz
+halfModulus = bizDivTwo . modulus
+
 maxUnsigned : (n : Nat) -> Biz
-maxUnsigned n = (modulus n) - 1
+maxUnsigned = bizPred . modulus
 
 maxSigned : (n : Nat) -> Biz
-maxSigned n = bizDivTwo (modulus n) - 1
+maxSigned = bizPred . halfModulus
 
 minSigned : (n : Nat) -> Biz
-minSigned n = -(bizDivTwo (modulus n))
+minSigned = bizOpp . halfModulus
+
+modulusPower : (n : Nat) -> modulus n = twoP (toBizNat n)
+modulusPower  Z        = Refl
+modulusPower (S  Z)    = Refl
+modulusPower (S (S k)) =
+  -- TODO bug? somehow you can't rewrite with this directly
+  let ih2 = cong {f = bizMult 2} $ modulusPower (S k) in
+  rewrite ih2 in
+  cong $ sym $ iterSucc O U (toBipNatSucc k)
+
+-- modulus_pos is trivial
 
 data BizMod2 : (n : Nat) -> Type where
   MkBizMod2 : (intVal : Biz) -> (lowrange : -1 `Lt` intVal) -> (hirange : intVal `Lt` modulus n) -> BizMod2 n
@@ -495,3 +519,131 @@ divmods2 {n} nhi nlo d =
         (q, r) = bizQuotRem ((signed nhi) * (modulus n) + (unsigned nlo)) (signed d)
       in
         if minSigned n <= q && q <= maxSigned n then Just (repr q n, repr r n) else Nothing
+
+-- Properties of integers and integer arithmetic
+
+-- Properties of [modulus], [max_unsigned], etc.
+
+halfModulusPower : (n : Nat) -> halfModulus n = twoP (toBizNat n - 1)
+halfModulusPower n =
+  rewrite modulusPower n in
+  aux
+  where
+  aux : bizDivTwo (twoP (toBizNat n)) = twoP (toBizNat n - 1)
+  aux with (toBizNat n) proof bn
+    | BizO   = Refl
+    | BizP a = case succPredOr a of
+                 Left  lprf => rewrite lprf in
+                               Refl
+                 Right rprf => rewrite sym rprf in
+                               rewrite iterSucc O U (bipPred a) in
+                               rewrite sym $ add1R (bipPred a) in
+                               rewrite posSubAdd (bipPred a) 1 1 in
+                               Refl
+    | BizM _ = let zneg = replace {P = \x => 0 `Le` x} (sym bn) (toBizNatIsNonneg n)
+               in
+               -- TODO bug: `zneg does not have a function type ((\x => ([__])) (BizM _))`
+               -- absurd $ zneg Refl
+               really_believe_me zneg
+
+halfModulusModulus : (n : Nat) -> Not (n=0) -> modulus n = 2 * halfModulus n
+halfModulusModulus n nz =
+  rewrite halfModulusPower n in
+  rewrite modulusPower n in
+  aux
+  where
+  aux : twoP (toBizNat n) = 2 * (twoP (toBizNat n - 1))
+  aux with (toBizNat n) proof bn
+    | BizO   = absurd $ nz $ toBizNatInj n 0 $ sym bn
+    | BizP a = case succPredOr a of
+                 Left  lprf => rewrite lprf in
+                               Refl
+                 Right rprf => rewrite sym rprf in
+                               rewrite iterSucc O U (bipPred a) in
+                               rewrite sym $ add1R (bipPred a) in
+                               rewrite posSubAdd (bipPred a) 1 1 in
+                               Refl
+    | BizM _ = let zneg = replace {P = \x => 0 `Le` x} (sym bn) (toBizNatIsNonneg n)
+               in
+               -- TODO bug: `zneg does not have a function type ((\x => ([__])) (BizM _))`
+               -- absurd $ zneg Refl
+               really_believe_me zneg
+
+{- Relative positions, from greatest to smallest:
+
+      max_unsigned
+      max_signed
+      2*wordsize-1
+      wordsize
+      0
+      min_signed
+-}
+
+halfModulusPos : (n : Nat) -> Not (n=0) -> 0 `Lt` halfModulus n
+halfModulusPos  Z    nz = absurd $ nz Refl
+halfModulusPos (S _) _  = Refl
+
+minSignedNeg : (n : Nat) -> Not (n=0) -> minSigned n `Lt` 0
+minSignedNeg  Z    nz = absurd $ nz Refl
+minSignedNeg (S _) _  = Refl
+
+maxSignedPos : (n : Nat) -> Not (n=0) -> 0 `Le` maxSigned n
+maxSignedPos  Z        nz = absurd $ nz Refl
+maxSignedPos (S  Z)    _  = uninhabited
+maxSignedPos (S (S _)) _  = uninhabited
+
+-- TODO add to Bip.OrdSub ?
+mutual
+  ltO : (n : Bip) -> n `Lt` O n
+  ltO  U    = Refl
+  ltO (O a) = ltO a
+  ltO (I a) = compareContGtLtFro a (I a) $ ltI a
+
+  ltI : (n : Bip) -> n `Lt` I n
+  ltI  U    = Refl
+  ltI (O a) = compareContLtLtFro a (O a) $ ltLeIncl a (O a) $ ltO a
+  ltI (I a) = ltI a
+
+leDMO : (n : Bip) -> n `Le` bipDMO n
+leDMO  U    = uninhabited
+leDMO (O a) = leDMO a . compareContLtGtTo a (bipDMO a)
+leDMO (I a) = ltLeIncl a (O a) $ ltO a
+
+twoWordsizeMaxUnsigned : (n : Nat) -> bizDMO (toBizNat n) `Le` maxUnsigned n
+twoWordsizeMaxUnsigned  Z = uninhabited
+twoWordsizeMaxUnsigned (S Z) = uninhabited
+twoWordsizeMaxUnsigned (S (S k)) =
+  let ih = twoWordsizeMaxUnsigned (S k)
+      bs = toBipNatSucc k
+  in
+  rewrite predDoubleSucc bs in
+  leTrans bs (bipDMO bs) (bipDMO (twoPowerNat k)) (leDMO bs) ih
+
+wordsizeMaxUnsigned : (n : Nat) -> toBizNat n `Le` maxUnsigned n
+wordsizeMaxUnsigned  Z     = uninhabited
+wordsizeMaxUnsigned (S k) =
+  leTrans (toBizNat (S k)) (bizDMO (toBizNat (S k))) (maxUnsigned (S k))
+    (leDMO (toBipNatSucc k))
+    (twoWordsizeMaxUnsigned (S k))
+
+-- TODO add to Biz.Proofs and rewrite leLtTrans similarly
+
+ltLeTrans : (p, q, r : Biz) -> p `Lt` q -> q `Le` r -> p `Lt` r
+ltLeTrans p q r pltq qler =
+  case leLtOrEq q r qler of
+    Left qltr => ltTrans p q r pltq qltr
+    Right qeqr => rewrite sym qeqr in pltq
+
+maxSignedUnsigned : (n : Nat) -> maxSigned n `Lt` maxUnsigned n
+maxSignedUnsigned  Z    = Refl
+maxSignedUnsigned (S k) =
+  let pk = twoPowerNat k in
+  ltLeTrans (bipMinusBiz pk U) (BizP pk) (BizP (bipDMO pk))
+    -- bizPred (BizP a) `Lt` (BizP a)
+    (rewrite compareSub (BizP pk - 1) (BizP pk) in
+     rewrite sym $ addAssoc (BizP pk) (-1) (BizM pk) in
+     rewrite addComm 1 pk in
+     rewrite addAssoc (BizP pk) (BizM pk) (-1) in
+     rewrite posSubDiag pk in
+     Refl)
+    (leDMO pk)
