@@ -648,13 +648,14 @@ maxSignedUnsigned (S k) =
      Refl)
     (leDMO pk)
 
+-- this is trivial
 unsignedReprEq : (x : Biz) -> (n : Nat) -> unsigned (repr x n) = x `bizMod` modulus n
 unsignedReprEq = zModModulusEq
 
 signedReprEq : (x : Biz) -> (n : Nat) -> let m = modulus n
                                              xm = x `bizMod` m
                                         in signed (repr x n) = if xm < halfModulus n then xm else xm - m
-signedReprEq x n = rewrite unsignedReprEq x n in
+signedReprEq x n = rewrite zModModulusEq x n in
                    Refl
 
 -- TODO move to BizMod ?
@@ -769,3 +770,121 @@ eqmodDivides n m x y (k**prf1) (p**prf2) =
   (k*p ** rewrite sym $ mulAssoc k p m in
           rewrite sym prf2 in
           prf1)
+
+eqm : (x, y : Biz) -> (n : Nat) -> Type
+eqm x y = eqmod x y . modulus
+
+-- Properties of the coercions between [Z] and [int]
+
+eqmSamerepr : (x, y : Biz) -> (n : Nat) -> eqm x y n -> repr x n = repr y n
+eqmSamerepr x y n em =
+  mkintEq (zModModulus x n) (zModModulus y n) n
+          (fst $ zModModulusRange' x n)
+          (snd $ zModModulusRange' x n)
+          (fst $ zModModulusRange' y n)
+          (snd $ zModModulusRange' y n) $
+  rewrite zModModulusEq x n in
+  rewrite zModModulusEq y n in
+  eqmodModEq x y (modulus n) Refl em
+
+eqmUnsignedRepr : (z : Biz) -> (n : Nat) -> eqm z (unsigned (repr z n)) n
+eqmUnsignedRepr z n =
+  (z `bizDiv` modulus n ** rewrite zModModulusEq z n in
+                           divEuclEq z (modulus n) uninhabited)
+
+eqmUnsignedReprL : (a, b : Biz) -> (n : Nat) -> eqm a b n -> eqm (unsigned (repr a n)) b n
+eqmUnsignedReprL a b n =
+  eqmodTrans (unsigned (repr a n)) a b (modulus n) $
+  eqmodSym a (unsigned (repr a n)) (modulus n) $
+  eqmUnsignedRepr a n
+
+eqmUnsignedReprR : (a, b : Biz) -> (n : Nat) -> eqm a b n -> eqm a (unsigned (repr b n)) n
+eqmUnsignedReprR a b n ab =
+  eqmodTrans a b (unsigned (repr b n)) (modulus n) ab $
+  eqmUnsignedRepr b n
+
+eqmSignedUnsigned : (n : Nat) -> (x : BizMod2 n) -> eqm (signed x) (unsigned x) n
+eqmSignedUnsigned n x with (unsigned x < halfModulus n)
+  | False = (-1 ** addComm (unsigned x) (-(modulus n)))
+  | True  = (0  ** Refl)
+
+unsignedRange : (x : BizMod2 n) -> (0 `Le` unsigned x, unsigned x `Lt` modulus n)
+unsignedRange (MkBizMod2 i lo hi) =
+  (ltSuccRTo 0 i $
+   rewrite sym $ addCompareMonoR 0 (i+1) (-1) in
+   rewrite sym $ addAssoc i 1 (-1) in
+   rewrite add0R i in
+   lo, hi)
+
+unsignedRange2 : (x : BizMod2 n) -> (0 `Le` unsigned x, unsigned x `Le` maxUnsigned n)
+unsignedRange2 {n} x =
+  let (lo, hi) = unsignedRange x in
+  (lo, Proofs.ltSuccRTo (unsigned x) (maxUnsigned n) $
+       rewrite sym $ addAssoc (modulus n) (-1) 1 in
+       hi)
+
+-- TODO add to Biz.Proofs
+
+ltPredRTo : (n, m : Biz) -> n `Lt` m -> n `Le` bizPred m
+ltPredRTo n m nltm =
+  ltSuccRTo n (bizPred m) $
+  rewrite sym $ addAssoc m (-1) 1 in
+  rewrite add0R m in
+  nltm
+
+lebLeTo' : (n, m : Biz) -> m < n = False -> n `Le` m
+lebLeTo' n m prf nm with (m `compare` n) proof mn
+  | LT = absurd prf
+  | EQ = let eqlt = mn
+                 |> replace (compareAntisym n m)
+                 |> replace {P = \x => EQ = compareOp x} nm
+         in absurd eqlt
+  | GT = let gtlt = mn
+                 |> replace (compareAntisym n m)
+                 |> replace {P = \x => GT = compareOp x} nm
+         in absurd gtlt
+
+signedRange : (x : BizMod2 n) -> Not (n=0) -> (minSigned n `Le` signed x, signed x `Le` maxSigned n)
+signedRange {n} x nz with (unsigned x < halfModulus n) proof hx
+  | False = let hm = halfModulus n
+                ux = unsigned x
+                m2 = cong {f = bizOpp} $ halfModulusModulus n nz
+            in
+            rewrite m2 in
+            ( rewrite sym $ addCompareMonoR (-hm) (ux-(2*hm)) (2*hm) in
+              rewrite sym $ addAssoc ux (-(2*hm)) (2*hm) in
+              rewrite addOppDiagL (2*hm) in
+              rewrite add0R ux in
+              rewrite oppEqMulM1 hm in
+              rewrite mulComm hm (-1) in
+              rewrite sym $ mulAddDistrR (-1) 2 hm in
+              rewrite mul1L hm in
+              lebLeTo' hm ux (sym hx)
+            , rewrite sym $ addCompareMonoR (ux-(2*hm)) (hm-1) (2*hm) in
+              rewrite sym $ addAssoc ux (-(2*hm)) (2*hm) in
+              rewrite addOppDiagL (2*hm) in
+              rewrite add0R ux in
+              rewrite addComm (hm-1) (2*hm) in
+              rewrite addComm hm (-1) in
+              rewrite addAssoc (2*hm) (-1) hm in
+              leTrans ux (2*hm-1) (2*hm-1+hm)
+                (ltPredRTo ux (2*hm) $
+                 rewrite sym $ halfModulusModulus n nz in
+                 snd $ unsignedRange x)
+                (rewrite sym $ addCompareMonoL (-(2*hm-1)) (2*hm-1) (2*hm-1+hm) in
+                 rewrite addAssoc (-(2*hm-1)) (2*hm-1) hm in
+                 rewrite addOppDiagL (2*hm-1) in
+                 ltLeIncl 0 hm $
+                 halfModulusPos n nz)
+            )
+  | True  = let hm = halfModulus n
+                ux = unsigned x
+            in
+            ( leTrans (-hm) 0 ux
+                (rewrite sym $ compareOpp 0 hm in
+                 ltLeIncl 0 hm $
+                 halfModulusPos n nz)
+                (fst $ unsignedRange x)
+            , ltPredRTo ux hm $
+              ltbLtTo ux hm (sym hx)
+            )
