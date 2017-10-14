@@ -639,7 +639,7 @@ maxSignedUnsigned  Z    = Refl
 maxSignedUnsigned (S k) =
   let pk = twoPowerNat k in
   ltLeTrans (bipMinusBiz pk U) (BizP pk) (BizP (bipDMO pk))
-    -- bizPred (BizP a) `Lt` (BizP a)
+    -- a proof of bizPred (BizP pk) `Lt` (BizP pk)
     (rewrite compareSub (BizP pk - 1) (BizP pk) in
      rewrite sym $ addAssoc (BizP pk) (-1) (BizM pk) in
      rewrite addComm 1 pk in
@@ -647,3 +647,125 @@ maxSignedUnsigned (S k) =
      rewrite posSubDiag pk in
      Refl)
     (leDMO pk)
+
+unsignedReprEq : (x : Biz) -> (n : Nat) -> unsigned (repr x n) = x `bizMod` modulus n
+unsignedReprEq = zModModulusEq
+
+signedReprEq : (x : Biz) -> (n : Nat) -> let m = modulus n
+                                             xm = x `bizMod` m
+                                        in signed (repr x n) = if xm < halfModulus n then xm else xm - m
+signedReprEq x n = rewrite unsignedReprEq x n in
+                   Refl
+
+-- TODO move to BizMod ?
+
+-- Modulo arithmetic
+
+-- We define and state properties of equality and arithmetic modulo a positive
+-- integer.
+
+eqmod : (x, y, m : Biz) -> Type
+eqmod x y m = (k ** x = k * m + y)
+
+eqmodRefl : (x, m : Biz) -> eqmod x x m
+eqmodRefl _ _ = (0 ** Refl)
+
+eqmodRefl2 : (x, y, m : Biz) -> x = y -> eqmod x y m
+eqmodRefl2 y y m Refl = eqmodRefl y m
+
+eqmodSym : (x, y, m : Biz) -> eqmod x y m -> eqmod y x m
+eqmodSym _ y m (k ** prf) =
+  ((-k) ** rewrite prf in
+           rewrite addAssoc ((-k)*m) (k*m) y in
+           rewrite sym $ mulAddDistrR (-k) k m in
+           rewrite addOppDiagL k in
+           Refl)
+
+eqmodTrans : (x, y, z, m : Biz) -> eqmod x y m -> eqmod y z m -> eqmod x z m
+eqmodTrans _ _ z m (k1 ** prf1) (k2 ** prf2) =
+  (k1+k2 ** rewrite prf1 in
+            rewrite prf2 in
+            rewrite addAssoc (k1*m) (k2*m) z in
+            rewrite sym $ mulAddDistrR k1 k2 m in
+            Refl)
+
+-- TODO add to Biz.Proofs
+
+divSmall : (x, y : Biz) -> 0 `Le` x -> x `Lt` y -> x `bizDiv` y = 0
+divSmall x y zlex xlty = sym $ fst $ divModPos x y 0 x zlex xlty Refl
+
+modPlus : (a, b, c : Biz) -> 0 `Lt` c -> (a + b * c) `bizMod` c = a `bizMod` c
+modPlus a b c zltc =
+  let (lom, him) = modPosBound a c zltc in
+  sym $ snd $ divModPos (a + b * c) c (b + (a `bizDiv` c)) (a `bizMod` c) lom him $
+  rewrite mulAddDistrR b (a `bizDiv` c) c in
+  rewrite sym $ addAssoc (b*c) ((a `bizDiv` c)*c) (a `bizMod` c) in
+  rewrite addComm a (b*c) in
+  cong {f = bizPlus (b*c)} $ divEuclEq a c $
+  -- proof of 0 `Lt` x -> Not (x=0)
+  \cz => absurd $ replace cz zltc
+
+eqmodSmallEq : (x, y, m : Biz) -> eqmod x y m -> 0 `Le` x -> x `Lt` m -> 0 `Le` y -> y `Lt` m -> x = y
+eqmodSmallEq x y m (k ** prf) zlex xltm zley yltm =
+  let dprf = fst $ divModPos x m k y zley yltm prf
+      zdiv = divSmall x m zlex xltm
+      kz = trans dprf zdiv
+  in
+  replace kz prf
+
+eqmodModEq : (x, y, m : Biz) -> 0 `Lt` m -> eqmod x y m -> x `bizMod` m = y `bizMod` m
+eqmodModEq x y m zltm (k**prf) =
+  rewrite prf in
+  rewrite addComm (k*m) y in
+  modPlus y k m zltm
+
+eqmodMod : (x, m : Biz) -> Not (m=0) -> eqmod x (x `bizMod` m) m
+eqmodMod x m mnz = (x `bizDiv` m ** divEuclEq x m mnz)
+
+eqmodAdd : (a, b, c, d, m : Biz) -> eqmod a b m -> eqmod c d m -> eqmod (a + c) (b + d) m
+eqmodAdd _ b _ d m (k1**prf1) (k2**prf2) =
+  (k1+k2 ** rewrite prf1 in
+            rewrite prf2 in
+            rewrite addAssoc (k1*m+b) (k2*m) d in
+            rewrite sym $ addAssoc (k1*m) b (k2*m) in
+            rewrite addComm b (k2*m) in
+            rewrite addAssoc (k1*m) (k2*m) b in
+            rewrite sym $ mulAddDistrR k1 k2 m in
+            rewrite sym $ addAssoc ((k1+k2)*m) b d in
+            Refl)
+
+eqmodNeg : (x, y, m : Biz) -> eqmod x y m -> eqmod (-x) (-y) m
+eqmodNeg _ y m (k**prf) =
+  (-k ** rewrite prf in
+         rewrite oppAddDistr (k*m) y in
+         rewrite sym $ mulOppL k m in
+         Refl)
+
+eqmodSub : (a, b, c, d, m : Biz) -> eqmod a b m -> eqmod c d m -> eqmod (a - c) (b - d) m
+eqmodSub a b c d m eq1 eq2 = eqmodAdd a b (-c) (-d) m eq1 $ eqmodNeg c d m eq2
+
+eqmodMult : (a, b, c, d, m : Biz) -> eqmod a b m -> eqmod c d m -> eqmod (a * c) (b * d) m
+eqmodMult a b c d m (k1**prf1) (k2**prf2) =
+  (k1*k2*m+k1*d+b*k2 ** rewrite prf1 in
+                        rewrite prf2 in
+                        rewrite mulAddDistrR (k1*m) b (k2*m+d) in
+                        rewrite mulAddDistrL (k1*m) (k2*m) d in
+                        rewrite mulAddDistrL b (k2*m) d in
+                        rewrite mulAssoc (k1*m) k2 m in
+                        rewrite sym $ mulAssoc k1 m k2 in
+                        rewrite mulComm m k2 in
+                        rewrite mulAssoc k1 k2 m in
+                        rewrite sym $ mulAssoc k1 m d in
+                        rewrite mulComm m d in
+                        rewrite mulAssoc k1 d m in
+                        rewrite sym $ mulAddDistrR (k1*k2*m) (k1*d) m in
+                        rewrite mulAssoc b k2 m in
+                        rewrite addAssoc ((k1*k2*m+k1*d)*m) ((b*k2)*m) (b*d) in
+                        rewrite sym $ mulAddDistrR (k1*k2*m+k1*d) (b*k2) m in
+                        Refl)
+
+eqmodDivides : (n, m, x, y : Biz) -> eqmod x y n -> bizDivides m n -> eqmod x y m
+eqmodDivides n m x y (k**prf1) (p**prf2) =
+  (k*p ** rewrite sym $ mulAssoc k p m in
+          rewrite sym prf2 in
+          prf1)
