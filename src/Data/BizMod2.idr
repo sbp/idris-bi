@@ -65,12 +65,12 @@ pModTwoP  U    (S _) = 1
 pModTwoP (O a) (S k) = bizD (pModTwoP a k)
 pModTwoP (I a) (S k) = bizDPO (pModTwoP a k)
 
-zModModulus : (x : Biz) -> (wordSize : Nat) -> Biz
-zModModulus  BizO    _        = 0
-zModModulus (BizP a) wordSize = pModTwoP a wordSize
-zModModulus (BizM a) wordSize = let r = pModTwoP a wordSize in
-                                if r==0 then 0
-                                        else (modulus wordSize) - r
+zModModulus : (x : Biz) -> (n : Nat) -> Biz
+zModModulus  BizO    _ = 0
+zModModulus (BizP a) n = pModTwoP a n
+zModModulus (BizM a) n = let r = pModTwoP a n in
+                         if r==0 then 0
+                                 else (modulus n) - r
 
 -- TODO add to Prelude?
 
@@ -692,8 +692,9 @@ eqmodTrans _ _ z m (k1 ** prf1) (k2 ** prf2) =
 
 -- TODO add to Biz.Proofs
 
-divSmall : (x, y : Biz) -> 0 `Le` x -> x `Lt` y -> x `bizDiv` y = 0
-divSmall x y zlex xlty = sym $ fst $ divModPos x y 0 x zlex xlty Refl
+divModSmall : (x, y : Biz) -> 0 `Le` x -> x `Lt` y -> (x `bizDiv` y = 0, x `bizMod` y = x)
+divModSmall x y zlex xlty = let (dprf, mprf) = divModPos x y 0 x zlex xlty Refl in
+                            (sym dprf, sym mprf)
 
 modPlus : (a, b, c : Biz) -> 0 `Lt` c -> (a + b * c) `bizMod` c = a `bizMod` c
 modPlus a b c zltc =
@@ -709,7 +710,7 @@ modPlus a b c zltc =
 eqmodSmallEq : (x, y, m : Biz) -> eqmod x y m -> 0 `Le` x -> x `Lt` m -> 0 `Le` y -> y `Lt` m -> x = y
 eqmodSmallEq x y m (k ** prf) zlex xltm zley yltm =
   let dprf = fst $ divModPos x m k y zley yltm prf
-      zdiv = divSmall x m zlex xltm
+      zdiv = fst $ divModSmall x m zlex xltm
       kz = trans dprf zdiv
   in
   replace kz prf
@@ -803,8 +804,8 @@ eqmUnsignedReprR a b n ab =
   eqmodTrans a b (unsigned (repr b n)) (modulus n) ab $
   eqmUnsignedRepr b n
 
-eqmSignedUnsigned : (n : Nat) -> (x : BizMod2 n) -> eqm (signed x) (unsigned x) n
-eqmSignedUnsigned n x with (unsigned x < halfModulus n)
+eqmSignedUnsigned : (x : BizMod2 n) -> eqm (signed x) (unsigned x) n
+eqmSignedUnsigned {n} x with (unsigned x < halfModulus n)
   | False = (-1 ** addComm (unsigned x) (-(modulus n)))
   | True  = (0  ** Refl)
 
@@ -819,7 +820,7 @@ unsignedRange (MkBizMod2 i lo hi) =
 unsignedRange2 : (x : BizMod2 n) -> (0 `Le` unsigned x, unsigned x `Le` maxUnsigned n)
 unsignedRange2 {n} x =
   let (lo, hi) = unsignedRange x in
-  (lo, Proofs.ltSuccRTo (unsigned x) (maxUnsigned n) $
+  (lo, ltSuccRTo (unsigned x) (maxUnsigned n) $
        rewrite sym $ addAssoc (modulus n) (-1) 1 in
        hi)
 
@@ -832,17 +833,29 @@ ltPredRTo n m nltm =
   rewrite add0R m in
   nltm
 
+ltPredRFro : (n, m : Biz) -> n `Le` bizPred m -> n `Lt` m
+ltPredRFro n m nlepm =
+     ltSuccRFro n (bizPred m) nlepm
+  |> replace {P = \x => n `Lt` x} (sym $ addAssoc m (-1) 1)
+  |> replace {P = \x => n `Lt` x} (add0R m)
+
+leSuccLFro : (p, q : Biz) -> p `Lt` q -> bizSucc p `Le` q
+leSuccLFro p q pltq =
+  ltSuccRTo (bizSucc p) q $
+  rewrite addCompareMonoR p q 1 in
+  pltq
+
 lebLeTo' : (n, m : Biz) -> m < n = False -> n `Le` m
 lebLeTo' n m prf nm with (m `compare` n) proof mn
   | LT = absurd prf
-  | EQ = let eqlt = mn
-                 |> replace (compareAntisym n m)
-                 |> replace {P = \x => EQ = compareOp x} nm
-         in absurd eqlt
-  | GT = let gtlt = mn
-                 |> replace (compareAntisym n m)
-                 |> replace {P = \x => GT = compareOp x} nm
-         in absurd gtlt
+  | EQ = absurd $ replace (gtLt n m nm) mn
+  | GT = absurd $ replace (gtLt n m nm) mn
+
+lebLeFro' : (n, m : Biz) -> n `Le` m -> m < n = False
+lebLeFro' n m nlem with (m `compare` n) proof mn
+  | LT = absurd $ nlem $ ltGt m n (sym mn)
+  | EQ = Refl
+  | GT = Refl
 
 signedRange : (x : BizMod2 n) -> Not (n=0) -> (minSigned n `Le` signed x, signed x `Le` maxSigned n)
 signedRange {n} x nz with (unsigned x < halfModulus n) proof hx
@@ -888,3 +901,129 @@ signedRange {n} x nz with (unsigned x < halfModulus n) proof hx
             , ltPredRTo ux hm $
               ltbLtTo ux hm (sym hx)
             )
+
+reprUnsigned : (x : BizMod2 n) -> repr (unsigned x) n = x
+reprUnsigned {n} (MkBizMod2 i lo hi) =
+  mkintEq (zModModulus i n) i n (fst $ zModModulusRange' i n) (snd $ zModModulusRange' i n) lo hi $
+  rewrite zModModulusEq i n in
+  snd $ divModSmall i (modulus n) (leSuccLFro (-1) i lo) hi
+
+reprSigned : (x : BizMod2 n) -> repr (signed x) n = x
+reprSigned {n} x =
+  trans
+    (eqmSamerepr (signed x) (unsigned x) n (eqmSignedUnsigned x))
+    (reprUnsigned x)
+
+eqmReprEq : (x : Biz) -> (y : BizMod2 n) -> eqm x (unsigned y) n -> repr x n = y
+eqmReprEq {n} x y eqxuy = rewrite sym $ reprUnsigned y in
+                          eqmSamerepr x (unsigned y) n eqxuy
+
+unsignedRepr : (x : Biz) -> (n : Nat) -> 0 `Le` x -> x `Le` maxUnsigned n -> unsigned (repr x n) = x
+unsignedRepr x n zlex xlemu =
+  rewrite zModModulusEq x n in
+  snd $ divModSmall x (modulus n) zlex (ltPredRFro x (modulus n) xlemu)
+
+-- TODO add to Biz.Proofs ?
+
+mulCompareMonoR : (p, q, r : Biz) -> 0 `Lt` p -> (q*p) `compare` (r*p) = q `compare` r
+mulCompareMonoR p q r zltp =
+  rewrite mulComm q p in
+  rewrite mulComm r p in
+  mulCompareMonoL p q r zltp
+
+-- a workaround for the fact that using `rewrite sym $ mul1L` is not practical
+mulAddDistrR1 : (n, m : Biz) -> (n + 1) * m = n * m + m
+mulAddDistrR1 n m = rewrite mulAddDistrR n 1 m in
+                    rewrite mul1L m in
+                    Refl
+
+-- convenience lemma, look for other places to use it
+addCompareMonoTransferL : (a, b, c : Biz) -> a `compare` (b+c) = ((-b)+a) `compare` c
+addCompareMonoTransferL a b c =
+  rewrite sym $ addCompareMonoL (-b) a (b+c) in
+  rewrite addAssoc (-b) b c in
+  rewrite addOppDiagL b in
+  Refl
+
+signedRepr : (x : Biz) -> (n : Nat) -> Not (n=0) -> minSigned n `Le` x -> x `Le` maxSigned n -> signed (repr x n) = x
+signedRepr    BizO     Z    nz _     _     = absurd $ nz Refl
+signedRepr    BizO    (S _) _  _     _     = Refl
+signedRepr x@(BizP _)  n    _  _     xlema =
+  rewrite unsignedRepr x n uninhabited $
+            ltLeIncl x (maxUnsigned n) $
+            leLtTrans x (maxSigned n) (maxUnsigned n) xlema (maxSignedUnsigned n) in
+  rewrite ltbLtFro x (halfModulus n) $
+            ltPredRFro x (halfModulus n) xlema in
+  Refl
+signedRepr   (BizM a)  n    nz milex _     =
+  -- prove that we can substitute `repr x n` with `repr (x+(modulus n)) n`
+  let xm = cong {f=signed} $ eqmSamerepr (BizM a) ((BizM a)+(modulus n)) n $
+           eqmodAdd (BizM a) (BizM a) 0 (modulus n) (modulus n) (eqmodRefl (BizM a) (modulus n)) $
+           (-1 ** sym $ posSubDiag (twoPowerNat n))
+      mhm = cong {f=bizOpp} $ halfModulusModulus n nz
+  in
+  rewrite xm in
+  rewrite unsignedRepr ((BizM a)+(modulus n)) n
+            (rewrite addCompareMonoTransferL 0 (modulus n) (BizM a) in
+             leTrans (-(modulus n)) (-(halfModulus n)) (BizM a)
+               (rewrite mhm in
+                rewrite sym $ compareOpp (halfModulus n) (2*(halfModulus n)) in
+                rewrite sym $ mul1L (halfModulus n) in
+                rewrite mulAssoc 2 1 (halfModulus n) in
+                rewrite mulCompareMonoR (halfModulus n) 1 2 (halfModulusPos n nz) in
+                uninhabited)
+               milex
+            )
+            (rewrite addCompareMonoL (modulus n) (BizM a) (-1) in
+             le1L a)
+  in
+  rewrite lebLeFro' (halfModulus n) ((modulus n)+(BizM a)) $
+            rewrite addCompareMonoTransferL (halfModulus n) (modulus n) (BizM a) in
+            rewrite mhm in
+            rewrite sym $ mulOppL 2 (halfModulus n) in
+            rewrite sym $ mulAddDistrR1 (-2) (halfModulus n) in
+            rewrite mulOppL 1 (halfModulus n) in
+            rewrite mul1L (halfModulus n) in
+            milex
+  in
+  rewrite addComm ((modulus n)+(BizM a)) (-(modulus n)) in
+  rewrite addAssoc (-(modulus n)) (modulus n) (BizM a)  in
+  rewrite posSubDiag (twoPowerNat n) in
+  Refl
+
+signedEqUnsigned : (x : BizMod2 n) -> unsigned x `Le` maxSigned n -> signed x = unsigned x
+signedEqUnsigned {n} x uxlema with ((unsigned x) < (halfModulus n)) proof uxhm
+  | False = let hmgtux = ltGt (unsigned x) (halfModulus n) $
+                         ltPredRFro (unsigned x) (halfModulus n) uxlema
+                hmleux = lebLeTo' (halfModulus n) (unsigned x) (sym uxhm)
+            in
+            absurd $ hmleux hmgtux
+  | True = Refl
+
+-- TODO split into `to` and `fro`
+
+signedPositiveTo : (x : BizMod2 n) -> 0 `Le` signed x -> unsigned x `Le` maxSigned n
+signedPositiveTo {n} x zles uxgtma with ((unsigned x) < (halfModulus n)) proof uxhm
+  | False = let uxgem = zles
+                     |> replace {P = \x => Not (x=GT)} (sym $ compareSubR (modulus n) (unsigned x))
+                     |> leGe (modulus n) (unsigned x)
+            in
+            absurd $ uxgem $ snd (unsignedRange x)
+  | True  = let hmleux = uxgtma
+                      |> gtLt (unsigned x) ((halfModulus n)-1)
+                      |> leSuccLFro ((halfModulus n)-1) (unsigned x)
+                      |> replace {P = \y => y `Le` unsigned x} (sym $ addAssoc (halfModulus n) (-1) 1)
+                      |> replace {P = \y => y `Le` unsigned x} (add0R (halfModulus n))
+                hmgtux = ltGt (unsigned x) (halfModulus n) $ ltbLtTo (unsigned x) (halfModulus n) (sym uxhm)
+            in
+            absurd $ hmleux hmgtux
+
+signedPositiveFro : (x : BizMod2 n) -> unsigned x `Le` maxSigned n -> 0 `Le` signed x
+signedPositiveFro {n} x uxlema zgts with ((unsigned x) < (halfModulus n)) proof uxhm
+  | False = let hmgtux = ltGt (unsigned x) (halfModulus n) $
+                         ltPredRFro (unsigned x) (halfModulus n) uxlema
+                hmleux = lebLeTo' (halfModulus n) (unsigned x) (sym uxhm)
+            in
+            absurd $ hmleux hmgtux
+  | True = let zleux = fst $ unsignedRange x in
+           absurd $ zleux zgts
