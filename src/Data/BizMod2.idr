@@ -51,26 +51,27 @@ modulusPower (S (S k)) =
 
 -- modulus_pos is trivial
 
+-- we use two `Lt` proofs here so we could prove mkintEq below
 data BizMod2 : (n : Nat) -> Type where
-  MkBizMod2 : (intVal : Biz) -> (lowrange : -1 `Lt` intVal) -> (hirange : intVal `Lt` modulus n) -> BizMod2 n
+  MkBizMod2 : (intVal : Biz) -> (range : (-1 `Lt` intVal, intVal `Lt` modulus n)) -> BizMod2 n
 
-MkBizMod2Inj : MkBizMod2 x lox hix = MkBizMod2 y loy hiy -> x = y
+MkBizMod2Inj : MkBizMod2 x rx = MkBizMod2 y ry -> x = y
 MkBizMod2Inj Refl = Refl
 
 -- Fast normalization modulo [2^wordsize]
 
-pModTwoP : (p : Bip) -> (n : Nat) -> Biz
-pModTwoP  _     Z    = 0
-pModTwoP  U    (S _) = 1
-pModTwoP (O a) (S k) = bizD (pModTwoP a k)
-pModTwoP (I a) (S k) = bizDPO (pModTwoP a k)
+bipMod2 : (p : Bip) -> (n : Nat) -> Biz
+bipMod2  _     Z    = 0
+bipMod2  U    (S _) = 1
+bipMod2 (O a) (S k) = bizD (a `bipMod2` k)
+bipMod2 (I a) (S k) = bizDPO (a `bipMod2` k)
 
-zModModulus : (x : Biz) -> (n : Nat) -> Biz
-zModModulus  BizO    _ = 0
-zModModulus (BizP a) n = pModTwoP a n
-zModModulus (BizM a) n = let r = pModTwoP a n in
-                         if r==0 then 0
-                                 else (modulus n) - r
+bizMod2 : (x : Biz) -> (n : Nat) -> Biz
+bizMod2  BizO    _ = 0
+bizMod2 (BizP a) n = a `bipMod2` n
+bizMod2 (BizM a) n = let r = a `bipMod2` n in
+                     if r==0 then 0
+                             else (modulus n) - r
 
 -- TODO add to Prelude?
 
@@ -117,84 +118,84 @@ bizDCompare n m =
 
 --
 
-pModTwoPRange : (n : Nat) -> (p : Bip) -> (0 `Le` pModTwoP p n, pModTwoP p n `Lt` modulus n)
-pModTwoPRange  Z     _    = (uninhabited, Refl)
-pModTwoPRange (S _)  U    = (uninhabited, Refl)
-pModTwoPRange (S k) (O a) =
-  let (lo, hi) = pModTwoPRange k a in
-  ( rewrite bizDCompare 0 (pModTwoP a k) in
+bipMod2Range : (n : Nat) -> (p : Bip) -> (0 `Le` (p `bipMod2` n), (p `bipMod2` n) `Lt` modulus n)
+bipMod2Range  Z     _    = (uninhabited, Refl)
+bipMod2Range (S _)  U    = (uninhabited, Refl)
+bipMod2Range (S k) (O a) =
+  let (lo, hi) = bipMod2Range k a in
+  ( rewrite bizDCompare 0 (a `bipMod2` k) in
     lo
-  , rewrite bizDCompare (pModTwoP a k) (modulus k) in
+  , rewrite bizDCompare (a `bipMod2` k) (modulus k) in
     hi
   )
-pModTwoPRange (S k) (I a) =
-  let (lo, hi) = pModTwoPRange k a in
-  ( rewrite bizDDPOCompare 0 (pModTwoP a k) in
-    case leLtOrEq 0 (pModTwoP a k) lo of
+bipMod2Range (S k) (I a) =
+  let (lo, hi) = bipMod2Range k a in
+  ( rewrite bizDDPOCompare 0 (a `bipMod2` k) in
+    case leLtOrEq 0 (a `bipMod2` k) lo of
       Left lprf => rewrite lprf in
                    uninhabited
       Right rprf => rewrite sym rprf in
                     uninhabited
-  , rewrite bizDPODCompare (pModTwoP a k) (modulus k) in
+  , rewrite bizDPODCompare (a `bipMod2` k) (modulus k) in
     rewrite hi in
     Refl
   )
 
-pModTwoPEq : (n : Nat) -> (p : Bip) -> pModTwoP p n = BizP p `bizMod` modulus n
-pModTwoPEq n p = let (y**prf) = aux n p
-                     (zlemt, mtltmod) = pModTwoPRange n p
+bipMod2Eq : (n : Nat) -> (p : Bip) -> p `bipMod2` n = BizP p `bizMod` modulus n
+bipMod2Eq n p = let (y**prf) = aux n p
+                    (zlemt, mtltmod) = bipMod2Range n p
                  in
-                 snd $ divModPos (BizP p) (modulus n) y (pModTwoP p n) zlemt mtltmod prf
+                 snd $ divModPos (BizP p) (modulus n) y (p `bipMod2` n) zlemt mtltmod prf
   where
-  aux : (n : Nat) -> (p : Bip) -> (y ** BizP p = y * modulus n + pModTwoP p n)
+  aux : (n : Nat) -> (p : Bip) -> (y ** BizP p = y * modulus n + (p `bipMod2` n))
   aux  Z     p    = (BizP p ** cong $ sym $ mul1R p)
   aux (S _)  U    = (0 ** Refl)
   aux (S k) (O a) = let (y**prf) = aux k a in
-                    (y ** rewrite doubleSpec (pModTwoP a k) in
+                    (y ** rewrite doubleSpec (a `bipMod2` k) in
                           rewrite mulAssoc y 2 (modulus k) in
                           rewrite mulComm y 2 in
                           rewrite sym $ mulAssoc 2 y (modulus k) in
-                          rewrite sym $ mulAddDistrL 2 (y*(modulus k)) (pModTwoP a k) in
+                          rewrite sym $ mulAddDistrL 2 (y*(modulus k)) (a `bipMod2` k) in
                           cong {f = bizMult 2} prf)
   aux (S k) (I a) = let (y**prf) = aux k a in
-                    (y ** rewrite succDoubleSpec (pModTwoP a k) in
+                    (y ** rewrite succDoubleSpec (a `bipMod2` k) in
                           rewrite mulAssoc y 2 (modulus k) in
                           rewrite mulComm y 2 in
                           rewrite sym $ mulAssoc 2 y (modulus k) in
-                          rewrite addAssoc (2*(y*(modulus k))) (2*(pModTwoP a k)) 1 in
-                          rewrite sym $ mulAddDistrL 2 (y*(modulus k)) (pModTwoP a k) in
+                          rewrite addAssoc (2*(y*(modulus k))) (2*(a `bipMod2` k)) 1 in
+                          rewrite sym $ mulAddDistrL 2 (y*(modulus k)) (a `bipMod2` k) in
                           cong {f = \x => 2*x+1} prf)
 
-zModModulusRange : (x : Biz) -> (n : Nat) -> (0 `Le` zModModulus x n, zModModulus x n `Lt` modulus n)
-zModModulusRange  BizO    _ = (uninhabited, Refl)
-zModModulusRange (BizP a) n = pModTwoPRange n a
-zModModulusRange (BizM a) n with ((pModTwoP a n) == 0) proof zprf
+bizMod2Range0 : (x : Biz) -> (n : Nat) -> (0 `Le` (x `bizMod2` n), (x `bizMod2` n) `Lt` modulus n)
+bizMod2Range0  BizO    _ = (uninhabited, Refl)
+bizMod2Range0 (BizP a) n = bipMod2Range n a
+bizMod2Range0 (BizM a) n with ((a `bipMod2` n) == 0) proof zprf
   | False =
-    let (lo, hi) = pModTwoPRange n a in
-    ( rewrite compareAntisym ((modulus n)-(pModTwoP a n)) 0 in
-      rewrite sym $ compareSub (modulus n) (pModTwoP a n) in
-      rewrite compareAntisym (pModTwoP a n) (modulus n) in
+    let (lo, hi) = bipMod2Range n a in
+    ( rewrite compareAntisym ((modulus n)-(a `bipMod2` n)) 0 in
+      rewrite sym $ compareSub (modulus n) (a `bipMod2` n) in
+      rewrite compareAntisym (a `bipMod2` n) (modulus n) in
       rewrite hi in
       uninhabited
-    , case leLtOrEq 0 (pModTwoP a n) lo of
+    , case leLtOrEq 0 (a `bipMod2` n) lo of
         Left lprf =>
-          rewrite addCompareMonoL (modulus n) (-(pModTwoP a n)) 0 in
-          rewrite sym $ compareOpp 0 (pModTwoP a n) in
+          rewrite addCompareMonoL (modulus n) (-(a `bipMod2` n)) 0 in
+          rewrite sym $ compareOpp 0 (a `bipMod2` n) in
           lprf
         Right rprf =>
-          let pmodeq0 = eqbEqFro (pModTwoP a n) 0 $ sym rprf in
+          let pmodeq0 = eqbEqFro (a `bipMod2` n) 0 $ sym rprf in
           absurd $ replace pmodeq0 zprf
     )
   | True = (uninhabited, Refl)
 
-zModModulusRange' : (x : Biz) -> (n : Nat) -> (-1 `Lt` zModModulus x n, zModModulus x n `Lt` modulus n)
-zModModulusRange' x n =
-  let lohi = zModModulusRange x n
+bizMod2Range : (x : Biz) -> (n : Nat) -> (-1 `Lt` (x `bizMod2` n), (x `bizMod2` n) `Lt` modulus n)
+bizMod2Range x n =
+  let lohi = bizMod2Range0 x n
       lo = fst lohi
       hi = snd lohi
   in
-  ( rewrite sym $ addCompareMonoR (-1) (zModModulus x n) 1 in
-    ltSuccRFro 0 (zModModulus x n) lo
+  ( rewrite sym $ addCompareMonoR (-1) (x `bizMod2` n) 1 in
+    ltSuccRFro 0 (x `bizMod2` n) lo
   , hi)
 
 -- TODO add to Biz.Proofs, look where it can be inserted
@@ -205,26 +206,26 @@ compareSubR n m =
   rewrite sym $ compareSub m n in
   compareAntisym m n
 
-zModModulusEq : (x : Biz) -> (n : Nat) -> zModModulus x n = x `bizMod` (modulus n)
-zModModulusEq  BizO    _ = Refl
-zModModulusEq (BizP a) n = pModTwoPEq n a
-zModModulusEq (BizM a) n with (pModTwoP a n) proof pz
-  zModModulusEq (BizM a) n | BizO =
+bizMod2Eq : (x : Biz) -> (n : Nat) -> x `bizMod2` n = x `bizMod` (modulus n)
+bizMod2Eq  BizO    _ = Refl
+bizMod2Eq (BizP a) n = bipMod2Eq n a
+bizMod2Eq (BizM a) n with (a `bipMod2` n) proof pz
+  | BizO =
     let
       deq = divEuclEq (BizM a) (modulus n) uninhabited
-      pmodz = sym $ trans pz (pModTwoPEq n a)
+      pmodz = sym $ trans pz (bipMod2Eq n a)
       divmod = divModPos (BizM a) (modulus n) ((BizM a) `bizDiv` (modulus n)) 0 uninhabited Refl $
                replace {P=\x => BizM a = (((BizM a) `bizDiv` (modulus n)) * (modulus n)) + (snd (bizDivEuclidHelp1 (fst (bipzDivEuclid a (modulus n))) x (modulus n)))} pmodz deq
     in
     snd divmod
-  zModModulusEq (BizM a) n | BizP b =
+  | BizP b =
     let
       deq = divEuclEq (BizM a) (modulus n) uninhabited
-      bmodz = sym $ trans pz (pModTwoPEq n a)
+      bmodz = sym $ trans pz (bipMod2Eq n a)
       divmod = divModPos (BizM a) (modulus n) ((BizM a) `bizDiv` (modulus n)) (bipMinusBiz (twoPowerNat n) b)
              (rewrite sym $ compareSubR (BizP b) (modulus n) in
               ltLeIncl b (twoPowerNat n) $
-              replace {P = \x => x `Lt` modulus n} (sym pz) (snd $ pModTwoPRange n a)
+              replace {P = \x => x `Lt` modulus n} (sym pz) (snd $ bipMod2Range n a)
              )
              (rewrite compareSubR ((modulus n)-(BizP b)) (modulus n) in
               rewrite oppAddDistr (modulus n) (BizM b) in
@@ -235,9 +236,9 @@ zModModulusEq (BizM a) n with (pModTwoP a n) proof pz
              replace {P=\x => BizM a = (((BizM a) `bizDiv` (modulus n)) * (modulus n)) + (snd (bizDivEuclidHelp1 (fst (bipzDivEuclid a (modulus n))) x (modulus n)))} bmodz deq
     in
     snd divmod
-  zModModulusEq (BizM a) n | BizM b =
+  | BizM b =
     let
-      zlep = fst $ pModTwoPRange n a
+      zlep = fst $ bipMod2Range n a
       zleneg = replace {P = \x => 0 `Le` x} (sym pz) zlep
     in
     -- TODO bug: we arrive at `zleneg:(GT=GT)->Void` but the following results in
@@ -249,7 +250,7 @@ zModModulusEq (BizM a) n with (pModTwoP a n) proof pz
 -- machine integer, interpreted as unsigned or signed respectively.
 
 unsigned : BizMod2 n -> Biz
-unsigned (MkBizMod2 intVal _ _) = intVal
+unsigned (MkBizMod2 intVal _) = intVal
 
 signed : BizMod2 n -> Biz
 signed {n} bm =
@@ -264,19 +265,14 @@ signed {n} bm =
 -- The argument is treated modulo [modulus n].
 
 repr : (x : Biz) -> (n : Nat) -> BizMod2 n
-repr x n =
-  let lohi = zModModulusRange' x n
-      lo = fst lohi
-      hi = snd lohi
-  in
-  MkBizMod2 (zModModulus x n) lo hi
+repr x n = MkBizMod2 (x `bizMod2` n) (bizMod2Range x n)
 
 mkintEq : (x, y : Biz) -> (n : Nat)
-       -> (lox : -1 `Lt` x) -> (hix : x `Lt` modulus n)
-       -> (loy : -1 `Lt` y) -> (hiy : y `Lt` modulus n)
+       -> (rx : (-1 `Lt` x, x `Lt` modulus n))
+       -> (ry : (-1 `Lt` y, y `Lt` modulus n))
        -> x = y
-       -> MkBizMod2 x lox hix = MkBizMod2 y loy hiy
-mkintEq y y n lox hix loy hiy Refl =
+       -> MkBizMod2 x rx = MkBizMod2 y ry
+mkintEq y y n (lox, hix) (loy, hiy) Refl =
   rewrite aux (-1) y lox loy in
   rewrite aux y (modulus n) hix hiy in
   Refl
@@ -289,8 +285,8 @@ mkintEq y y n lox hix loy hiy Refl =
     aux _ _ p1   _    | GT = absurd p1
 
 DecEq (BizMod2 n) where
-  decEq (MkBizMod2 x lox hix) (MkBizMod2 y loy hiy) = case decEq x y of
-    Yes prf => Yes (mkintEq x y n lox hix loy hiy prf)
+  decEq (MkBizMod2 x rx) (MkBizMod2 y ry) = case decEq x y of
+    Yes prf => Yes (mkintEq x y n rx ry prf)
     No contra => No (contra . MkBizMod2Inj)
 
 -- Arithmetic and logical operations over machine integers
@@ -650,12 +646,12 @@ maxSignedUnsigned (S k) =
 
 -- this is trivial
 unsignedReprEq : (x : Biz) -> (n : Nat) -> unsigned (repr x n) = x `bizMod` modulus n
-unsignedReprEq = zModModulusEq
+unsignedReprEq = bizMod2Eq
 
 signedReprEq : (x : Biz) -> (n : Nat) -> let m = modulus n
                                              xm = x `bizMod` m
                                         in signed (repr x n) = if xm < halfModulus n then xm else xm - m
-signedReprEq x n = rewrite zModModulusEq x n in
+signedReprEq x n = rewrite bizMod2Eq x n in
                    Refl
 
 -- TODO move to BizMod ?
@@ -779,18 +775,15 @@ eqm x y = eqmod x y . modulus
 
 eqmSamerepr : (x, y : Biz) -> (n : Nat) -> eqm x y n -> repr x n = repr y n
 eqmSamerepr x y n em =
-  mkintEq (zModModulus x n) (zModModulus y n) n
-          (fst $ zModModulusRange' x n)
-          (snd $ zModModulusRange' x n)
-          (fst $ zModModulusRange' y n)
-          (snd $ zModModulusRange' y n) $
-  rewrite zModModulusEq x n in
-  rewrite zModModulusEq y n in
+  mkintEq (x `bizMod2` n) (y `bizMod2` n) n
+          (bizMod2Range x n) (bizMod2Range y n) $
+  rewrite bizMod2Eq x n in
+  rewrite bizMod2Eq y n in
   eqmodModEq x y (modulus n) Refl em
 
 eqmUnsignedRepr : (z : Biz) -> (n : Nat) -> eqm z (unsigned (repr z n)) n
 eqmUnsignedRepr z n =
-  (z `bizDiv` modulus n ** rewrite zModModulusEq z n in
+  (z `bizDiv` modulus n ** rewrite bizMod2Eq z n in
                            divEuclEq z (modulus n) uninhabited)
 
 eqmUnsignedReprL : (a, b : Biz) -> (n : Nat) -> eqm a b n -> eqm (unsigned (repr a n)) b n
@@ -810,12 +803,12 @@ eqmSignedUnsigned {n} x with (unsigned x < halfModulus n)
   | True  = (0  ** Refl)
 
 unsignedRange : (x : BizMod2 n) -> (0 `Le` unsigned x, unsigned x `Lt` modulus n)
-unsignedRange (MkBizMod2 i lo hi) =
+unsignedRange (MkBizMod2 i r) =
   (ltSuccRTo 0 i $
    rewrite sym $ addCompareMonoR 0 (i+1) (-1) in
    rewrite sym $ addAssoc i 1 (-1) in
    rewrite add0R i in
-   lo, hi)
+   fst r, snd r)
 
 unsignedRange2 : (x : BizMod2 n) -> (0 `Le` unsigned x, unsigned x `Le` maxUnsigned n)
 unsignedRange2 {n} x =
@@ -903,10 +896,10 @@ signedRange {n} x nz with (unsigned x < halfModulus n) proof hx
             )
 
 reprUnsigned : (x : BizMod2 n) -> repr (unsigned x) n = x
-reprUnsigned {n} (MkBizMod2 i lo hi) =
-  mkintEq (zModModulus i n) i n (fst $ zModModulusRange' i n) (snd $ zModModulusRange' i n) lo hi $
-  rewrite zModModulusEq i n in
-  snd $ divModSmall i (modulus n) (leSuccLFro (-1) i lo) hi
+reprUnsigned {n} (MkBizMod2 i r) =
+  mkintEq (i `bizMod2` n) i n (bizMod2Range i n) r $
+  rewrite bizMod2Eq i n in
+  snd $ divModSmall i (modulus n) (leSuccLFro (-1) i (fst r)) (snd r)
 
 reprSigned : (x : BizMod2 n) -> repr (signed x) n = x
 reprSigned {n} x =
@@ -920,7 +913,7 @@ eqmReprEq {n} x y eqxuy = rewrite sym $ reprUnsigned y in
 
 unsignedRepr : (x : Biz) -> (n : Nat) -> 0 `Le` x -> x `Le` maxUnsigned n -> unsigned (repr x n) = x
 unsignedRepr x n zlex xlemu =
-  rewrite zModModulusEq x n in
+  rewrite bizMod2Eq x n in
   snd $ divModSmall x (modulus n) zlex (ltPredRFro x (modulus n) xlemu)
 
 -- TODO add to Biz.Proofs ?
@@ -1066,7 +1059,7 @@ oneNotZero (S _) _  = absurd . MkBizMod2Inj
 
 unsignedReprWordsize : (n : Nat) -> unsigned (repr (toBizNat n) n) = toBizNat n
 unsignedReprWordsize n =
-  rewrite zModModulusEq (toBizNat n) n in
+  rewrite bizMod2Eq (toBizNat n) n in
   snd $ divModSmall (toBizNat n) (modulus n) (toBizNatIsNonneg n) $
   ltPredRFro (toBizNat n) (modulus n) (wordsizeMaxUnsigned n)
 
@@ -1092,11 +1085,11 @@ eqSym x y with ((unsigned x) == (unsigned y)) proof uxy
             sym uxy
 
 eqSpec : (x, y : BizMod2 n) -> if x == y then x = y else Not (x = y)
-eqSpec {n} (MkBizMod2 x lox hix) (MkBizMod2 y loy hiy) =
-  case decEq (MkBizMod2 x lox hix) (MkBizMod2 y loy hiy) of
+eqSpec {n} (MkBizMod2 x rx) (MkBizMod2 y ry) =
+  case decEq (MkBizMod2 x rx) (MkBizMod2 y ry) of
     Yes prf => rewrite eqbEqFro x y (MkBizMod2Inj prf) in
                prf
-    No contra => let xneqy = contra . mkintEq x y n lox hix loy hiy in
+    No contra => let xneqy = contra . mkintEq x y n rx ry in
                  rewrite neqbNeqFro x y xneqy in
                  contra
 
@@ -1120,4 +1113,4 @@ eqSigned {n} x y with ((signed x) == (signed y)) proof sxy
   | True = rewrite sym $ reprSigned x in
            rewrite sym $ reprSigned y in
            rewrite eqbEqTo (signed x) (signed y) (sym sxy) in
-           eqbEqFro (zModModulus (signed y) n) (zModModulus (signed y) n) Refl
+           eqbEqFro ((signed y) `bizMod2` n) ((signed y) `bizMod2` n) Refl
