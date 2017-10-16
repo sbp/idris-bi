@@ -1069,3 +1069,55 @@ unsignedReprWordsize n =
   rewrite zModModulusEq (toBizNat n) n in
   snd $ divModSmall (toBizNat n) (modulus n) (toBizNatIsNonneg n) $
   ltPredRFro (toBizNat n) (modulus n) (wordsizeMaxUnsigned n)
+
+-- TODO add to Biz.Proofs
+
+neqbNeqTo : (n, m : Biz) -> n == m = False -> Not (n = m)
+neqbNeqTo n m neq nm =
+  absurd $ replace {P = \x => x = False} (eqbEqFro n m nm) neq
+
+neqbNeqFro : (n, m : Biz) -> Not (n = m) -> n == m = False
+neqbNeqFro n m neq with (n == m) proof nm
+  | False = Refl
+  | True  = absurd $ neq $ eqbEqTo n m $ sym nm
+
+-- Properties of equality
+
+eqSym : (x, y: BizMod2 n) -> x == y = y == x
+eqSym x y with ((unsigned x) == (unsigned y)) proof uxy
+  | False = sym $ neqbNeqFro (unsigned y) (unsigned x) $
+            neqbNeqTo (unsigned x) (unsigned y) (sym uxy) . sym
+  | True  = sym $ eqbEqFro (unsigned y) (unsigned x) $
+            sym $ eqbEqTo (unsigned x) (unsigned y) $
+            sym uxy
+
+eqSpec : (x, y : BizMod2 n) -> if x == y then x = y else Not (x = y)
+eqSpec {n} (MkBizMod2 x lox hix) (MkBizMod2 y loy hiy) =
+  case decEq (MkBizMod2 x lox hix) (MkBizMod2 y loy hiy) of
+    Yes prf => rewrite eqbEqFro x y (MkBizMod2Inj prf) in
+               prf
+    No contra => let xneqy = contra . mkintEq x y n lox hix loy hiy in
+                 rewrite neqbNeqFro x y xneqy in
+                 contra
+
+eqTrue : (x : BizMod2 n) -> x == x = True
+eqTrue x with (x==x) proof xx
+  | True  = Refl
+  | False = let contra = replace {P = \z => if z then x = x else Not (x = x)} (sym xx) (eqSpec x x) in
+            absurd $ contra Refl
+
+eqFalse : (x, y : BizMod2 n) -> Not (x=y) -> x == y = False
+eqFalse x y neq with (x==y) proof xeqby
+  | True  = let xy = replace {P = \z => if z then x = y else Not (x = y)} (sym xeqby) (eqSpec x y) in
+            absurd $ neq xy
+  | False = Refl
+
+eqSigned : (x, y : BizMod2 n) -> x == y = (signed x) == (signed y)
+eqSigned {n} x y with ((signed x) == (signed y)) proof sxy
+  | False = neqbNeqFro (unsigned x) (unsigned y) $
+            \uxy => let sysy = replace {P = \z => False = (if z < halfModulus n then z else z - (modulus n)) == signed y} uxy sxy in
+                    neqbNeqTo (signed y) (signed y) (sym sysy) Refl
+  | True = rewrite sym $ reprSigned x in
+           rewrite sym $ reprSigned y in
+           rewrite eqbEqTo (signed x) (signed y) (sym sxy) in
+           eqbEqFro (zModModulus (signed y) n) (zModModulus (signed y) n) Refl
