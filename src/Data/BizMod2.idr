@@ -1027,3 +1027,45 @@ signedPositiveFro {n} x uxlema zgts with ((unsigned x) < (halfModulus n)) proof 
             absurd $ hmleux hmgtux
   | True = let zleux = fst $ unsignedRange x in
            absurd $ zleux zgts
+
+-- Properties of zero, one, minus one
+
+-- unsignedZero is trivial
+
+unsignedOne : (n : Nat) -> Not (n=0) -> unsigned {n} 1 = 1
+unsignedOne  Z    nz = absurd $ nz Refl
+unsignedOne (S _) _  = Refl
+
+unsignedMone : (n : Nat) -> unsigned {n} (-1) = modulus n - 1
+unsignedMone  Z    = Refl
+unsignedMone (S _) = Refl
+
+signedZero : (n : Nat) -> Not (n=0) -> signed {n} 0 = 0
+signedZero n nz = rewrite ltbLtFro 0 (halfModulus n) $ halfModulusPos n nz in
+                  Refl
+
+signedOne : (n : Nat) -> 1 `Lt` toBizNat n -> signed {n} 1 = 1
+signedOne  Z        ultn = absurd ultn
+signedOne (S  Z)    ultn = absurd ultn
+signedOne (S (S _)) _    = Refl
+
+signedMone : (n : Nat) -> signed {n} (-1) = -1
+signedMone  Z    = Refl
+signedMone (S k) =
+  let dmo = bipDMO (twoPowerNat k) in
+  rewrite lebLeFro' (BizP $ twoPowerNat k) (BizP dmo) (leDMO $ twoPowerNat k) in
+  rewrite sym $ succPredDouble (twoPowerNat k) in
+  rewrite posSubLt dmo (bipSucc dmo) (ltSuccDiagR dmo) in
+  rewrite sym $ add1R dmo in
+  rewrite subMaskAddDiagL dmo 1 in
+  Refl
+
+oneNotZero : (n : Nat) -> Not (n=0) -> Not (repr 1 n = repr 0 n)
+oneNotZero  Z    nz = absurd $ nz Refl
+oneNotZero (S _) _  = absurd . MkBizMod2Inj
+
+unsignedReprWordsize : (n : Nat) -> unsigned (repr (toBizNat n) n) = toBizNat n
+unsignedReprWordsize n =
+  rewrite zModModulusEq (toBizNat n) n in
+  snd $ divModSmall (toBizNat n) (modulus n) (toBizNatIsNonneg n) $
+  ltPredRFro (toBizNat n) (modulus n) (wordsizeMaxUnsigned n)
