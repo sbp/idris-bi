@@ -929,6 +929,7 @@ reprSigned {n} x =
 eqmReprEq : (x : Biz) -> (y : BizMod2 n) -> eqm x (unsigned y) n -> repr x n = y
 eqmReprEq {n} x y eqxuy = rewrite sym $ reprUnsigned y in
                           eqmSamerepr x (unsigned y) n eqxuy
+
 unsignedRepr : (x : Biz) -> (n : Nat) -> 0 `Le` x -> x `Le` maxUnsigned n -> unsigned (repr x n) = x
 unsignedRepr  BizO       Z    _    _     = Refl
 unsignedRepr (BizP _)    Z    _    xlemu = absurd $ xlemu Refl
@@ -1057,8 +1058,8 @@ unsignedMone  Z    = Refl
 unsignedMone (S _) = Refl
 
 signedZero : (n : Nat) -> Not (n=0) -> signed {n} 0 = 0
-signedZero    Z    nz = absurd $ nz Refl
-signedZero n@(S _) _  = Refl
+signedZero  Z    nz = absurd $ nz Refl
+signedZero (S _) _  = Refl
 
 signedOne : (n : Nat) -> 1 `Lt` toBizNat n -> signed {n} 1 = 1
 signedOne  Z        ultn = absurd ultn
@@ -1081,11 +1082,7 @@ oneNotZero  Z    nz = absurd $ nz Refl
 oneNotZero (S _) _  = absurd . MkBizMod2Inj
 
 unsignedReprWordsize : (n : Nat) -> unsigned (repr (toBizNat n) n) = toBizNat n
-unsignedReprWordsize    Z    = Refl
-unsignedReprWordsize n@(S _) =
-  rewrite bizMod2Eq (toBizNat n) n in
-  snd $ divModSmall (toBizNat n) (modulus n) (toBizNatIsNonneg n) $
-  ltPredRFro (toBizNat n) (modulus n) (wordsizeMaxUnsigned n)
+unsignedReprWordsize n = unsignedRepr (toBizNat n) n (toBizNatIsNonneg n) (wordsizeMaxUnsigned n)
 
 -- TODO add to Biz.Proofs
 
@@ -1207,3 +1204,101 @@ addNegZero {n} x =
     (eqmodRefl (unsigned x) (modulus n))
     (eqmodSym (-unsigned x) (-unsigned x `bizMod` modulus n) (modulus n) $
      eqmodMod (-unsigned x) (modulus n) uninhabited)
+
+-- TODO add to Biz.Proofs
+
+addLtMono : (p, q, r, s : Biz) -> p `Lt` q -> r `Lt` s -> (p+r) `Lt` (q+s)
+addLtMono p q r s pltq rlts =
+  let prqr = replace {P = \x => x=LT} (sym $ addCompareMonoR p q r) pltq
+      qrqs = replace {P = \x => x=LT} (sym $ addCompareMonoL q r s) rlts in
+  ltTrans (p+r) (q+r) (q+s) prqr qrqs
+
+addLeMono : (p, q, r, s : Biz) -> p `Le` q -> r `Le` s -> (p+r) `Le` (q+s)
+addLeMono p q r s pleq rles =
+  let prqr = replace {P = \x => Not (x=GT)} (sym $ addCompareMonoR p q r) pleq
+      qrqs = replace {P = \x => Not (x=GT)} (sym $ addCompareMonoL q r s) rles in
+  leTrans (p+r) (q+r) (q+s) prqr qrqs
+
+unsignedAddCarry : (x, y : BizMod2 n) -> unsigned (x + y) = unsigned x + unsigned y - unsigned (addCarry x y 0) * (modulus n)
+unsignedAddCarry {n} x y =
+  rewrite unsignedZero n in
+  rewrite add0R (unsigned x + unsigned y) in
+  rewrite unsignedReprEq (unsigned x + unsigned y) n in
+  aux n x y
+  where
+  aux : (n : Nat) -> (x, y : BizMod2 n) -> (unsigned x + unsigned y) `bizMod` (modulus n) = (unsigned x + unsigned y) - unsigned (if (unsigned x + unsigned y) < (modulus n) then (repr 0 n) else (repr 1 n)) * (modulus n)
+  aux  Z    x y =
+    -- TODO after 2 `bizMod2P0`s this becomes `0 mod 1 = 0` but there's apparently a bug preventing those rewrites
+    -- rewrite bizMod2P0 x in
+    -- rewrite bizMod2P0 y in
+    really_believe_me Z
+  aux (S n) x y with ((unsigned x + unsigned y) < (modulus (S n))) proof xym
+    | False = let mlexy = lebLeTo' (modulus (S n)) (unsigned x + unsigned y) (sym xym) in
+              sym $ snd $ divModPos (unsigned x + unsigned y) (modulus (S n)) 1 (unsigned x + unsigned y - modulus (S n))
+                (rewrite sym $ compareSubR (modulus (S n)) (unsigned x + unsigned y) in
+                 mlexy)
+                (rewrite addComm (unsigned x + unsigned y) (-modulus (S n)) in
+                 rewrite sym $ addCompareMonoTransferL (unsigned x + unsigned y) (modulus (S n)) (modulus (S n)) in
+                 addLtMono (unsigned x) (modulus (S n)) (unsigned y)  (modulus (S n)) (snd $ unsignedRange x) (snd $ unsignedRange y))
+                (rewrite addComm (unsigned x + unsigned y) (-modulus (S n)) in
+                 rewrite addAssoc (modulus (S n)) (-modulus (S n)) (unsigned x + unsigned y) in
+                 rewrite posSubDiag (twoPowerNat n) in
+                 Refl)
+    | True = rewrite add0R (unsigned x + unsigned y) in
+             snd $ divModSmall (unsigned x + unsigned y) (modulus (S n))
+               (addLeMono 0 (unsigned x) 0 (unsigned y) (fst $ unsignedRange x) (fst $ unsignedRange y))
+               (ltbLtTo (unsigned x + unsigned y) (modulus (S n)) (sym xym))
+
+unsignedAddEither : (x, y : BizMod2 n) -> Either (unsigned (x + y) = unsigned x + unsigned y) (unsigned (x + y) = unsigned x + unsigned y - modulus n)
+unsignedAddEither {n} x y =
+  rewrite unsignedAddCarry x y in
+  rewrite unsignedZero n in
+  rewrite add0R (unsigned x + unsigned y) in
+  aux n x y
+  where
+  aux : (n : Nat) -> (x, y : BizMod2 n) -> let m = (unsigned (if (unsigned x + unsigned y) < (modulus n) then repr 0 n else repr 1 n))*(modulus n) in
+                                           Either (unsigned x + unsigned y - m = unsigned x + unsigned y) (unsigned x + unsigned y - m = unsigned x + unsigned y - modulus n)
+  aux  Z    x y =
+    -- TODO same bug as above
+    -- rewrite bizMod2P0 x in
+    -- rewrite bizMod2P0 y in
+      really_believe_me Z
+  aux (S n) x y with ((unsigned x + unsigned y) < (modulus (S n)))
+    | False = Right Refl
+    | True  = rewrite add0R (unsigned x + unsigned y) in
+              Left Refl
+
+-- Properties of negation
+
+negRepr : (z : Biz) -> (n : Nat) -> -(repr z n) = repr (-z) n
+negRepr z n =
+  sym $
+  eqmSamerepr (-z) (-unsigned (repr z n)) n $
+  eqmodNeg z (unsigned (repr z n)) (modulus n) $
+  eqmUnsignedRepr z n
+
+negZero : (n : Nat) -> -repr 0 n = repr 0 n
+negZero n = rewrite unsignedZero n in
+            Refl
+
+negInvolutive : (x : BizMod2 n) -> -(-x) = x
+negInvolutive {n} x =
+  eqmReprEq (-unsigned (repr (-unsigned x) n)) x $
+  eqmodTrans (-unsigned (repr (-unsigned x) n)) (-(-unsigned x)) (unsigned x) (modulus n)
+    (eqmodNeg (unsigned (repr (-unsigned x) n)) (-unsigned x) (modulus n) $
+     eqmUnsignedReprL (-unsigned x) (-unsigned x) n $
+     eqmodRefl (-unsigned x) (modulus n))
+    (eqmodRefl2 (-(-unsigned x)) (unsigned x) (modulus n) $
+     oppInvolutive (unsigned x))
+
+negAddDistr : (x, y : BizMod2 n) -> -(x + y) = (-x) + (-y)
+negAddDistr x y =
+  eqmSamerepr (-unsigned (repr (unsigned x + unsigned y) n)) ((unsigned (repr (-unsigned x) n))+(unsigned (repr (-unsigned y) n))) n $
+  eqmodTrans (-unsigned (repr (unsigned x + unsigned y) n)) (-(unsigned x + unsigned y)) ((unsigned (repr (-unsigned x) n))+(unsigned (repr (-unsigned y) n))) (modulus n)
+    (eqmodNeg (unsigned (repr (unsigned x + unsigned y) n)) (unsigned x + unsigned y) (modulus n) $
+     eqmodSym (unsigned x + unsigned y) (unsigned (repr (unsigned x + unsigned y) n)) (modulus n) $
+     eqmUnsignedRepr (unsigned x + unsigned y) n)
+    (rewrite oppAddDistr (unsigned x) (unsigned y) in
+     eqmodAdd (-unsigned x) (unsigned (repr (-unsigned x) n)) (-unsigned y) (unsigned (repr (-unsigned y) n)) (modulus n)
+       (eqmUnsignedRepr (-unsigned x) n)
+       (eqmUnsignedRepr (-unsigned y) n))
