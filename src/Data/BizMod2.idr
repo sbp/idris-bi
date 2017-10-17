@@ -822,6 +822,9 @@ eqmSignedUnsigned {n} x with (unsigned x < halfModulus n)
   | False = (-1 ** addComm (unsigned x) (-(modulus n)))
   | True  = (0  ** Refl)
 
+eqmUnsignedSigned : (x : BizMod2 n) -> eqm (unsigned x) (signed x) n
+eqmUnsignedSigned {n} x = eqmodSym (signed x) (unsigned x) (modulus n) (eqmSignedUnsigned x)
+
 unsignedRange : (x : BizMod2 n) -> (0 `Le` unsigned x, unsigned x `Lt` modulus n)
 unsignedRange (MkBizMod2 i r) =
   (ltSuccRTo 0 i $
@@ -1150,8 +1153,8 @@ addSigned : (x, y : BizMod2 n) -> x + y = repr (signed x + signed y) n
 addSigned {n} x y =
   eqmSamerepr (unsigned x + unsigned y) (signed x + signed y) n $
   eqmodAdd (unsigned x) (signed x) (unsigned y) (signed y) (modulus n)
-    (eqmodSym (signed x) (unsigned x) (modulus n) $ eqmSignedUnsigned x)
-    (eqmodSym (signed y) (unsigned y) (modulus n) $ eqmSignedUnsigned y)
+    (eqmUnsignedSigned x)
+    (eqmUnsignedSigned y)
 
 addComm : (x, y : BizMod2 n) -> x + y = y + x
 addComm x y = rewrite addComm (unsigned x) (unsigned y) in
@@ -1304,6 +1307,66 @@ negAddDistr x y =
        (eqmUnsignedRepr (-unsigned x) n)
        (eqmUnsignedRepr (-unsigned y) n))
 
+-- Properties of subtraction
+
+sub0L : (x : BizMod2 n) -> x - 0 = x
+sub0L {n} x =
+  rewrite unsignedZero n in
+  rewrite add0R (unsigned x) in
+  reprUnsigned x
+
+sub0R : (x : BizMod2 n) -> 0 - x = -x
+sub0R {n} x =
+  rewrite unsignedZero n in
+  Refl
+
+subAddNeg : (x, y : BizMod2 n) -> x - y = x + (-y)
+subAddNeg {n} x y =
+  eqmSamerepr (unsigned x - unsigned y) ((unsigned x)+(unsigned $ repr (-(unsigned y)) n)) n $
+  eqmodAdd (unsigned x) (unsigned x) (-(unsigned y)) (unsigned $ repr (-(unsigned y)) n) (modulus n)
+    (eqmodRefl (unsigned x) (modulus n))
+    (eqmUnsignedRepr (-(unsigned y)) n)
+
+subIdem : (x : BizMod2 n) -> x - x = 0
+subIdem x =
+  rewrite addOppDiagR (unsigned x) in
+  Refl
+
+subAddL : (x, y, z : BizMod2 n) -> (x + y) - z = (x - z) + y
+subAddL x y z =
+  rewrite subAddNeg (x+y) z in
+  rewrite subAddNeg x z in
+  rewrite sym $ addAssoc x y (-z) in
+  rewrite sym $ addAssoc x (-z) y in
+  rewrite addComm y (-z) in
+  Refl
+
+subAddR : (x, y, z : BizMod2 n) -> x - (y + z) = (x - z) + (-y)
+subAddR x y z =
+  rewrite subAddNeg x (y+z) in
+  rewrite subAddNeg x z in
+  rewrite negAddDistr y z in
+  rewrite addComm (-y) (-z) in
+  addAssoc x (-z) (-y)
+
+subShifted : (x, y, z : BizMod2 n) -> (x + z) - (y + z) = x - y
+subShifted x y z =
+  rewrite subAddNeg (x+z) (y+z) in
+  rewrite negAddDistr y z in
+  rewrite addComm (-y) (-z) in
+  rewrite sym $ addAssoc x z ((-z)+(-y)) in
+  rewrite addAssoc z (-z) (-y) in
+  rewrite addNegZero z in
+  rewrite add0L (-y) in
+  rewrite subAddNeg x y in
+  Refl
+
+subSigned : (x, y : BizMod2 n) -> x - y = repr (signed x - signed y) n
+subSigned {n} x y =
+  eqmSamerepr (unsigned x - unsigned y) (signed x - signed y) n $
+  eqmodSub (unsigned x) (signed x) (unsigned y) (signed y) (modulus n)
+    (eqmUnsignedSigned x) (eqmUnsignedSigned y)
+
 -- Properties of multiplication
 
 mulComm : (x, y : BizMod2 n) -> x * y = y * x
@@ -1390,7 +1453,31 @@ mulSigned : (x, y : BizMod2 n) -> x * y = repr (signed x * signed y) n
 mulSigned {n} x y =
   eqmSamerepr (unsigned x * unsigned y) (signed x * signed y) n $
   eqmodMult (unsigned x) (signed x) (unsigned y) (signed y) (modulus n)
-    (eqmodSym (signed x) (unsigned x) (modulus n) $
-     eqmSignedUnsigned x)
-    (eqmodSym (signed y) (unsigned y) (modulus n) $
-     eqmSignedUnsigned y)
+    (eqmUnsignedSigned x)
+    (eqmUnsignedSigned y)
+
+-- Properties of division and modulus
+
+moduDivuEuclid : (x, y : BizMod2 n) -> Not (y = 0) -> x = ((x `divu` y)*y)+(x `modu` y)
+moduDivuEuclid {n} x y yz =
+  let ux = unsigned x
+      uy = unsigned y in
+  trans (sym $ reprUnsigned x) $
+  eqmSamerepr ux ((unsigned $ repr ((unsigned $ repr (ux `bizDiv` uy) n)*uy) n)+(unsigned $ repr (ux `bizMod` uy) n)) n $
+  eqmodTrans ux ((ux `bizDiv` uy)*uy + (ux `bizMod` uy))
+             ((unsigned $ repr ((unsigned $ repr (ux `bizDiv` uy) n)*uy) n)+(unsigned $ repr (ux `bizMod` uy) n))
+             (modulus n)
+    (eqmodRefl2 ux ((ux `bizDiv` uy)*uy + (ux `bizMod` uy)) (modulus n) $
+     divEuclEq ux uy $
+     yz . replace {P=\z=>z=0} (reprUnsigned y) . cong {f=\z=>repr z n})
+    (eqmodAdd ((ux `bizDiv` uy)*uy) (unsigned $ repr ((unsigned $ repr (ux `bizDiv` uy) n)*uy) n)
+              (ux `bizMod` uy) (unsigned $ repr (ux `bizMod` uy) n)
+              (modulus n)
+       (eqmodTrans ((ux `bizDiv` uy)*uy) ((unsigned $ repr (ux `bizDiv` uy) n)*uy)
+                   (unsigned $ repr ((unsigned $ repr (ux `bizDiv` uy) n)*uy) n)
+                   (modulus n)
+          (eqmodMult (ux `bizDiv` uy) (unsigned $ repr (ux `bizDiv` uy) n) uy uy (modulus n)
+             (eqmUnsignedRepr (ux `bizDiv` uy) n)
+             (eqmodRefl uy (modulus n)))
+          (eqmUnsignedRepr ((unsigned $ repr (ux `bizDiv` uy) n)*uy) n))
+       (eqmUnsignedRepr (ux `bizMod` uy) n))
