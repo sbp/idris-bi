@@ -804,15 +804,17 @@ eqmUnsignedRepr x n@(S _) =
   (x `bizDiv` modulus n ** rewrite bizMod2Eq x n in
                            divEuclEq x (modulus n) uninhabited)
 
-eqmUnsignedReprL : (a, b : Biz) -> (n : Nat) -> eqm a b n -> eqm (unsigned (repr a n)) b n
-eqmUnsignedReprL a b n =
-  eqmodTrans (unsigned (repr a n)) a b (modulus n) $
-  eqmodSym a (unsigned (repr a n)) (modulus n) $
-  eqmUnsignedRepr a n
+eqmUnsignedRepr' : (x : Biz) -> (n : Nat) -> eqm (unsigned (repr x n)) x n
+eqmUnsignedRepr' x n = eqmodSym x (unsigned $ repr x n) (modulus n) $ eqmUnsignedRepr x n
 
-eqmUnsignedReprR : (a, b : Biz) -> (n : Nat) -> eqm a b n -> eqm a (unsigned (repr b n)) n
+eqmUnsignedReprL : (a, b : Biz) -> (n : Nat) -> eqm a b n -> eqm (unsigned $ repr a n) b n
+eqmUnsignedReprL a b n =
+  eqmodTrans (unsigned $ repr a n) a b (modulus n) $
+  eqmUnsignedRepr' a n
+
+eqmUnsignedReprR : (a, b : Biz) -> (n : Nat) -> eqm a b n -> eqm a (unsigned $ repr b n) n
 eqmUnsignedReprR a b n ab =
-  eqmodTrans a b (unsigned (repr b n)) (modulus n) ab $
+  eqmodTrans a b (unsigned $ repr b n) (modulus n) ab $
   eqmUnsignedRepr b n
 
 eqmSignedUnsigned : (x : BizMod2 n) -> eqm (signed x) (unsigned x) n
@@ -1152,9 +1154,8 @@ addSigned {n} x y =
     (eqmodSym (signed y) (unsigned y) (modulus n) $ eqmSignedUnsigned y)
 
 addComm : (x, y : BizMod2 n) -> x + y = y + x
-addComm {n} x y =
-  eqmSamerepr (unsigned x + unsigned y) (unsigned y + unsigned x) n $
-  (0 ** addComm (unsigned x) (unsigned y))
+addComm x y = rewrite addComm (unsigned x) (unsigned y) in
+              Refl
 
 add0R : (x : BizMod2 n) -> x + 0 = x
 add0R {n} x = rewrite unsignedZero n in
@@ -1197,7 +1198,7 @@ addPermut x y z =
 
 addNegZero : (x : BizMod2 n) -> x+(-x) = 0
 addNegZero {n} x =
-  eqmSamerepr (unsigned x + unsigned (repr (-unsigned x) n)) 0 n $
+  eqmSamerepr (unsigned x + (unsigned $ repr (-unsigned x) n)) 0 n $
   rewrite unsignedReprEq (-unsigned x) n in
   rewrite sym $ addOppDiagR (unsigned x) in
   eqmodAdd (unsigned x) (unsigned x) (-unsigned x `bizMod` modulus n) (-unsigned x) (modulus n)
@@ -1249,7 +1250,8 @@ unsignedAddCarry {n} x y =
                (addLeMono 0 (unsigned x) 0 (unsigned y) (fst $ unsignedRange x) (fst $ unsignedRange y))
                (ltbLtTo (unsigned x + unsigned y) (modulus (S n)) (sym xym))
 
-unsignedAddEither : (x, y : BizMod2 n) -> Either (unsigned (x + y) = unsigned x + unsigned y) (unsigned (x + y) = unsigned x + unsigned y - modulus n)
+unsignedAddEither : (x, y : BizMod2 n) -> Either (unsigned (x + y) = unsigned x + unsigned y)
+                                                 (unsigned (x + y) = unsigned x + unsigned y - modulus n)
 unsignedAddEither {n} x y =
   rewrite unsignedAddCarry x y in
   rewrite unsignedZero n in
@@ -1273,8 +1275,8 @@ unsignedAddEither {n} x y =
 negRepr : (z : Biz) -> (n : Nat) -> -(repr z n) = repr (-z) n
 negRepr z n =
   sym $
-  eqmSamerepr (-z) (-unsigned (repr z n)) n $
-  eqmodNeg z (unsigned (repr z n)) (modulus n) $
+  eqmSamerepr (-z) (-(unsigned $ repr z n)) n $
+  eqmodNeg z (unsigned $ repr z n) (modulus n) $
   eqmUnsignedRepr z n
 
 negZero : (n : Nat) -> -repr 0 n = repr 0 n
@@ -1283,9 +1285,9 @@ negZero n = rewrite unsignedZero n in
 
 negInvolutive : (x : BizMod2 n) -> -(-x) = x
 negInvolutive {n} x =
-  eqmReprEq (-unsigned (repr (-unsigned x) n)) x $
-  eqmodTrans (-unsigned (repr (-unsigned x) n)) (-(-unsigned x)) (unsigned x) (modulus n)
-    (eqmodNeg (unsigned (repr (-unsigned x) n)) (-unsigned x) (modulus n) $
+  eqmReprEq (-(unsigned $ repr (-unsigned x) n)) x $
+  eqmodTrans (-(unsigned $ repr (-unsigned x) n)) (-(-unsigned x)) (unsigned x) (modulus n)
+    (eqmodNeg (unsigned $ repr (-unsigned x) n) (-unsigned x) (modulus n) $
      eqmUnsignedReprL (-unsigned x) (-unsigned x) n $
      eqmodRefl (-unsigned x) (modulus n))
     (eqmodRefl2 (-(-unsigned x)) (unsigned x) (modulus n) $
@@ -1293,12 +1295,102 @@ negInvolutive {n} x =
 
 negAddDistr : (x, y : BizMod2 n) -> -(x + y) = (-x) + (-y)
 negAddDistr x y =
-  eqmSamerepr (-unsigned (repr (unsigned x + unsigned y) n)) ((unsigned (repr (-unsigned x) n))+(unsigned (repr (-unsigned y) n))) n $
-  eqmodTrans (-unsigned (repr (unsigned x + unsigned y) n)) (-(unsigned x + unsigned y)) ((unsigned (repr (-unsigned x) n))+(unsigned (repr (-unsigned y) n))) (modulus n)
-    (eqmodNeg (unsigned (repr (unsigned x + unsigned y) n)) (unsigned x + unsigned y) (modulus n) $
-     eqmodSym (unsigned x + unsigned y) (unsigned (repr (unsigned x + unsigned y) n)) (modulus n) $
-     eqmUnsignedRepr (unsigned x + unsigned y) n)
+  eqmSamerepr (-(unsigned $ repr (unsigned x + unsigned y) n)) ((unsigned $ repr (-unsigned x) n)+(unsigned $ repr (-unsigned y) n)) n $
+  eqmodTrans (-(unsigned $ repr (unsigned x + unsigned y) n)) (-(unsigned x + unsigned y)) ((unsigned $ repr (-unsigned x) n)+(unsigned $ repr (-unsigned y) n)) (modulus n)
+    (eqmodNeg (unsigned $ repr (unsigned x + unsigned y) n) (unsigned x + unsigned y) (modulus n) $
+     eqmUnsignedRepr' (unsigned x + unsigned y) n)
     (rewrite oppAddDistr (unsigned x) (unsigned y) in
-     eqmodAdd (-unsigned x) (unsigned (repr (-unsigned x) n)) (-unsigned y) (unsigned (repr (-unsigned y) n)) (modulus n)
+     eqmodAdd (-unsigned x) (unsigned $ repr (-unsigned x) n) (-unsigned y) (unsigned $ repr (-unsigned y) n) (modulus n)
        (eqmUnsignedRepr (-unsigned x) n)
        (eqmUnsignedRepr (-unsigned y) n))
+
+-- Properties of multiplication
+
+mulComm : (x, y : BizMod2 n) -> x * y = y * x
+mulComm x y = rewrite mulComm (unsigned x) (unsigned y) in
+              Refl
+
+mul0R : (x : BizMod2 n) -> x * 0 = 0
+mul0R {n} x = rewrite unsignedZero n in
+              rewrite mul0R (unsigned x) in
+              Refl
+
+mul1R : (x : BizMod2 n) -> x * 1 = x
+mul1R {n = Z}   x = sym $ bizMod2P0 x
+mul1R {n = S _} x = rewrite mul1R (unsigned x) in
+                    reprUnsigned x
+
+mulM1R : (x : BizMod2 n) -> x * (-1) = -x
+mulM1R {n} x =
+  rewrite unsignedMone n in
+  eqmSamerepr ((unsigned x)*((modulus n)-1)) (-unsigned x) n $
+  rewrite mulAddDistrL (unsigned x) (modulus n) (-1) in
+  rewrite sym $ oppEqMulM1 (unsigned x) in
+  eqmodSub ((unsigned x)*(modulus n)) 0 (unsigned x) (unsigned x) (modulus n)
+    (unsigned x ** sym $ add0R ((unsigned x)*(modulus n)))
+    (eqmodRefl (unsigned x) (modulus n))
+
+mulAssoc : (x, y, z : BizMod2 n) -> x * (y * z) = x * y * z
+mulAssoc {n} x y z =
+  let ux = unsigned x
+      uy = unsigned y
+      uz = unsigned z in
+  eqmSamerepr (ux*(unsigned $ repr (uy*uz) n)) ((unsigned $ repr (ux*uy) n)*uz) n $
+  eqmodTrans (ux*(unsigned $ repr (uy*uz) n)) (ux*(uy*uz)) ((unsigned $ repr (ux*uy) n)*uz) (modulus n)
+    (eqmodMult ux ux (unsigned $ repr (uy*uz) n) (uy*uz) (modulus n)
+       (eqmodRefl ux (modulus n))
+       (eqmUnsignedRepr' (uy*uz) n))
+    (rewrite mulAssoc ux uy uz in
+     eqmodMult (ux*uy) (unsigned $ repr (ux*uy) n) uz uz (modulus n)
+       (eqmUnsignedRepr (ux*uy) n)
+       (eqmodRefl uz (modulus n)))
+
+mulAddDistrL : (x, y, z : BizMod2 n) -> x * (y + z) = x * y + x * z
+mulAddDistrL x y z =
+  let ux = unsigned x
+      uy = unsigned y
+      uz = unsigned z in
+  eqmSamerepr (ux*(unsigned $ repr (uy+uz) n)) ((unsigned $ repr (ux*uy) n)+(unsigned $ repr (ux*uz) n)) n $
+  eqmodTrans (ux*(unsigned $ repr (uy+uz) n)) (ux*(uy+uz)) ((unsigned $ repr (ux*uy) n)+(unsigned $ repr (ux*uz) n)) (modulus n)
+    (eqmodMult ux ux (unsigned $ repr (uy+uz) n) (uy+uz) (modulus n)
+      (eqmodRefl ux (modulus n))
+      (eqmUnsignedRepr' (uy+uz) n))
+    (rewrite mulAddDistrL ux uy uz in
+     eqmodAdd (ux*uy) (unsigned $ repr (ux*uy) n) (ux*uz) (unsigned $ repr (ux*uz) n) (modulus n)
+      (eqmUnsignedRepr (ux*uy) n)
+      (eqmUnsignedRepr (ux*uz) n))
+
+mulAddDistrR : (x, y, z : BizMod2 n) -> (x + y) * z = x * z + y * z
+mulAddDistrR x y z =
+  rewrite mulComm (x+y) z in
+  rewrite mulComm x z in
+  rewrite mulComm y z in
+  mulAddDistrL z x y
+
+mulNegL : (x, y : BizMod2 n) -> (-x) * y = -(x * y)
+mulNegL {n} x y =
+  let ux = unsigned x
+      uy = unsigned y in
+  eqmSamerepr ((unsigned $ repr (-ux) n)*uy) (-(unsigned $ repr (ux*uy) n)) n $
+  eqmodTrans ((unsigned $ repr (-ux) n)*uy) (-(ux*uy)) (-(unsigned $ repr (ux*uy) n)) (modulus n)
+    (rewrite sym $ mulOppL ux uy in
+     eqmodMult (unsigned $ repr (-ux) n) (-ux) uy uy (modulus n)
+       (eqmUnsignedRepr' (-ux) n)
+       (eqmodRefl uy (modulus n)))
+    (eqmodNeg (ux*uy) (unsigned $ repr (ux*uy) n) (modulus n) $
+     eqmUnsignedRepr (ux*uy) n)
+
+mulNegR : (x, y : BizMod2 n) -> x * (-y) = -(x * y)
+mulNegR x y =
+  rewrite mulComm x (-y) in
+  rewrite mulComm x y in
+  mulNegL y x
+
+mulSigned : (x, y : BizMod2 n) -> x * y = repr (signed x * signed y) n
+mulSigned {n} x y =
+  eqmSamerepr (unsigned x * unsigned y) (signed x * signed y) n $
+  eqmodMult (unsigned x) (signed x) (unsigned y) (signed y) (modulus n)
+    (eqmodSym (signed x) (unsigned x) (modulus n) $
+     eqmSignedUnsigned x)
+    (eqmodSym (signed y) (unsigned y) (modulus n) $
+     eqmSignedUnsigned y)
