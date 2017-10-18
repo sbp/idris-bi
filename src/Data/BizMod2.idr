@@ -958,8 +958,8 @@ mulAddDistrR1 n m = rewrite mulAddDistrR n 1 m in
                     Refl
 
 -- convenience lemma, look for other places to use it
-addCompareMonoTransferL : (a, b, c : Biz) -> a `compare` (b+c) = ((-b)+a) `compare` c
-addCompareMonoTransferL a b c =
+addCompareTransferL : (a, b, c : Biz) -> a `compare` (b+c) = ((-b)+a) `compare` c
+addCompareTransferL a b c =
   rewrite sym $ addCompareMonoL (-b) a (b+c) in
   rewrite addAssoc (-b) b c in
   rewrite addOppDiagL b in
@@ -984,7 +984,7 @@ signedRepr   (BizM a)  n    nz milex _     =
   in
   rewrite xm in
   rewrite unsignedRepr ((BizM a)+(modulus n)) n
-            (rewrite addCompareMonoTransferL 0 (modulus n) (BizM a) in
+            (rewrite addCompareTransferL 0 (modulus n) (BizM a) in
              leTrans (-(modulus n)) (-(halfModulus n)) (BizM a)
                (rewrite mhm in
                 rewrite sym $ compareOpp (halfModulus n) (2*(halfModulus n)) in
@@ -998,7 +998,7 @@ signedRepr   (BizM a)  n    nz milex _     =
              le1L a)
   in
   rewrite lebLeFro' (halfModulus n) ((modulus n)+(BizM a)) $
-            rewrite addCompareMonoTransferL (halfModulus n) (modulus n) (BizM a) in
+            rewrite addCompareTransferL (halfModulus n) (modulus n) (BizM a) in
             rewrite mhm in
             rewrite sym $ mulOppL 2 (halfModulus n) in
             rewrite sym $ mulAddDistrR1 (-2) (halfModulus n) in
@@ -1223,6 +1223,18 @@ addLeMono p q r s pleq rles =
       qrqs = replace {P = \x => Not (x=GT)} (sym $ addCompareMonoL q r s) rles in
   leTrans (p+r) (q+r) (q+s) prqr qrqs
 
+addLtLeMono : (p, q, r, s : Biz) -> p `Lt` q -> r `Le` s -> (p+r) `Lt` (q+s)
+addLtLeMono p q r s pltq rles =
+  let prqr = replace {P = \x => x=LT} (sym $ addCompareMonoR p q r) pltq
+      qrqs = replace {P = \x => Not (x=GT)} (sym $ addCompareMonoL q r s) rles in
+  ltLeTrans (p+r) (q+r) (q+s) prqr qrqs
+
+addLeLtMono : (p, q, r, s : Biz) -> p `Le` q -> r `Lt` s -> (p+r) `Lt` (q+s)
+addLeLtMono p q r s pleq rlts =
+  let prqr = replace {P = \x => Not (x=GT)} (sym $ addCompareMonoR p q r) pleq
+      qrqs = replace {P = \x => x=LT} (sym $ addCompareMonoL q r s) rlts in
+  leLtTrans (p+r) (q+r) (q+s) prqr qrqs
+
 unsignedAddCarry : (x, y : BizMod2 n) -> unsigned (x + y) = unsigned x + unsigned y - unsigned (addCarry x y 0) * (modulus n)
 unsignedAddCarry {n} x y =
   rewrite unsignedZero n in
@@ -1230,7 +1242,7 @@ unsignedAddCarry {n} x y =
   rewrite unsignedReprEq (unsigned x + unsigned y) n in
   aux n x y
   where
-  aux : (n : Nat) -> (x, y : BizMod2 n) -> (unsigned x + unsigned y) `bizMod` (modulus n) = (unsigned x + unsigned y) - unsigned (if (unsigned x + unsigned y) < (modulus n) then (repr 0 n) else (repr 1 n)) * (modulus n)
+  aux : (n : Nat) -> (x, y : BizMod2 n) -> (unsigned x + unsigned y) `bizMod` (modulus n) = unsigned x + unsigned y - (unsigned $ if unsigned x + unsigned y < modulus n then (repr 0 n) else (repr 1 n)) * (modulus n)
   aux  Z    x y =
     -- TODO after 2 `bizMod2P0`s this becomes `0 mod 1 = 0` but there's apparently a bug preventing those rewrites
     -- rewrite bizMod2P0 x in
@@ -1242,7 +1254,7 @@ unsignedAddCarry {n} x y =
                 (rewrite sym $ compareSubR (modulus (S n)) (unsigned x + unsigned y) in
                  mlexy)
                 (rewrite addComm (unsigned x + unsigned y) (-modulus (S n)) in
-                 rewrite sym $ addCompareMonoTransferL (unsigned x + unsigned y) (modulus (S n)) (modulus (S n)) in
+                 rewrite sym $ addCompareTransferL (unsigned x + unsigned y) (modulus (S n)) (modulus (S n)) in
                  addLtMono (unsigned x) (modulus (S n)) (unsigned y)  (modulus (S n)) (snd $ unsignedRange x) (snd $ unsignedRange y))
                 (rewrite addComm (unsigned x + unsigned y) (-modulus (S n)) in
                  rewrite addAssoc (modulus (S n)) (-modulus (S n)) (unsigned x + unsigned y) in
@@ -1261,8 +1273,9 @@ unsignedAddEither {n} x y =
   rewrite add0R (unsigned x + unsigned y) in
   aux n x y
   where
-  aux : (n : Nat) -> (x, y : BizMod2 n) -> let m = (unsigned (if (unsigned x + unsigned y) < (modulus n) then repr 0 n else repr 1 n))*(modulus n) in
-                                           Either (unsigned x + unsigned y - m = unsigned x + unsigned y) (unsigned x + unsigned y - m = unsigned x + unsigned y - modulus n)
+  aux : (n : Nat) -> (x, y : BizMod2 n) -> let m = (unsigned $ if unsigned x + unsigned y < modulus n then repr 0 n else repr 1 n)*(modulus n) in
+                                           Either (unsigned x + unsigned y - m = unsigned x + unsigned y)
+                                                  (unsigned x + unsigned y - m = unsigned x + unsigned y - modulus n)
   aux  Z    x y =
     -- TODO same bug as above
     -- rewrite bizMod2P0 x in
@@ -1366,6 +1379,43 @@ subSigned {n} x y =
   eqmSamerepr (unsigned x - unsigned y) (signed x - signed y) n $
   eqmodSub (unsigned x) (signed x) (unsigned y) (signed y) (modulus n)
     (eqmUnsignedSigned x) (eqmUnsignedSigned y)
+
+unsignedSubBorrow : (x, y : BizMod2 n) -> unsigned (x - y) = unsigned x - unsigned y + (unsigned $ subBorrow x y 0) * (modulus n)
+unsignedSubBorrow {n} x y =
+  rewrite unsignedZero n in
+  rewrite add0R (unsigned x - unsigned y) in
+  rewrite unsignedReprEq (unsigned x - unsigned y) n in
+  aux n x y
+  where
+  aux : (n : Nat) -> (x, y : BizMod2 n)
+     -> (unsigned x - unsigned y) `bizMod` (modulus n) = unsigned x - unsigned y + (unsigned $ if unsigned x - unsigned y < 0 then repr 1 n else repr 0 n) * (modulus n)
+  aux  Z    x y =
+    -- TODO same bug as in `unsignedAddCarry`
+    -- rewrite bizMod2P0 x in
+    -- rewrite bizMod2P0 y in
+      really_believe_me Z
+  aux (S n) x y with (unsigned x - unsigned y < 0) proof xy
+    | False = rewrite add0R (unsigned x - unsigned y) in
+              snd $ divModSmall (unsigned x - unsigned y) (modulus (S n))
+                (lebLeTo' 0 (unsigned x - unsigned y) (sym xy))
+                (addLtLeMono (unsigned x) (modulus (S n)) (-(unsigned y)) 0
+                            (snd $ unsignedRange x)
+                            (rewrite sym $ compareOpp 0 (unsigned y) in
+                             fst $ unsignedRange y))
+    | True = sym $ snd $ divModPos (unsigned x - unsigned y) (modulus (S n)) (-1) (unsigned x - unsigned y + modulus (S n))
+                (rewrite addComm (unsigned x - unsigned y) (modulus (S n)) in
+                 rewrite addCompareTransferL 0 (modulus (S n)) (unsigned x - unsigned y) in
+                 ltLeIncl (-(modulus (S n))) (unsigned x - unsigned y) $
+                 addLeLtMono 0 (unsigned x) (-(modulus (S n))) (-(unsigned y))
+                   (fst $ unsignedRange x)
+                   (rewrite sym $ compareOpp (unsigned y) (modulus (S n)) in
+                    snd $ unsignedRange y))
+                (rewrite addCompareMonoR (unsigned x - unsigned y) 0 (modulus (S n)) in
+                 ltbLtTo (unsigned x - unsigned y) 0 (sym xy))
+                (rewrite addComm (unsigned x - unsigned y) (modulus (S n)) in
+                 rewrite addAssoc (-(modulus (S n))) (modulus (S n)) (unsigned x - unsigned y) in
+                 rewrite addOppDiagL (modulus (S n)) in
+                 Refl)
 
 -- Properties of multiplication
 
