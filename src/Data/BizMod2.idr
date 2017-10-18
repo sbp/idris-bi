@@ -511,18 +511,18 @@ notbool x = if x == 0 then 1 else 0
 divmodu2 : (nhi, nlo, d : BizMod2 n) -> Maybe (BizMod2 n, BizMod2 n)
 divmodu2 {n} nhi nlo d =
   if d==0 then Nothing
-    else let
-        (q, r) = bizDivEuclid ((unsigned nhi) * (modulus n) + (unsigned nlo)) (unsigned d)
-      in
-        if q <= maxUnsigned n then Just (repr q n, repr r n) else Nothing
+    else let qr = bizDivEuclid ((unsigned nhi) * (modulus n) + (unsigned nlo)) (unsigned d)
+             q = fst qr
+             r = snd qr in
+         if q <= maxUnsigned n then Just (repr q n, repr r n) else Nothing
 
 divmods2 : (nhi, nlo, d : BizMod2 n) -> Maybe (BizMod2 n, BizMod2 n)
 divmods2 {n} nhi nlo d =
   if d==0 then Nothing
-    else let
-        (q, r) = bizQuotRem ((signed nhi) * (modulus n) + (unsigned nlo)) (signed d)
-      in
-        if minSigned n <= q && q <= maxSigned n then Just (repr q n, repr r n) else Nothing
+    else let qr = bizQuotRem ((signed nhi) * (modulus n) + (unsigned nlo)) (signed d)
+             q = fst qr
+             r = snd qr in
+         if minSigned n <= q && q <= maxSigned n then Just (repr q n, repr r n) else Nothing
 
 -- Properties of integers and integer arithmetic
 
@@ -654,13 +654,14 @@ maxSignedUnsigned (S k) =
 
 -- TODO add to Biz.Proofs
 
-mod1 : (x : Biz) -> x `bizMod` 1 = 0
-mod1 x = sym $ snd $ divModPos x 1 x 0 uninhabited Refl $
-                       rewrite mul1R x in
-                       sym $ add0R x
+divMod1 : (x : Biz) -> (x `bizDiv` 1 = x, x `bizMod` 1 = 0)
+divMod1 x = let (dprf, mprf) = divModPos x 1 x 0 uninhabited Refl $
+                                 rewrite mul1R x in
+                                 sym $ add0R x
+            in (sym dprf, sym mprf)
 
 unsignedReprEq : (x : Biz) -> (n : Nat) -> unsigned (repr x n) = x `bizMod` modulus n
-unsignedReprEq x  Z    = sym $ mod1 x
+unsignedReprEq x  Z    = sym $ snd $ divMod1 x
 unsignedReprEq x (S k) = bizMod2Eq x (S k)
 
 signedReprEq : (x : Biz) -> (n : Nat) -> let m = modulus n
@@ -1245,6 +1246,7 @@ unsignedAddCarry {n} x y =
   aux : (n : Nat) -> (x, y : BizMod2 n) -> (unsigned x + unsigned y) `bizMod` (modulus n) = unsigned x + unsigned y - (unsigned $ if unsigned x + unsigned y < modulus n then (repr 0 n) else (repr 1 n)) * (modulus n)
   aux  Z    x y =
     -- TODO after 2 `bizMod2P0`s this becomes `0 mod 1 = 0` but there's apparently a bug preventing those rewrites
+    -- TODO try `decEq n 0` instread of splitting
     -- rewrite bizMod2P0 x in
     -- rewrite bizMod2P0 y in
     really_believe_me Z
@@ -1417,6 +1419,13 @@ unsignedSubBorrow {n} x y =
                  rewrite addOppDiagL (modulus (S n)) in
                  Refl)
 
+addTransferL : (x, y, z : BizMod2 n) -> x = y+z -> z = x-y
+addTransferL x y z prf =
+  rewrite prf in
+  rewrite subAddL y z y in
+  rewrite subIdem y in
+  sym $ add0L z
+
 -- Properties of multiplication
 
 mulComm : (x, y : BizMod2 n) -> x * y = y * x
@@ -1531,3 +1540,103 @@ moduDivuEuclid {n} x y yz =
              (eqmodRefl uy (modulus n)))
           (eqmUnsignedRepr ((unsigned $ repr (ux `bizDiv` uy) n)*uy) n))
        (eqmUnsignedRepr (ux `bizMod` uy) n))
+
+moduDivu : (x, y : BizMod2 n) -> Not (y = 0) -> x `modu` y = x - ((x `divu` y)*y)
+moduDivu x y yz = addTransferL x ((x `divu` y)*y) (x `modu` y) $
+                  moduDivuEuclid x y yz
+
+modsDivsEuclid : (x, y : BizMod2 n) -> x = ((x `divs` y)*y)+(x `mods` y)
+modsDivsEuclid {n} x y =
+  let uy = unsigned y
+      sx = signed x
+      sy = signed y in
+  trans (sym $ reprSigned x) $
+  eqmSamerepr sx ((unsigned $ repr ((unsigned $ repr (sx `bizQuot` sy) n)*uy) n)+(unsigned $ repr (sx `bizRem` sy) n)) n $
+  eqmodTrans sx ((sx `bizQuot` sy)*sy + (sx `bizRem` sy))
+             ((unsigned $ repr ((unsigned $ repr (sx `bizQuot` sy) n)*uy) n)+(unsigned $ repr (sx `bizRem` sy) n))
+             (modulus n)
+    (eqmodRefl2 sx ((sx `bizQuot` sy)*sy + (sx `bizRem` sy)) (modulus n) $
+     quotremEq sx sy)
+    (eqmodAdd ((sx `bizQuot` sy)*sy) (unsigned $ repr ((unsigned $ repr (sx `bizQuot` sy) n)*uy) n)
+              (sx `bizRem` sy) (unsigned $ repr (sx `bizRem` sy) n)
+              (modulus n)
+       (eqmodTrans ((sx `bizQuot` sy)*sy) ((unsigned $ repr (sx `bizQuot` sy) n)*uy)
+                   (unsigned $ repr ((unsigned $ repr (sx `bizQuot` sy) n)*uy) n)
+                   (modulus n)
+          (eqmodMult (sx `bizQuot` sy) (unsigned $ repr (sx `bizQuot` sy) n) sy uy (modulus n)
+             (eqmUnsignedRepr (sx `bizQuot` sy) n)
+             (eqmSignedUnsigned y))
+          (eqmUnsignedRepr ((unsigned $ repr (sx `bizQuot` sy) n)*uy) n))
+       (eqmUnsignedRepr (sx `bizRem` sy) n))
+
+modsDivs : (x, y : BizMod2 n) -> x `mods` y = x - ((x `divs` y)*y)
+modsDivs x y = addTransferL x ((x `divs` y)*y) (x `mods` y) $
+               modsDivsEuclid x y
+
+divu1 : (x : BizMod2 n) -> x `divu` 1 = x
+divu1 {n=Z}   x = sym $ bizMod2P0 x
+divu1 {n=S n} x = rewrite fst $ divMod1 (unsigned x) in
+                  reprUnsigned x
+
+-- there are some weird problems if you just split n
+modu1 : (x : BizMod2 n) -> x `modu` 1 = 0
+modu1 {n} x with (decEq n 0)
+  | Yes z = rewrite z in
+            Refl
+  | No nz =
+    rewrite moduDivu x 1 (oneNotZero n nz) in
+    rewrite divu1 x in
+    rewrite mul1R x in
+    subIdem x
+
+-- TODO add to Bin.Proofs
+
+bipDivEuclid1R : (a : Bip) -> a `bipDivEuclid` 1 = (BinP a, BinO)
+bipDivEuclid1R  U    = Refl
+bipDivEuclid1R (O a) = rewrite bipDivEuclid1R a in
+                       Refl
+bipDivEuclid1R (I a) = rewrite bipDivEuclid1R a in
+                       Refl
+
+-- TODO add to Biz.Proofs
+
+remOppR : (a, b : Biz) -> a `bizRem` (-b) = a `bizRem` b
+remOppR  BizO     _       = Refl
+remOppR  _        BizO    = Refl
+remOppR (BizP _) (BizP _) = Refl
+remOppR (BizP _) (BizM _) = Refl
+remOppR (BizM _) (BizP _) = Refl
+remOppR (BizM _) (BizM _) = Refl
+
+quotOppR : (a, b : Biz) -> Not (b = 0) -> a `bizQuot` (-b) = -(a `bizQuot` b)
+quotOppR  BizO        _    _  = Refl
+quotOppR  _        BizO    bz = absurd $ bz Refl
+quotOppR (BizP _) (BizP _) _  = Refl
+quotOppR (BizP a) (BizM b) _  = sym $ oppInvolutive (toBizBin $ fst $ bipDivEuclid a (BinP b))
+quotOppR (BizM a) (BizP b) _  = sym $ oppInvolutive (toBizBin $ fst $ bipDivEuclid a (BinP b))
+quotOppR (BizM _) (BizM _) _  = Refl
+
+quot1R : (a : Biz) -> a `bizQuot` 1 = a
+quot1R  BizO    = Refl
+quot1R (BizP a) = rewrite bipDivEuclid1R a in
+                  Refl
+quot1R (BizM a) = rewrite bipDivEuclid1R a in
+                  Refl
+
+divsM1 : (x : BizMod2 n) -> x `divs` (-1) = -x
+divsM1 {n} x =
+  rewrite signedMone n in
+  rewrite quotOppR (signed x) 1 uninhabited in
+  rewrite quot1R (signed x) in
+  eqmSamerepr (-(signed x)) (-(unsigned x)) n $
+  eqmodNeg (signed x) (unsigned x) (modulus n) $
+  eqmSignedUnsigned x
+
+modsM1 : (x : BizMod2 n) -> x `mods` (-1) = 0
+modsM1 x =
+  rewrite modsDivs x (-1) in
+  rewrite divsM1 x in
+  rewrite mulNegL x (-1) in
+  rewrite mulM1R x in
+  rewrite negInvolutive x in
+  subIdem x
