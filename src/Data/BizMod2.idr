@@ -1693,7 +1693,8 @@ divmodu2DivuModu {n} nl d dz =
   aux x xz = rewrite sym $ unsignedZero n in
              xz . unsignedInj x 0
 
--- TODO the types resulting from normalization get so large that it doesn't seem realistic to prove manually in Idris
+-- TODO the normalized types explode so fast that it doesn't seem realistic to
+-- prove manually in current Idris (1.1.1)
 {-
 -- when n=0 the condition in divmods2 becomes 0 <= q <= -1 so this won't hold
 divmods2DivsMods : (nl, d : BizMod2 n) -> Not (n=0) -> Not (d = 0) -> Either (Not (nl = repr (minSigned n) n)) (Not (d = -1))
@@ -1702,7 +1703,68 @@ divmods2DivsMods {n} nl d nz dz nlord =
   rewrite neqbNeqFro (unsigned d) (unsigned $ repr 0 n) (dz . unsignedInj d 0) in
   rewrite unsignedZero n in
   rewrite ltbLtFro 0 (halfModulus n) $ halfModulusPos n nz in
+  rewrite aux nl nz in
   ?divmods2DivsMods
   where
   aux : (x : BizMod2 n) -> Not (n=0) -> signed (if x < 0 then -1 else 0) * (modulus n) + unsigned x = signed x
 -}
+
+-- Bit-level properties
+
+-- TODO add to Biz.Proofs ?
+-- Properties of bit-level operations over [Z]
+
+testbit1L : (n : Biz) -> bizTestBit 1 n = n == 0
+testbit1L  BizO    = Refl
+testbit1L (BizP _) = Refl
+testbit1L (BizM _) = Refl
+
+testbitM1L : (n : Biz) -> 0 `Le` n -> bizTestBit (-1) n = True
+testbitM1L  BizO    _    = Refl
+testbitM1L (BizP _) _    = Refl
+testbitM1L (BizM _) zlen = absurd $ zlen Refl
+
+zShiftinSpec : (b : Bool) -> (x : Biz) -> zShiftin b x = 2 * x + (if b then 1 else 0)
+zShiftinSpec False x = rewrite add0R (2*x) in
+                       doubleSpec x
+zShiftinSpec True x = succDoubleSpec x
+
+notDDPO : (x, y : Biz) -> Not (bizD x = bizDPO y)
+notDDPO  BizO     BizO    = uninhabited
+notDDPO  BizO    (BizP _) = uninhabited
+notDDPO  BizO    (BizM _) = uninhabited
+notDDPO (BizP _)  BizO    = uninhabited . bizPInj
+notDDPO (BizP _) (BizP _) = uninhabited . bizPInj
+notDDPO (BizP _) (BizM _) = uninhabited
+notDDPO (BizM _)  BizO    = uninhabited
+notDDPO (BizM _) (BizP _) = uninhabited
+notDDPO (BizM _) (BizM b) =
+  case succPredOr b of
+    Left bu => rewrite bu in
+               uninhabited . bizMInj
+    Right bs => rewrite sym bs in
+                rewrite predDoubleSucc (bipPred b) in
+                uninhabited . bizMInj
+
+zShiftinInj : (b1, b2 : Bool) -> (x1, x2 : Biz) -> zShiftin b1 x1 = zShiftin b2 x2 -> (b1 = b2, x1 = x2)
+zShiftinInj True  True  x1 x2 prf = (Refl,    prf
+                                           |> replace {P = \z => z = bizDPO x2} (succDoubleSpec x1)
+                                           |> replace {P = \z => 2*x1 + 1 = z} (succDoubleSpec x2)
+                                           |> addRegR 1 (2*x1) (2*x2)
+                                           |> mulRegL x1 x2 2 uninhabited)
+zShiftinInj True  False x1 x2 prf = absurd $ notDDPO x2 x1 (sym prf)
+zShiftinInj False True  x1 x2 prf = absurd $ notDDPO x1 x2 prf
+zShiftinInj False False x1 x2 prf = (Refl,    prf
+                                           |> replace {P = \z => z = bizD x2} (doubleSpec x1)
+                                           |> replace {P = \z => 2*x1 = z} (doubleSpec x2)
+                                           |> mulRegL x1 x2 2 uninhabited)
+
+zDecomp : (x : Biz) -> x = zShiftin (bizOdd x) (bizDivTwo x)
+zDecomp  BizO        = Refl
+zDecomp (BizP  U)    = Refl
+zDecomp (BizP (O _)) = Refl
+zDecomp (BizP (I _)) = Refl
+zDecomp (BizM  U)    = Refl
+zDecomp (BizM (O _)) = Refl
+zDecomp (BizM (I a)) = cong $ sym $ predDoubleSucc a
+
