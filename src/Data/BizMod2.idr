@@ -1692,3 +1692,17 @@ divmodu2DivuModu {n} nl d dz =
   aux : (x : BizMod2 n) -> Not (x = 0) -> Not (unsigned x = 0)
   aux x xz = rewrite sym $ unsignedZero n in
              xz . unsignedInj x 0
+
+-- TODO the types resulting from normalization get so large that it doesn't seem realistic to prove manually in Idris
+{-
+-- when n=0 the condition in divmods2 becomes 0 <= q <= -1 so this won't hold
+divmods2DivsMods : (nl, d : BizMod2 n) -> Not (n=0) -> Not (d = 0) -> Either (Not (nl = repr (minSigned n) n)) (Not (d = -1))
+                 -> divmods2 (if nl < 0 then -1 else 0) nl d = Just (nl `divs` d, nl `mods` d)
+divmods2DivsMods {n} nl d nz dz nlord =
+  rewrite neqbNeqFro (unsigned d) (unsigned $ repr 0 n) (dz . unsignedInj d 0) in
+  rewrite unsignedZero n in
+  rewrite ltbLtFro 0 (halfModulus n) $ halfModulusPos n nz in
+  ?divmods2DivsMods
+  where
+  aux : (x : BizMod2 n) -> Not (n=0) -> signed (if x < 0 then -1 else 0) * (modulus n) + unsigned x = signed x
+-}
