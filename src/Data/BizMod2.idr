@@ -5,6 +5,8 @@ import public Data.Bip.AddMul
 import public Data.Bip.IterPow
 import public Data.Bip.OrdSub
 
+import Data.Bin.Proofs
+
 import public Data.Biz
 import public Data.Biz.Proofs
 import public Data.Biz.Nat
@@ -2331,3 +2333,30 @@ bitsSigned {n} x i nz zlei =
             (rewrite sym $ compareSub (unsigned x) (modulus n) in
              snd $ unsignedRange x)
             nlei
+
+bitsLe : (x, y : BizMod2 n) -> ((i : Biz) -> 0 `Le` i -> i `Lt` toBizNat n -> testbit x i = True -> testbit y i = True) -> unsigned x `Le` unsigned y
+bitsLe {n} x y f =
+  zTestbitLe (unsigned x) (unsigned y) (fst $ unsignedRange y) $ \i, zlei, tbxt =>
+  case decEq (i `compare` toBizNat n) LT of
+    Yes iltn =>
+      f i zlei iltn tbxt
+    No igen =>
+      let tbxf = bitsAbove x i $ geLe i (toBizNat n) igen in
+      absurd $ trans (sym tbxt) tbxf
+
+-- Properties of bitwise and, or, xor
+
+bitsAnd : (x, y : BizMod2 n) -> (i : Biz) -> 0 `Le` i -> i `Lt` toBizNat n -> testbit (x `and` y) i = testbit x i && testbit y i
+bitsAnd {n} x y i zlei iltn =
+  rewrite testbitRepr n ((unsigned x) `bizAnd` (unsigned y)) i zlei iltn in
+  landSpec (unsigned x) (unsigned y) i
+
+bitsOr : (x, y : BizMod2 n) -> (i : Biz) -> 0 `Le` i -> i `Lt` toBizNat n -> testbit (x `or` y) i = testbit x i || testbit y i
+bitsOr {n} x y i zlei iltn =
+  rewrite testbitRepr n ((unsigned x) `bizOr` (unsigned y)) i zlei iltn in
+  lorSpec (unsigned x) (unsigned y) i
+
+bitsXor : (x, y : BizMod2 n) -> (i : Biz) -> 0 `Le` i -> i `Lt` toBizNat n -> testbit (x `xor` y) i = testbit x i `xor` testbit y i
+bitsXor {n} x y i zlei iltn =
+  rewrite testbitRepr n ((unsigned x) `bizXor` (unsigned y)) i zlei iltn in
+  lxorSpec (unsigned x) (unsigned y) i
