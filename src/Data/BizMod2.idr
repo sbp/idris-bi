@@ -2295,3 +2295,39 @@ signBitOfUnsigned {n=S n} x _  =
     rewrite sym $ add1R (toBipNatSucc n) in
     rewrite posSubAdd (toBipNatSucc n) 1 1 in
     Refl
+
+-- TODO add to Prelude.Interfaces?
+DecEq Ordering where
+  decEq LT LT = Yes Refl
+  decEq LT EQ = No uninhabited
+  decEq LT GT = No uninhabited
+  decEq EQ LT = No uninhabited
+  decEq EQ EQ = Yes Refl
+  decEq EQ GT = No uninhabited
+  decEq GT LT = No uninhabited
+  decEq GT EQ = No uninhabited
+  decEq GT GT = Yes Refl
+
+-- when `n=0` this becomes `bizTestBit (-1) i = False` which is wrong
+bitsSigned : (x : BizMod2 n) -> (i : Biz) -> Not (n=0) -> 0 `Le` i -> bizTestBit (signed x) i = testbit x (if i < toBizNat n then i else toBizNat n - 1)
+bitsSigned {n} x i nz zlei =
+  case decEq (i `compare` toBizNat n) LT of
+    Yes iltn =>
+      rewrite ltbLtFro i (toBizNat n) iltn in
+      sameBitsEqmod n (signed x) (unsigned x) i (eqmSignedUnsigned x) zlei iltn
+    No igen =>
+      let nlei = geLe i (toBizNat n) igen in
+      rewrite nltbLeFro (toBizNat n) i nlei in
+      rewrite signBitOfUnsigned x nz in
+      case decEq ((unsigned x) `compare` (halfModulus n)) LT of
+        Yes xltm2 =>
+          rewrite ltbLtFro (unsigned x) (halfModulus n) xltm2 in
+          bitsAbove x i nlei
+        No xgem2 =>
+          rewrite nltbLeFro (halfModulus n) (unsigned x) $ geLe (unsigned x) (halfModulus n) xgem2 in
+          zTestbitAboveNeg n (unsigned x - modulus n) i
+            (rewrite addCompareMonoR 0 (unsigned x) (-(modulus n)) in
+             fst $ unsignedRange x)
+            (rewrite sym $ compareSub (unsigned x) (modulus n) in
+             snd $ unsignedRange x)
+            nlei
