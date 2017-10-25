@@ -2125,6 +2125,7 @@ zTestbitAboveNeg n x i mmlex xlt0 nlei =
   rewrite trans notmxm1 mxm1false in
   Refl
 
+-- TODO reformulate RHS as `modulus n <= x`
 zSignBit : (n : Nat) -> (x : Biz) -> 0 `Le` x -> x `Lt` modulus (S n)
         -> bizTestBit x (toBizNat n) = if x < modulus n then False else True
 zSignBit  Z     BizO        _    _     = Refl
@@ -2244,3 +2245,53 @@ zTestbitLe x y zley =
           p2leq
     )
     y zley x
+
+-- Bit-level reasoning over type [int]
+
+testbit : (x : BizMod2 n) -> (i : Biz) -> Bool
+testbit x i = bizTestBit (unsigned x) i
+
+testbitRepr : (n : Nat) -> (x : Biz) -> (i : Biz) -> 0 `Le` i -> i `Lt` toBizNat n -> testbit (repr x n) i = bizTestBit x i
+testbitRepr n x i zlei iltn =
+  sameBitsEqmod n (unsigned (repr x n)) x i (eqmUnsignedRepr' x n) zlei iltn
+
+sameBitsEq : (x, y : BizMod2 n) -> ((i : Biz) -> 0 `Le` i -> i `Lt` toBizNat n -> testbit x i = testbit y i) -> x = y
+sameBitsEq {n} x y f =
+  rewrite sym $ reprUnsigned x in
+  rewrite sym $ reprUnsigned y in
+  eqmSamerepr (unsigned x) (unsigned y) n $
+  eqmodSameBits n (unsigned x) (unsigned y) f
+
+bitsAbove : (x : BizMod2 n) -> (i : Biz) -> toBizNat n `Le` i -> testbit x i = False
+bitsAbove {n} x i nlei =
+  let ur = unsignedRange x in
+  zTestbitAbove n (unsigned x) i (fst ur) (snd ur) nlei
+
+bitsZero : (i : Biz) -> testbit (repr 0 n) i = False
+bitsZero {n} i = rewrite unsignedZero n in
+                 testbit0L i
+
+bitsOne : (n : Nat) -> (i : Biz) -> Not (n=0) -> testbit (repr 1 n) i = i == 0
+bitsOne  Z    _ nz = absurd $ nz Refl
+bitsOne (S _) i _  = testbit1L i
+
+bitsMone : (n : Nat) -> (i : Biz) -> 0 `Le` i -> i `Lt` toBizNat n -> testbit (repr (-1) n) i = True
+bitsMone n i zlei iltn =
+  rewrite testbitRepr n (-1) i zlei iltn in
+  testbitM1L i zlei
+
+-- TODO reformulate RHS as `halfModulus n <= unsigned x`
+-- when `n=0` this becomes `bizTestBit 0 (-1) = True` which is wrong
+signBitOfUnsigned : (x : BizMod2 n) -> Not (n=0) -> testbit x (toBizNat n - 1) = if unsigned x < halfModulus n then False else True
+signBitOfUnsigned {n=Z}   _ nz = absurd $ nz Refl
+signBitOfUnsigned {n=S n} x _  =
+  rewrite aux n in
+  let ur = unsignedRange x in
+  zSignBit n (unsigned x) (fst ur) (snd ur)
+  where
+  aux : (n : Nat) -> bipMinusBiz (toBipNatSucc n) U = toBizNat n
+  aux  Z    = Refl
+  aux (S n) =
+    rewrite sym $ add1R (toBipNatSucc n) in
+    rewrite posSubAdd (toBipNatSucc n) 1 1 in
+    Refl
