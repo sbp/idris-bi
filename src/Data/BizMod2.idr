@@ -2396,6 +2396,12 @@ xorbAssoc True y z =
   rewrite notEq y z in
   Refl
 
+andbTrueIffTo : (a, b : Bool) -> a && b = True -> (a = True, b = True)
+andbTrueIffTo False False prf  = absurd prf
+andbTrueIffTo False True  prf  = absurd prf
+andbTrueIffTo True  False prf  = absurd prf
+andbTrueIffTo True  True  Refl = (Refl, Refl)
+
 bitsAnd : (x, y : BizMod2 n) -> (i : Biz) -> 0 `Le` i -> i `Lt` toBizNat n -> testbit (x `and` y) i = testbit x i && testbit y i
 bitsAnd {n} x y i zlei iltn =
   rewrite testbitRepr n ((unsigned x) `bizAnd` (unsigned y)) i zlei iltn in
@@ -2611,3 +2617,46 @@ xorZeroEqual x y prf =
   xorbFalseEqual False True  prf  = absurd prf
   xorbFalseEqual True  False prf  = absurd prf
   xorbFalseEqual True  True  Refl = Refl
+
+xorIsZero : (x, y : BizMod2 n) -> (x `xor` y) == 0 = x == y
+xorIsZero x y with ((x `xor` y)==0) proof xorzb
+  | False with (x==y) proof xyb
+    | False = Refl
+    | True = let xorz = replace {P = \z => if z then x `xor` y = 0 else Not (x `xor` y = 0)} (sym xorzb) (eqSpec (x `xor` y) 0)
+                 xy = replace {P = \z => if z then x = y else Not (x = y)} (sym xyb) (eqSpec x y)
+                 contra = xorz
+                       |> replace {P = \z => Not (z `xor` y = 0)} xy
+                       |> replace {P = \z => Not (z = 0)} (xorIdem y)
+             in
+             absurd $ contra Refl
+  | True =
+    let xorz = replace {P = \z => if z then x `xor` y = 0 else Not (x `xor` y = 0)} (sym xorzb) (eqSpec (x `xor` y) 0) in
+    rewrite xorZeroEqual x y xorz in
+    sym $ eqTrue y
+
+andXorDistrib : (x, y, z : BizMod2 n) -> x `and` (y `xor` z) = (x `and` y) `xor` (x `and` z)
+andXorDistrib x y z =
+  sameBitsEq (x `and` (y `xor` z)) ((x `and` y) `xor` (x `and` z)) $ \i, zlei, iltn =>
+  rewrite bitsAnd x (y `xor` z) i zlei iltn in
+  rewrite bitsXor y z i zlei iltn in
+  rewrite bitsXor (x `and` y) (x `and` z) i zlei iltn in
+  rewrite bitsAnd x y i zlei iltn in
+  rewrite bitsAnd x z i zlei iltn in
+  aux (testbit x i) (testbit y i) (testbit z i)
+  where
+  aux : (a, b, c : Bool) -> a && (b `xor` c) = (a && b) `xor` (a && c)
+  aux False _ _ = Refl
+  aux True  _ _ = Refl
+
+andLe : (x, y : BizMod2 n) -> unsigned (x `and` y) `Le` unsigned x
+andLe x y =
+  bitsLe (x `and` y) x $ \i, zlei, iltn, tbxy =>
+  let tbxtby = trans (sym $ bitsAnd x y i zlei iltn) tbxy in
+  fst $ andbTrueIffTo (testbit x i) (testbit y i) tbxtby
+
+orLe : (x, y : BizMod2 n) -> unsigned x `Le` unsigned (x `or` y)
+orLe x y =
+  bitsLe x (x `or` y) $ \i, zlei, iltn, tbx =>
+  rewrite bitsOr x y i zlei iltn in
+  rewrite tbx in
+  Refl
