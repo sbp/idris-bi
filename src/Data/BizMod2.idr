@@ -860,6 +860,10 @@ ltPredRFro n m nlepm =
   |> replace {P = \x => n `Lt` x} (sym $ addAssoc m (-1) 1)
   |> replace {P = \x => n `Lt` x} (add0R m)
 
+leSuccLTo : (p, q : Biz) -> bizSucc p `Le` q -> p `Lt` q
+leSuccLTo p q spleq =
+  trans (sym $ addCompareMonoR p q 1) (ltSuccRFro (bizSucc p) q spleq)
+
 leSuccLFro : (p, q : Biz) -> p `Lt` q -> bizSucc p `Le` q
 leSuccLFro p q pltq =
   ltSuccRTo (bizSucc p) q $
@@ -2742,3 +2746,56 @@ xorNotSelf {n} x =
   rewrite negRepr 1 n in	
   rewrite bitsMone n i zlei iltn in
   xorbNotSelf (testbit x i)
+
+unsignedNot : (x : BizMod2 n) -> unsigned (not x) = maxUnsigned n - unsigned x
+unsignedNot {n} x = trans aux1 aux2
+  where
+  aux1 : unsigned (not x) = unsigned (repr (-(unsigned x)-1) n)
+  aux1 =
+    cong {f=unsigned} $ sameBitsEq (not x) (repr (-(unsigned x)-1) n) $ \i, zlei, iltn =>
+    rewrite bitsNot x i zlei iltn in
+    rewrite testbitRepr n (-(unsigned x)-1) i zlei iltn in
+    sym $ zOneComplement i (unsigned x) zlei
+  aux2 : unsigned (repr (-(unsigned x)-1) n) = maxUnsigned n - unsigned x
+  aux2 =
+    rewrite unsignedReprEq (-(unsigned x)-1) n in
+    sym $ snd $ divModPos (-(unsigned x)-1) (modulus n) (-1) (maxUnsigned n - unsigned x)
+      (rewrite sym $ compareSubR (unsigned x) (maxUnsigned n) in
+       ltPredRTo (unsigned x) (modulus n) (snd $ unsignedRange x))
+      (rewrite sym $ addAssoc (modulus n) (-1) (-(unsigned x)) in
+       rewrite addCompareMonoL (modulus n) (-1-(unsigned x)) 0 in
+       rewrite sym $ compareSub (-1) (unsigned x) in
+       leSuccLTo (-1) (unsigned x) (fst $ unsignedRange x))
+      (rewrite sym $ addAssoc (modulus n) (-1) (-(unsigned x)) in
+       rewrite addAssoc (-(modulus n)) (modulus n) (-1-(unsigned x)) in
+       rewrite posSubDiag (twoPowerNat n) in
+       addComm (-(unsigned x)) (-1))
+
+notNeg : (x : BizMod2 n) -> not x = -x-1
+notNeg {n} x =
+  case decEq n 0 of
+    Yes nz => rewrite nz in
+              Refl
+    No nnz =>
+      sameBitsEq (not x) (-x-1) $ \i, zlei, iltn =>
+      rewrite bitsNot x i zlei iltn in
+      rewrite testbitRepr n ((unsigned $ repr (-(unsigned x)) n) - (unsigned $ repr 1 n)) i zlei iltn in
+      trans (aux1 i zlei) (aux2 i zlei iltn nnz)
+  where
+  aux : (n : Nat) -> Not (n=0) -> U `Lt` twoPowerNat n
+  aux  Z    nz = absurd $ nz Refl
+  aux (S _) _  = Refl
+  aux1 : (i : Biz) -> 0 `Le` i -> not (bizTestBit (unsigned x) i) = bizTestBit (-(unsigned x)-1) i
+  aux1 i zlei = sym $ zOneComplement i (unsigned x) zlei
+  aux2 : (i : Biz) -> 0 `Le` i -> i `Lt` toBizNat n -> Not (n=0)
+      -> bizTestBit (-(unsigned x)-1) i = bizTestBit ((unsigned $ repr (-(unsigned x)) n) - (unsigned $ repr 1 n)) i
+  aux2 i zlei iltn nnz =
+    sameBitsEqmod n (-(unsigned x)-1) ((unsigned $ repr (-(unsigned x)) n) - (unsigned $ repr 1 n)) i
+      (eqmodAdd (-(unsigned x)) (unsigned $ repr (-(unsigned x)) n) (-1) (-(unsigned $ repr 1 n)) (modulus n)
+         (eqmUnsignedRepr (-(unsigned x)) n)
+         (rewrite unsignedRepr 1 n uninhabited $
+                  ltPredRTo 1 (modulus n) (aux n nnz)
+          in
+          eqmodRefl (-1) (modulus n))
+      )
+      zlei iltn
