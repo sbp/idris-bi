@@ -2371,6 +2371,31 @@ orbIdem : (b : Bool) -> b || b = b
 orbIdem False = Refl
 orbIdem True = Refl
 
+andbOrbDistribR : (b1, b2, b3 : Bool) -> b1 && (b2 || b3) = (b1 && b2) || (b1 && b3)
+andbOrbDistribR False b2 b3 = Refl
+andbOrbDistribR True  b2 b3 = Refl
+
+orbAndbDistribR : (b1, b2, b3 : Bool) -> b1 || (b2 && b3) = (b1 || b2) && (b1 || b3)
+orbAndbDistribR False _ _ = Refl
+orbAndbDistribR True  _ _ = Refl
+
+notEq : (a, b : Bool) -> (not a) == b = a /= b
+notEq False False = Refl
+notEq False True  = Refl
+notEq True  False = Refl
+notEq True  True  = Refl
+
+xorbAssoc : (x, y, z : Bool) -> (x `xor` y) `xor` z = x `xor` (y `xor` z)
+xorbAssoc False y z =
+  rewrite xorFalse y in
+  rewrite xorFalse (y `xor` z) in
+  Refl
+xorbAssoc True y z =
+  rewrite xorTrue y in
+  rewrite xorTrue (y `xor` z) in
+  rewrite notEq y z in
+  Refl
+
 bitsAnd : (x, y : BizMod2 n) -> (i : Biz) -> 0 `Le` i -> i `Lt` toBizNat n -> testbit (x `and` y) i = testbit x i && testbit y i
 bitsAnd {n} x y i zlei iltn =
   rewrite testbitRepr n ((unsigned x) `bizAnd` (unsigned y)) i zlei iltn in
@@ -2479,3 +2504,110 @@ orIdem x =
   sameBitsEq (x `or` x) x $ \i, zlei, iltn =>
   rewrite bitsOr x x i zlei iltn in
   orbIdem (testbit x i)
+
+andOrDistrib : (x, y, z : BizMod2 n) -> x `and` (y `or` z) = (x `and` y) `or` (x `and` z)
+andOrDistrib x y z =
+  sameBitsEq (x `and` (y `or` z)) ((x `and` y) `or` (x `and` z)) $ \i, zlei, iltn =>
+  rewrite bitsAnd x (y `or` z) i zlei iltn in
+  rewrite bitsOr y z i zlei iltn in
+  rewrite bitsOr (x `and` y) (x `and` z) i zlei iltn in
+  rewrite bitsAnd x y i zlei iltn in
+  rewrite bitsAnd x z i zlei iltn in
+  andbOrbDistribR (testbit x i) (testbit y i) (testbit z i)
+
+andOrDistribL : (x, y, z : BizMod2 n) -> (x `or` y) `and` z = (x `and` z) `or` (y `and` z)
+andOrDistribL x y z =
+  rewrite andCommut (x `or` y) z in
+  rewrite andCommut x z in
+  rewrite andCommut y z in
+  andOrDistrib z x y
+
+orAndDistrib : (x, y, z : BizMod2 n) -> x `or` (y `and` z) = (x `or` y) `and` (x `or` z)
+orAndDistrib x y z =
+  sameBitsEq (x `or` (y `and` z)) ((x `or` y) `and` (x `or` z)) $ \i, zlei, iltn =>
+  rewrite bitsOr x (y `and` z) i zlei iltn in
+  rewrite bitsAnd y z i zlei iltn in
+  rewrite bitsAnd (x `or` y) (x `or` z) i zlei iltn in
+  rewrite bitsOr x y i zlei iltn in
+  rewrite bitsOr x z i zlei iltn in
+  orbAndbDistribR (testbit x i) (testbit y i) (testbit z i)
+
+orAndDistribL : (x, y, z : BizMod2 n) -> (x `and` y) `or` z = (x `or` z) `and` (y `or` z)
+orAndDistribL x y z =
+  rewrite orCommut (x `and` y) z in
+  rewrite orCommut x z in
+  rewrite orCommut y z in
+  orAndDistrib z x y
+
+andOrAbsorb : (x, y : BizMod2 n) -> x `and` (x `or` y) = x
+andOrAbsorb x y =
+  sameBitsEq (x `and` (x `or` y)) x $ \i, zlei, iltn =>
+  rewrite bitsAnd x (x `or` y) i zlei iltn in
+  rewrite bitsOr x y i zlei iltn in
+  aux (testbit x i) (testbit y i)
+  where
+  aux : (a, b : Bool) -> a && (a || b) = a
+  aux False _ = Refl
+  aux True  _ = Refl
+
+orAndAbsorb : (x, y : BizMod2 n) -> x `or` (x `and` y) = x
+orAndAbsorb x y =
+  sameBitsEq (x `or` (x `and` y)) x $ \i, zlei, iltn =>
+  rewrite bitsOr x (x `and` y) i zlei iltn in
+  rewrite bitsAnd x y i zlei iltn in
+  aux (testbit x i) (testbit y i)
+  where
+  aux : (a, b : Bool) -> a || (a && b) = a
+  aux False _ = Refl
+  aux True  _ = Refl
+
+xorCommut : (x, y : BizMod2 n) -> x `xor` y = y `xor` x
+xorCommut x y =
+  sameBitsEq (x `xor` y) (y `xor` x) $ \i, zlei, iltn =>
+  rewrite bitsXor x y i zlei iltn in
+  rewrite bitsXor y x i zlei iltn in
+  xorComm (testbit x i) (testbit y i)
+
+xorAssoc : (x, y, z : BizMod2 n) -> (x `xor` y) `xor` z = x `xor` (y `xor` z)
+xorAssoc x y z =
+  sameBitsEq ((x `xor` y) `xor` z) (x `xor` (y `xor` z)) $ \i, zlei, iltn =>
+  rewrite bitsXor (x `xor` y) z i zlei iltn in
+  rewrite bitsXor x y i zlei iltn in
+  rewrite bitsXor x (y `xor` z) i zlei iltn in
+  rewrite bitsXor y z i zlei iltn in
+  xorbAssoc (testbit x i) (testbit y i) (testbit z i)
+
+xorZeroL : (x : BizMod2 n) -> 0 `xor` x = x
+xorZeroL x =
+  sameBitsEq (0 `xor` x) x $ \i, zlei, iltn =>
+  rewrite bitsXor 0 x i zlei iltn in
+  rewrite bitsZero {n} i in
+  xorFalse (testbit x i)
+
+xorZero : (x : BizMod2 n) -> x `xor` 0 = x
+xorZero {n} x =
+  rewrite xorCommut x 0 in
+  xorZeroL x
+
+xorIdem : (x : BizMod2 n) -> x `xor` x = 0
+xorIdem x =
+  sameBitsEq (x `xor` x) 0 $ \i, zlei, iltn =>
+  rewrite bitsXor x x i zlei iltn in
+  rewrite bitsZero {n} i in
+  xorDiag (testbit x i)
+
+xorZeroEqual : (x, y : BizMod2 n) -> x `xor` y = 0 -> x = y
+xorZeroEqual x y prf =
+  sameBitsEq x y $ \i, zlei, iltn =>
+  xorbFalseEqual (testbit x i) (testbit y i) $ aux i zlei iltn
+  where
+  aux : (i : Biz) -> 0 `Le` i -> i `Lt` toBizNat n -> testbit x i `xor` testbit y i = False
+  aux i zlei iltn =
+    rewrite sym $ bitsXor x y i zlei iltn in
+    rewrite prf in
+    bitsZero i
+  xorbFalseEqual : (a, b : Bool) -> a `xor` b = False -> a = b
+  xorbFalseEqual False False Refl = Refl
+  xorbFalseEqual False True  prf  = absurd prf
+  xorbFalseEqual True  False prf  = absurd prf
+  xorbFalseEqual True  True  Refl = Refl
