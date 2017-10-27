@@ -2771,7 +2771,7 @@ unsignedNot {n} x = trans aux1 aux2
        rewrite posSubDiag (twoPowerNat n) in
        addComm (-(unsigned x)) (-1))
 
-notNeg : (x : BizMod2 n) -> not x = -x-1
+notNeg : (x : BizMod2 n) -> not x = (-x)-1
 notNeg {n} x =
   case decEq n 0 of
     Yes nz => rewrite nz in
@@ -2799,3 +2799,21 @@ notNeg {n} x =
           eqmodRefl (-1) (modulus n))
       )
       zlei iltn
+
+negNot : (x : BizMod2 n) -> -x = (not x) + 1
+negNot {n} x =
+  rewrite notNeg x in
+  rewrite subAddNeg (-x) 1 in
+  rewrite sym $ addAssoc (-x) (-1) 1 in
+  rewrite negRepr 1 n in	                       -- a lot of ceremony just to prove (-1)+1=0 :(
+  rewrite addComm (repr (-1) n) (repr 1 n) in
+  rewrite sym $ negRepr 1 n in	
+  rewrite sym $ subAddNeg (repr 1 n) (repr 1 n) in
+  rewrite subIdem (repr 1 n) in
+  sym $ add0R (-x)
+
+subAddNot : (x, y : BizMod2 n) -> x - y = (x + (not y)) + 1
+subAddNot x y =
+  rewrite subAddNeg x y in
+  rewrite negNot y in
+  addAssoc x (not y) 1
