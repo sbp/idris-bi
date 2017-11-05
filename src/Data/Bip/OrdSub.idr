@@ -192,7 +192,7 @@ subMaskNegFro p _ (r ** prf) = rewrite sym prf in
 -- eqb_eq
 -- TODO split into `to` and `fro`
 
-eqbEqTo : (p, q : Bip) -> (p == q = True) -> p=q
+eqbEqTo : (p, q : Bip) -> p == q = True -> p = q
 eqbEqTo  U     U    Refl = Refl
 eqbEqTo  U    (O _) Refl impossible
 eqbEqTo  U    (I _) Refl impossible
@@ -205,7 +205,7 @@ eqbEqTo (I _) (O _) Refl impossible
 eqbEqTo (I a) (I b) prf  = rewrite eqbEqTo a b prf in
                            Refl
 
-eqbEqFro : (p, q : Bip) -> p=q -> (p == q = True)
+eqbEqFro : (p, q : Bip) -> p = q -> p == q = True
 eqbEqFro  U     U    Refl = Refl
 eqbEqFro  U    (O _) Refl impossible
 eqbEqFro  U    (I _) Refl impossible
@@ -715,7 +715,7 @@ ltSuccRFro p q pleq = aux $ compareSuccR p q
 
 -- lt_succ_diag_r
 
-ltSuccDiagR : (p : Bip) -> p `Lt` (bipSucc p)
+ltSuccDiagR : (p : Bip) -> p `Lt` bipSucc p
 ltSuccDiagR p = ltIffAddFro p (bipSucc p) (U**add1R p)
 
 -- compare_succ_succ
