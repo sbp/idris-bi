@@ -615,14 +615,14 @@ ltbLtFro _ _ nltm = rewrite nltm in
 
 -- TODO split into `to` and `fro`
 
-lebLeTo : (n, m : Biz) -> n > m = False -> n `Le` m
-lebLeTo n m prf nm with (n `compare` m)
+ngtbLeTo : (n, m : Biz) -> n > m = False -> n `Le` m
+ngtbLeTo n m prf nm with (n `compare` m)
   | LT = absurd nm
   | EQ = absurd nm
   | GT = absurd prf
 
-lebLeFro : (n, m : Biz) -> n `Le` m -> n > m = False
-lebLeFro n m nlem with (n `compare` m)
+ngtbLeFro : (n, m : Biz) -> n `Le` m -> n > m = False
+ngtbLeFro n m nlem with (n `compare` m)
   | LT = Refl
   | EQ = Refl
   | GT = absurd $ nlem Refl
