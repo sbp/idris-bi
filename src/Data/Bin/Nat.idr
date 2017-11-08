@@ -1,11 +1,14 @@
 module Data.Bin.Nat
 
+import Data.Util
+
 import Data.Bip.AddMul
 import Data.Bip.OrdSub
 import Data.Bip.Nat
 
 import Data.Bin
-import Data.Bin.Proofs
+import Data.Bin.AddSubMul
+import Data.Bin.Ord
 
 %access public export
 %default total
@@ -112,11 +115,6 @@ toNatInjSub (BinP a) (BinP b) =
                               cong $ minusPlus k j prf
 
 -- inj_pred
-
--- TODO add to Prelude.Nat ?
-predOfMinus : (n : Nat) -> pred n = n `minus` 1
-predOfMinus  Z    = Refl
-predOfMinus (S k) = sym $ minusZeroRight k
 
 toNatInjPred : (a : Bin) -> toNatBin (binPred a) = pred (toNatBin a)
 toNatInjPred a = rewrite predOfMinus (toNatBin a) in

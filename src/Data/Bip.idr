@@ -470,7 +470,7 @@ integerParity n =
       else Odd
 
 mutual
-  -- Helper for bipGGCDN, to work around #4001
+  -- Helper for fromIntegerBip, to work around #4001
   fromIntegerBipHelp : Integer -> Parity -> Bip
   fromIntegerBipHelp x Even = O (fromIntegerBip x)
   fromIntegerBipHelp x Odd  = I (fromIntegerBip x)

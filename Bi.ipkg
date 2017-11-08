@@ -5,19 +5,30 @@ modules = Data.Bi
 
         , Data.Bip
         , Data.Bip.AddMul
-        , Data.Bip.IterPow
+        , Data.Bip.Iter
         , Data.Bip.OrdSub
-        , Data.Bip.SqrtDiv
+        , Data.Bip.PowSqrt
+        , Data.Bip.Div
         , Data.Bip.Nat
         , Data.Bip.Compat
         , Data.Bip.ProofsPruv
 
         , Data.Bin
-        , Data.Bin.Proofs
+        , Data.Bin.AddSubMul
+        , Data.Bin.Bitwise
+        , Data.Bin.Iter
+        , Data.Bin.Ord
+        , Data.Bin.PowSqrt
+        , Data.Bin.DivMod
         , Data.Bin.Nat
 
         , Data.Biz
-        , Data.Biz.Proofs
+        , Data.Biz.AddSubMul
+        , Data.Biz.Bitwise
+        , Data.Biz.Iter
+        , Data.Biz.Ord
+        , Data.Biz.PowSqrt
+        , Data.Biz.DivMod
         , Data.Biz.Nat
 
         , Data.BizMod2

@@ -442,16 +442,21 @@ fromIntegerBiz n =
     then BizP (fromIntegerBip n)
     else BizM (fromIntegerBip (-n))
 
+-- TODO something faster
+toIntegerBiz : Biz -> Integer
+toIntegerBiz  BizO    = 0
+toIntegerBiz (BizP a) = cast {to=Integer} $ toNatBip a
+toIntegerBiz (BizM a) = -(cast {to=Integer} $ toNatBip a)
 Eq Biz where
-   BizO     ==  BizO    = True
-   BizO     == (BizP _) = False
-   BizO     == (BizM _) = False
-   (BizP _) ==  BizO    = False
-   (BizM _) ==  BizO    = False
-   (BizM _) == (BizP _) = False
-   (BizP _) == (BizM _) = False
-   (BizP a) == (BizP b) = a == b
-   (BizM a) == (BizM b) = a == b
+  BizO     ==  BizO    = True
+  BizO     == (BizP _) = False
+  BizO     == (BizM _) = False
+  (BizP _) ==  BizO    = False
+  (BizM _) ==  BizO    = False
+  (BizM _) == (BizP _) = False
+  (BizP _) == (BizM _) = False
+  (BizP a) == (BizP b) = a == b
+  (BizM a) == (BizM b) = a == b
 
 Cast Nat Biz where
   cast = toBizNat
@@ -459,11 +464,12 @@ Cast Nat Biz where
 Cast Biz Nat where
   cast = toNatBiz
 
+-- TODO something better
 Cast Biz Int where
-  cast = (cast {to=Int}) . toNatBiz
+  cast = (cast {to=Int}) . (cast {to=String}) . toIntegerBiz
 
 Cast Biz Integer where
-  cast = (cast {to=Integer}) . toNatBiz
+  cast = toIntegerBiz
 
 Cast Biz Bip where
   cast = toBipBiz

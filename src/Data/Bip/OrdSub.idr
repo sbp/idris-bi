@@ -1,8 +1,10 @@
 module Data.Bip.OrdSub
 
+import Data.Util
+
 import Data.Bip
 import Data.Bip.AddMul
-import Data.Bip.IterPow
+import Data.Bip.Iter
 
 %access public export
 %default total
@@ -240,26 +242,6 @@ ltbLtTo p q prf with (p `compare` q)
 ltbLtFro : (p, q : Bip) -> p `Lt` q -> p < q = True
 ltbLtFro _ _ pltq = rewrite pltq in Refl
 
--- TODO add to Prelude.Interfaces ?
-
-Uninhabited (LT = EQ) where
-  uninhabited Refl impossible
-
-Uninhabited (EQ = LT) where
-  uninhabited Refl impossible
-
-Uninhabited (LT = GT) where
-  uninhabited Refl impossible
-
-Uninhabited (GT = LT) where
-  uninhabited Refl impossible
-
-Uninhabited (GT = EQ) where
-  uninhabited Refl impossible
-
-Uninhabited (EQ = GT) where
-  uninhabited Refl impossible
-
 -- leb_le
 -- TODO split into `to` and `fro`
 
@@ -274,14 +256,6 @@ lebLeFro p q pleq with (p `compare` q)
   | LT = Refl
   | EQ = Refl
   | GT = absurd $ pleq Refl
-
--- switch_Eq
--- TODO use `thenCompare`?
-
-switchEq : (c, c' : Ordering) -> Ordering
-switchEq _ LT = LT
-switchEq c EQ = c
-switchEq _ GT = GT
 
 mutual
   compLtNotEq : (p, q : Bip) -> Not (bipCompare p q LT = EQ)
@@ -532,23 +506,6 @@ compareContRefl : (p : Bip) -> (c : Ordering) -> bipCompare p p c = c
 compareContRefl  U    c = Refl
 compareContRefl (O a) c = compareContRefl a c
 compareContRefl (I a) c = compareContRefl a c
-
--- TODO add to Prelude.Interfaces ?
-compareOp : Ordering -> Ordering
-compareOp LT = GT
-compareOp EQ = EQ
-compareOp GT = LT
-
-compareOpInj : (o1, o2 : Ordering) -> compareOp o1 = compareOp o2 -> o1 = o2
-compareOpInj LT LT Refl = Refl
-compareOpInj LT EQ Refl impossible
-compareOpInj LT GT Refl impossible
-compareOpInj EQ LT Refl impossible
-compareOpInj EQ EQ Refl = Refl
-compareOpInj EQ GT Refl impossible
-compareOpInj GT LT Refl impossible
-compareOpInj GT EQ Refl impossible
-compareOpInj GT GT Refl = Refl
 
 -- compare_cont_antisym
 
@@ -1066,24 +1023,6 @@ ltNotAddL p q pqltp =
       pltp = ltTrans p (p+q) p pltpq pqltp in
     ltNotSelf p pltp
 
--- pow_gt_1
-
-powGt1 : (p, q : Bip) -> U `Lt` p -> U `Lt` bipPow p q
-powGt1 p q ultp =
-  peanoRect
-    (\x => U `Lt` bipPow p x)
-    (replace (sym $ pow1R p) ultp)
-    (\r,ultpr =>
-       let pultppr = mulLtMonoLTo p U (bipPow p r) ultpr
-           pultpsr = replace {P=\x=>(p*U) `Lt` x}
-                             (sym $ powSuccR p r) pultppr
-           pltpsr = replace {P=\x=>x `Lt` (bipPow p $ bipSucc r)}
-                            (mul1R p) pultpsr
-       in
-         ltTrans U p (bipPow p (bipSucc r)) ultp pltpsr
-    )
-    q
-
 -- sub_1_r
 
 sub1R : (p : Bip) -> p - U = bipPred p
@@ -1339,26 +1278,6 @@ sizeNatMonotone (O a) (I b) pltq = LTESucc aux
 sizeNatMonotone (I a) (O b) pltq = LTESucc $ sizeNatMonotone a b $
                                              compareContGtLtTo a b pltq
 sizeNatMonotone (I a) (I b) pltq = LTESucc $ sizeNatMonotone a b pltq
-
---  size_gt
-
-sizeGt : (p : Bip) -> p `Lt` bipPow 2 (bipDigits p)
-sizeGt  U    = Refl
-sizeGt (O a) = rewrite powSuccR 2 (bipDigits a) in
-               sizeGt a
-sizeGt (I a) = rewrite powSuccR 2 (bipDigits a) in
-               compareContGtLtFro a (bipPow 2 (bipDigits a)) (sizeGt a)
-
--- size_le
-
-sizeLe : (p : Bip) -> bipPow 2 (bipDigits p) `Le` O p
-sizeLe  U    = uninhabited
-sizeLe (O a) = rewrite powSuccR 2 (bipDigits a) in
-               sizeLe a
-sizeLe (I a) = rewrite powSuccR 2 (bipDigits a) in
-               leTrans (bipPow 2 (bipDigits a)) (O a) (I a)
-                 (sizeLe a) (rewrite compareContRefl a LT in
-                             uninhabited)
 
 -- max_l
 
