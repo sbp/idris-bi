@@ -589,11 +589,6 @@ bizDPOLinearD n m = rewrite addComm (bizDPO n) (bizD m) in
 
 -- add_reg_l
 
--- TODO import Control.Pipeline from contrib
-infixl 9 |>
-(|>) : a -> (a -> b) -> b
-a |> f = f a
-
 addRegR : (n, m, p : Biz) -> m + n = p + n -> m = p
 addRegR n m p prf =
      cong {f=\x=>x-n} prf

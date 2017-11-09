@@ -32,5 +32,9 @@ modules = Data.Bi
         , Data.Biz.Nat
 
         , Data.BizMod2
+        , Data.BizMod2.Core
+        , Data.BizMod2.AddSubMul
+        , Data.BizMod2.DivMod
+        , Data.BizMod2.Bitwise
 
 opts = "-p pruviloj"

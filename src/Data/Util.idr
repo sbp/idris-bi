@@ -6,6 +6,11 @@ module Data.Util
 %hide Prelude.Nat.GT
 %hide Prelude.Nat.LT
 
+-- TODO import Control.Pipeline from contrib
+infixl 9 |>
+(|>) : a -> (a -> b) -> b
+a |> f = f a
+
 -------- Comparison properties ----
 
 ------ TODO add to Prelude.Interfaces
