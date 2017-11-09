@@ -3,6 +3,7 @@ module Data.Biz.Ord
 import Data.Util
 
 import Data.Bip.AddMul
+import Data.Bip.Iter
 import Data.Bip.OrdSub
 
 import Data.Biz
@@ -39,6 +40,15 @@ eqbEqFro (BizP _) (BizM _) = absurd
 eqbEqFro (BizM _)  BizO    = absurd
 eqbEqFro (BizM _) (BizP _) = absurd
 eqbEqFro (BizM a) (BizM b) = eqbEqFro a b . bizMInj
+
+neqbNeqTo : (n, m : Biz) -> n == m = False -> Not (n = m)
+neqbNeqTo n m neq nm =
+  absurd $ replace {P = \x => x = False} (eqbEqFro n m nm) neq
+
+neqbNeqFro : (n, m : Biz) -> Not (n = m) -> n == m = False
+neqbNeqFro n m neq with (n == m) proof nm
+  | False = Refl
+  | True  = absurd $ neq $ eqbEqTo n m $ sym nm
 
 Lt : (x, y : Biz) -> Type
 Lt x y = x `compare` y = LT
@@ -113,6 +123,19 @@ compareEqIffFro (BizM _)  BizO    = absurd
 compareEqIffFro (BizM _) (BizP _) = absurd
 compareEqIffFro (BizM a) (BizM b) = compareEqIffFro b a . bizMInj . sym
 
+-- compare_antisym
+
+compareAntisym : (n, m : Biz) -> m `compare` n = compareOp (n `compare` m)
+compareAntisym  BizO     BizO    = Refl
+compareAntisym  BizO    (BizP _) = Refl
+compareAntisym  BizO    (BizM _) = Refl
+compareAntisym (BizP _)  BizO    = Refl
+compareAntisym (BizP a) (BizP b) = compareAntisym a b
+compareAntisym (BizP _) (BizM _) = Refl
+compareAntisym (BizM _)  BizO    = Refl
+compareAntisym (BizM _) (BizP _) = Refl
+compareAntisym (BizM a) (BizM b) = compareAntisym b a
+
 -- compare_sub
 
 compareSub : (n, m : Biz) -> n `compare` m = (n - m) `compare` 0
@@ -140,18 +163,12 @@ compareSub (BizM a) (BizM b) = rewrite posSubSpec b a in
     | EQ = Refl
     | GT = Refl
 
--- compare_antisym
-
-compareAntisym : (n, m : Biz) -> m `compare` n = compareOp (n `compare` m)
-compareAntisym  BizO     BizO    = Refl
-compareAntisym  BizO    (BizP _) = Refl
-compareAntisym  BizO    (BizM _) = Refl
-compareAntisym (BizP _)  BizO    = Refl
-compareAntisym (BizP a) (BizP b) = compareAntisym a b
-compareAntisym (BizP _) (BizM _) = Refl
-compareAntisym (BizM _)  BizO    = Refl
-compareAntisym (BizM _) (BizP _) = Refl
-compareAntisym (BizM a) (BizM b) = compareAntisym b a
+-- TODO look where it can be inserted
+compareSubR : (n, m : Biz) -> n `compare` m = 0 `compare` (m-n)
+compareSubR n m =
+  rewrite compareAntisym (m-n) 0 in
+  rewrite sym $ compareSub m n in
+  compareAntisym m n
 
 -- Comparison and opposite
 -- compare_opp
@@ -406,12 +423,19 @@ ltTrans p q r =
   base (BizP _) (BizM _) nltm _    = absurd nltm
   base (BizM _) (BizM _) _    _    = Refl
 
+-- TODO rewrite as ltLeTrans below
 leLtTrans : (p, q, r : Biz) -> p `Le` q -> q `Lt` r -> p `Lt` r
 leLtTrans p q r pleq qltr with (p `compare` q) proof pq
   | LT = ltTrans p q r (sym pq) qltr
   | EQ = rewrite compareEqIffTo p q (sym pq) in
          qltr
   | GT = absurd $ pleq Refl
+
+ltLeTrans : (p, q, r : Biz) -> p `Lt` q -> q `Le` r -> p `Lt` r
+ltLeTrans p q r pltq qler =
+  case leLtOrEq q r qler of
+    Left qltr => ltTrans p q r pltq qltr
+    Right qeqr => rewrite sym qeqr in pltq
 
 leTrans : (p, q, r : Biz) -> p `Le` q -> q `Le` r -> p `Le` r
 leTrans p q r pleq qler pgtr with (q `compare` r) proof qr
@@ -450,3 +474,152 @@ mulRegR n m p =
   rewrite mulComm n p in
   rewrite mulComm m p in
   mulRegL n m p
+
+bizDPODCompare : (n, m : Biz) -> bizDPO n `compare` bizD m = switchEq GT (n `compare` m)
+bizDPODCompare  BizO     BizO    = Refl
+bizDPODCompare  BizO    (BizP _) = Refl
+bizDPODCompare  BizO    (BizM _) = Refl
+bizDPODCompare (BizP _)  BizO    = Refl
+bizDPODCompare (BizP a) (BizP b) = compareContSpec a b GT
+bizDPODCompare (BizP _) (BizM _) = Refl
+bizDPODCompare (BizM _)  BizO    = Refl
+bizDPODCompare (BizM _) (BizP _) = Refl
+bizDPODCompare (BizM a) (BizM b) =
+  case succPredOr a of
+    Left lprf =>
+      rewrite lprf in
+      rewrite sym $ compareContSpec b U GT in
+      sym $ compareContGtGtFro b U $ nlt1R b
+    Right rprf =>
+      rewrite sym rprf in
+      rewrite predDoubleSucc (bipPred a) in
+      rewrite compareSuccR b (bipPred a) in
+      compareContSpec b (bipPred a) LT
+
+bizDDPOCompare : (n, m : Biz) -> bizD n `compare` bizDPO m = switchEq LT (n `compare` m)
+bizDDPOCompare n m =
+  rewrite compareAntisym (bizDPO m) (bizD n) in
+  rewrite bizDPODCompare m n in
+  rewrite compareAntisym m n in
+  opSwitch GT (m `compare` n)
+
+bizDCompare : (n, m : Biz) -> bizD n `compare` bizD m = n `compare` m
+bizDCompare n m =
+  rewrite doubleSpec n in
+  rewrite doubleSpec m in
+  mulCompareMonoL 2 n m Refl
+
+ltNotEq : (x, y : Biz) -> y `Lt` x -> Not (x=y)
+ltNotEq x y yltx xy =
+  absurd $ replace {P=\z=>z=LT} (compareEqIffFro y x (sym xy)) yltx
+
+ltPredRTo : (n, m : Biz) -> n `Lt` m -> n `Le` bizPred m
+ltPredRTo n m nltm =
+  ltSuccRTo n (bizPred m) $
+  rewrite sym $ addAssoc m (-1) 1 in
+  rewrite add0R m in
+  nltm
+
+ltPredRFro : (n, m : Biz) -> n `Le` bizPred m -> n `Lt` m
+ltPredRFro n m nlepm =
+     ltSuccRFro n (bizPred m) nlepm
+  |> replace {P = \x => n `Lt` x} (sym $ addAssoc m (-1) 1)
+  |> replace {P = \x => n `Lt` x} (add0R m)
+
+leSuccLTo : (p, q : Biz) -> bizSucc p `Le` q -> p `Lt` q
+leSuccLTo p q spleq =
+  trans (sym $ addCompareMonoR p q 1) (ltSuccRFro (bizSucc p) q spleq)
+
+leSuccLFro : (p, q : Biz) -> p `Lt` q -> bizSucc p `Le` q
+leSuccLFro p q pltq =
+  ltSuccRTo (bizSucc p) q $
+  rewrite addCompareMonoR p q 1 in
+  pltq
+
+ltPredLTo : (n, m : Biz) -> n `Le` m -> bizPred n `Lt` m
+ltPredLTo n m nlem =
+  ltPredRFro (bizPred n) m $
+  rewrite addCompareMonoR n m (-1) in
+  nlem
+
+nltbLeTo : (n, m : Biz) -> m < n = False -> n `Le` m
+nltbLeTo n m prf nm with (m `compare` n) proof mn
+  | LT = absurd prf
+  | EQ = absurd $ replace (gtLt n m nm) mn
+  | GT = absurd $ replace (gtLt n m nm) mn
+
+nltbLeFro : (n, m : Biz) -> n `Le` m -> m < n = False
+nltbLeFro n m nlem with (m `compare` n) proof mn
+  | LT = absurd $ nlem $ ltGt m n (sym mn)
+  | EQ = Refl
+  | GT = Refl
+
+lebLeFro : (n, m : Biz) -> n `Le` m -> n <= m = True
+lebLeFro n m nlem with (n `compare` m) proof nm
+  | LT = Refl
+  | EQ = eqbEqFro n m $ compareEqIffTo n m (sym nm)
+  | GT = absurd $ nlem Refl
+
+mulCompareMonoR : (p, q, r : Biz) -> 0 `Lt` p -> (q*p) `compare` (r*p) = q `compare` r
+mulCompareMonoR p q r zltp =
+  rewrite mulComm q p in
+  rewrite mulComm r p in
+  mulCompareMonoL p q r zltp
+
+-- a workaround for the fact that using `rewrite sym $ mul1L` is not practical
+mulAddDistrR1 : (n, m : Biz) -> (n + 1) * m = n * m + m
+mulAddDistrR1 n m = rewrite mulAddDistrR n 1 m in
+                    rewrite mul1L m in
+                    Refl
+
+-- convenience lemma, look for other places to use it
+addCompareTransferL : (a, b, c : Biz) -> a `compare` (b+c) = ((-b)+a) `compare` c
+addCompareTransferL a b c =
+  rewrite sym $ addCompareMonoL (-b) a (b+c) in
+  rewrite addAssoc (-b) b c in
+  rewrite addOppDiagL b in
+  Refl
+
+leRefl : (x : Biz) -> x `Le` x
+leRefl x = rewrite compareEqIffFro x x Refl in
+           uninhabited
+
+addLtMono : (p, q, r, s : Biz) -> p `Lt` q -> r `Lt` s -> (p+r) `Lt` (q+s)
+addLtMono p q r s pltq rlts =
+  let prqr = replace {P = \x => x=LT} (sym $ addCompareMonoR p q r) pltq
+      qrqs = replace {P = \x => x=LT} (sym $ addCompareMonoL q r s) rlts in
+  ltTrans (p+r) (q+r) (q+s) prqr qrqs
+
+addLeMono : (p, q, r, s : Biz) -> p `Le` q -> r `Le` s -> (p+r) `Le` (q+s)
+addLeMono p q r s pleq rles =
+  let prqr = replace {P = \x => Not (x=GT)} (sym $ addCompareMonoR p q r) pleq
+      qrqs = replace {P = \x => Not (x=GT)} (sym $ addCompareMonoL q r s) rles in
+  leTrans (p+r) (q+r) (q+s) prqr qrqs
+
+addLtLeMono : (p, q, r, s : Biz) -> p `Lt` q -> r `Le` s -> (p+r) `Lt` (q+s)
+addLtLeMono p q r s pltq rles =
+  let prqr = replace {P = \x => x=LT} (sym $ addCompareMonoR p q r) pltq
+      qrqs = replace {P = \x => Not (x=GT)} (sym $ addCompareMonoL q r s) rles in
+  ltLeTrans (p+r) (q+r) (q+s) prqr qrqs
+
+addLeLtMono : (p, q, r, s : Biz) -> p `Le` q -> r `Lt` s -> (p+r) `Lt` (q+s)
+addLeLtMono p q r s pleq rlts =
+  let prqr = replace {P = \x => Not (x=GT)} (sym $ addCompareMonoR p q r) pleq
+      qrqs = replace {P = \x => x=LT} (sym $ addCompareMonoL q r s) rlts in
+  leLtTrans (p+r) (q+r) (q+s) prqr qrqs
+
+leNeqLt : (x, y : Biz) -> y `Le` x -> Not (x=y) -> y `Lt` x
+leNeqLt x y ylex nxy =
+  case leLtOrEq y x ylex of
+    Left yltx => yltx
+    Right xy => absurd $ nxy $ sym xy
+
+-- TODO can't put in Iter because of cycle (we use biInduction for ltTrans)
+natlikeInd : (P : Biz -> Type) -> (f0 : P BizO)
+          -> ((y : Biz) -> 0 `Le` y -> P y -> P (bizSucc y))
+          -> (x : Biz) -> 0 `Le` x -> P x
+natlikeInd _ f0 _  BizO    _    = f0
+natlikeInd P f0 f (BizP a) zlex =
+  peanoRect (P . BizP) (f 0 uninhabited f0) (\p => rewrite sym $ add1R p in
+                                                   f (BizP p) uninhabited) a
+natlikeInd _ _  _ (BizM _) zlex = absurd $ zlex Refl

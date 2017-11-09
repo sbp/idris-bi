@@ -141,6 +141,13 @@ modLt (BinP a) (BinP b) bz = posDivEuclRemainder a (BinP b) bz
 
 -- mod_bound_pos is just mod_lt + le_0_l
 
+bipDivEuclid1R : (a : Bip) -> a `bipDivEuclid` 1 = (BinP a, BinO)
+bipDivEuclid1R  U    = Refl
+bipDivEuclid1R (O a) = rewrite bipDivEuclid1R a in
+                       Refl
+bipDivEuclid1R (I a) = rewrite bipDivEuclid1R a in
+                       Refl
+
 -- Specification of gcd
 
 -- ggcd_gcd

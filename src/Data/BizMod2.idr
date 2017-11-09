@@ -20,6 +20,8 @@ import Data.Biz.Nat
 %default total
 %access public export
 
+-- TODO move these to Biz and make modulus a synonym?
+
 ||| 2^n
 
 bipPow2 : Nat -> Bip
@@ -85,44 +87,6 @@ bizMod2P0 : (x : BizMod2 0) -> x = MkBizMod2 0 (Refl, Refl)
 bizMod2P0 (MkBizMod2  BizO    (Refl, Refl)) = Refl
 bizMod2P0 (MkBizMod2 (BizP a) (_   , altu)) = absurd $ le1L a $ ltGt a U altu
 bizMod2P0 (MkBizMod2 (BizM a) (altu, _   )) = absurd $ le1L a $ ltGt a U altu
-
--- TODO add to Biz.Proofs
-
-bizDPODCompare : (n, m : Biz) -> bizDPO n `compare` bizD m = switchEq GT (n `compare` m)
-bizDPODCompare  BizO     BizO    = Refl
-bizDPODCompare  BizO    (BizP _) = Refl
-bizDPODCompare  BizO    (BizM _) = Refl
-bizDPODCompare (BizP _)  BizO    = Refl
-bizDPODCompare (BizP a) (BizP b) = compareContSpec a b GT
-bizDPODCompare (BizP _) (BizM _) = Refl
-bizDPODCompare (BizM _)  BizO    = Refl
-bizDPODCompare (BizM _) (BizP _) = Refl
-bizDPODCompare (BizM a) (BizM b) =
-  case succPredOr a of
-    Left lprf =>
-      rewrite lprf in
-      rewrite sym $ compareContSpec b U GT in
-      sym $ compareContGtGtFro b U $ nlt1R b
-    Right rprf =>
-      rewrite sym rprf in
-      rewrite predDoubleSucc (bipPred a) in
-      rewrite compareSuccR b (bipPred a) in
-      compareContSpec b (bipPred a) LT
-
-bizDDPOCompare : (n, m : Biz) -> bizD n `compare` bizDPO m = switchEq LT (n `compare` m)
-bizDDPOCompare n m =
-  rewrite compareAntisym (bizDPO m) (bizD n) in
-  rewrite bizDPODCompare m n in
-  rewrite compareAntisym m n in
-  opSwitch GT (m `compare` n)
-
-bizDCompare : (n, m : Biz) -> bizD n `compare` bizD m = n `compare` m
-bizDCompare n m =
-  rewrite doubleSpec n in
-  rewrite doubleSpec m in
-  mulCompareMonoL 2 n m Refl
-
---
 
 bipMod2BizRange : (n : Nat) -> (p : Bip) -> (0 `Le` (p `bipMod2Biz` n), (p `bipMod2Biz` n) `Lt` modulus n)
 bipMod2BizRange  Z     _    = (uninhabited, Refl)
@@ -203,14 +167,6 @@ bizMod2Range x n =
   ( rewrite sym $ addCompareMonoR (-1) (x `bizMod2` n) 1 in
     ltSuccRFro 0 (x `bizMod2` n) lo
   , hi)
-
--- TODO add to Biz.Proofs, look where it can be inserted
-
-compareSubR : (n, m : Biz) -> n `compare` m = 0 `compare` (m-n)
-compareSubR n m =
-  rewrite compareAntisym (m-n) 0 in
-  rewrite sym $ compareSub m n in
-  compareAntisym m n
 
 bizMod2Eq : (x : Biz) -> (n : Nat) -> x `bizMod2` n = x `bizMod` (modulus n)
 bizMod2Eq  BizO    _ = Refl
@@ -421,22 +377,13 @@ shrCarry x y = if x < 0 && (x `and` ((1 `shl` y)-1)) /= 0 then 1 else 0
 
 -- Zero and sign extensions
 
-zShiftin : (b : Bool) -> (x : Biz) -> Biz
-zShiftin b x = if b then bizDPO x else bizD x
-
-zZeroExt : (n, x : Biz) -> Biz
-zZeroExt n = bizIter (\rec, x => zShiftin (bizOdd x) (rec (bizDivTwo x))) n (\_ => 0)
-
-zSignExt : (n, x : Biz) -> Biz
-zSignExt n = bizIter (\rec, x => zShiftin (bizOdd x) (rec (bizDivTwo x))) (bizPred n) (\x => if bizOdd x then -1 else 0)
-
 -- TODO should these change the word size?
 
 zeroExt : (m : Biz) -> (x : BizMod2 n) -> BizMod2 n
-zeroExt {n} m x = repr (zZeroExt m (unsigned x)) n
+zeroExt {n} m x = repr (bizZeroExt m (unsigned x)) n
 
 signExt : (m : Biz) -> (x : BizMod2 n) -> BizMod2 n
-signExt {n} m x = repr (zSignExt m (unsigned x)) n
+signExt {n} m x = repr (bizSignExt m (unsigned x)) n
 
 -- Decomposition of a number as a sum of powers of two.
 
@@ -597,23 +544,6 @@ maxSignedPos  Z        nz = absurd $ nz Refl
 maxSignedPos (S  Z)    _  = uninhabited
 maxSignedPos (S (S _)) _  = uninhabited
 
--- TODO add to Bip.OrdSub ?
-mutual
-  ltO : (n : Bip) -> n `Lt` O n
-  ltO  U    = Refl
-  ltO (O a) = ltO a
-  ltO (I a) = compareContGtLtFro a (I a) $ ltI a
-
-  ltI : (n : Bip) -> n `Lt` I n
-  ltI  U    = Refl
-  ltI (O a) = compareContLtLtFro a (O a) $ ltLeIncl a (O a) $ ltO a
-  ltI (I a) = ltI a
-
-leDMO : (n : Bip) -> n `Le` bipDMO n
-leDMO  U    = uninhabited
-leDMO (O a) = leDMO a . compareContLtGtTo a (bipDMO a)
-leDMO (I a) = ltLeIncl a (O a) $ ltO a
-
 twoWordsizeMaxUnsigned : (n : Nat) -> bizDMO (toBizNat n) `Le` maxUnsigned n
 twoWordsizeMaxUnsigned  Z = uninhabited
 twoWordsizeMaxUnsigned (S Z) = uninhabited
@@ -631,14 +561,6 @@ wordsizeMaxUnsigned (S k) =
     (leDMO (toBipNatSucc k))
     (twoWordsizeMaxUnsigned (S k))
 
--- TODO add to Biz.Proofs and rewrite leLtTrans similarly
-
-ltLeTrans : (p, q, r : Biz) -> p `Lt` q -> q `Le` r -> p `Lt` r
-ltLeTrans p q r pltq qler =
-  case leLtOrEq q r qler of
-    Left qltr => ltTrans p q r pltq qltr
-    Right qeqr => rewrite sym qeqr in pltq
-
 maxSignedUnsigned : (n : Nat) -> maxSigned n `Lt` maxUnsigned n
 maxSignedUnsigned  Z    = Refl
 maxSignedUnsigned (S k) =
@@ -652,14 +574,6 @@ maxSignedUnsigned (S k) =
      rewrite posSubDiag pk in
      Refl)
     (leDMO pk)
-
--- TODO add to Biz.Proofs
-
-divMod1 : (x : Biz) -> (x `bizDiv` 1 = x, x `bizMod` 1 = 0)
-divMod1 x = let (dprf, mprf) = divModPos x 1 x 0 uninhabited Refl $
-                                 rewrite mul1R x in
-                                 sym $ add0R x
-            in (sym dprf, sym mprf)
 
 unsignedReprEq : (x : Biz) -> (n : Nat) -> unsigned (repr x n) = x `bizMod` modulus n
 unsignedReprEq x  Z    = sym $ snd $ divMod1 x
@@ -702,25 +616,6 @@ eqmodTrans _ _ z m (k1 ** prf1) (k2 ** prf2) =
             rewrite addAssoc (k1*m) (k2*m) z in
             rewrite sym $ mulAddDistrR k1 k2 m in
             Refl)
-
--- TODO add to Biz.Proofs
-
-divModSmall : (x, y : Biz) -> 0 `Le` x -> x `Lt` y -> (x `bizDiv` y = 0, x `bizMod` y = x)
-divModSmall x y zlex xlty = let (dprf, mprf) = divModPos x y 0 x zlex xlty Refl in
-                            (sym dprf, sym mprf)
-
-ltNotEq : (x, y : Biz) -> y `Lt` x -> Not (x=y)
-ltNotEq x y yltx xy =
-  absurd $ replace {P=\z=>z=LT} (compareEqIffFro y x (sym xy)) yltx
-
-modPlus : (a, b, c : Biz) -> 0 `Lt` c -> (a + b * c) `bizMod` c = a `bizMod` c
-modPlus a b c zltc =
-  let (lom, him) = modPosBound a c zltc in
-  sym $ snd $ divModPos (a + b * c) c (b + (a `bizDiv` c)) (a `bizMod` c) lom him $
-  rewrite mulAddDistrR b (a `bizDiv` c) c in
-  rewrite sym $ addAssoc (b*c) ((a `bizDiv` c)*c) (a `bizMod` c) in
-  rewrite addComm a (b*c) in
-  cong {f = bizPlus (b*c)} $ divEuclEq a c $ ltNotEq c 0 zltc
 
 eqmodSmallEq : (x, y, m : Biz) -> eqmod x y m -> 0 `Le` x -> x `Lt` m -> 0 `Le` y -> y `Lt` m -> x = y
 eqmodSmallEq x y m (k ** prf) zlex xltm zley yltm =
@@ -844,49 +739,6 @@ unsignedRange2 {n} x =
        rewrite sym $ addAssoc (modulus n) (-1) 1 in
        hi)
 
--- TODO add to Biz.Proofs
-
-ltPredRTo : (n, m : Biz) -> n `Lt` m -> n `Le` bizPred m
-ltPredRTo n m nltm =
-  ltSuccRTo n (bizPred m) $
-  rewrite sym $ addAssoc m (-1) 1 in
-  rewrite add0R m in
-  nltm
-
-ltPredRFro : (n, m : Biz) -> n `Le` bizPred m -> n `Lt` m
-ltPredRFro n m nlepm =
-     ltSuccRFro n (bizPred m) nlepm
-  |> replace {P = \x => n `Lt` x} (sym $ addAssoc m (-1) 1)
-  |> replace {P = \x => n `Lt` x} (add0R m)
-
-leSuccLTo : (p, q : Biz) -> bizSucc p `Le` q -> p `Lt` q
-leSuccLTo p q spleq =
-  trans (sym $ addCompareMonoR p q 1) (ltSuccRFro (bizSucc p) q spleq)
-
-leSuccLFro : (p, q : Biz) -> p `Lt` q -> bizSucc p `Le` q
-leSuccLFro p q pltq =
-  ltSuccRTo (bizSucc p) q $
-  rewrite addCompareMonoR p q 1 in
-  pltq
-
-nltbLeTo : (n, m : Biz) -> m < n = False -> n `Le` m
-nltbLeTo n m prf nm with (m `compare` n) proof mn
-  | LT = absurd prf
-  | EQ = absurd $ replace (gtLt n m nm) mn
-  | GT = absurd $ replace (gtLt n m nm) mn
-
-nltbLeFro : (n, m : Biz) -> n `Le` m -> m < n = False
-nltbLeFro n m nlem with (m `compare` n) proof mn
-  | LT = absurd $ nlem $ ltGt m n (sym mn)
-  | EQ = Refl
-  | GT = Refl
-
-lebLeFro : (n, m : Biz) -> n `Le` m -> n <= m = True
-lebLeFro n m nlem with (n `compare` m) proof nm
-  | LT = Refl
-  | EQ = eqbEqFro n m $ compareEqIffTo n m (sym nm)
-  | GT = absurd $ nlem Refl
-
 signedRange : (x : BizMod2 n) -> Not (n=0) -> (minSigned n `Le` signed x, signed x `Le` maxSigned n)
 signedRange {n} x nz with (unsigned x < halfModulus n) proof hx
   | False = let hm = halfModulus n
@@ -962,28 +814,6 @@ unsignedRepr (BizM _)    Z    zlex _     = absurd $ zlex Refl
 unsignedRepr  x       n@(S _) zlex xlemu =
   rewrite bizMod2Eq x n in
   snd $ divModSmall x (modulus n) zlex (ltPredRFro x (modulus n) xlemu)
-
--- TODO add to Biz.Proofs ?
-
-mulCompareMonoR : (p, q, r : Biz) -> 0 `Lt` p -> (q*p) `compare` (r*p) = q `compare` r
-mulCompareMonoR p q r zltp =
-  rewrite mulComm q p in
-  rewrite mulComm r p in
-  mulCompareMonoL p q r zltp
-
--- a workaround for the fact that using `rewrite sym $ mul1L` is not practical
-mulAddDistrR1 : (n, m : Biz) -> (n + 1) * m = n * m + m
-mulAddDistrR1 n m = rewrite mulAddDistrR n 1 m in
-                    rewrite mul1L m in
-                    Refl
-
--- convenience lemma, look for other places to use it
-addCompareTransferL : (a, b, c : Biz) -> a `compare` (b+c) = ((-b)+a) `compare` c
-addCompareTransferL a b c =
-  rewrite sym $ addCompareMonoL (-b) a (b+c) in
-  rewrite addAssoc (-b) b c in
-  rewrite addOppDiagL b in
-  Refl
 
 signedRepr : (x : Biz) -> (n : Nat) -> Not (n=0) -> minSigned n `Le` x -> x `Le` maxSigned n -> signed (repr x n) = x
 signedRepr    BizO     Z    nz _     _     = absurd $ nz Refl
@@ -1109,17 +939,6 @@ oneNotZero (S _) _  = absurd . MkBizMod2Inj
 unsignedReprWordsize : (n : Nat) -> unsigned (repr (toBizNat n) n) = toBizNat n
 unsignedReprWordsize n = unsignedRepr (toBizNat n) n (toBizNatIsNonneg n) (wordsizeMaxUnsigned n)
 
--- TODO add to Biz.Proofs
-
-neqbNeqTo : (n, m : Biz) -> n == m = False -> Not (n = m)
-neqbNeqTo n m neq nm =
-  absurd $ replace {P = \x => x = False} (eqbEqFro n m nm) neq
-
-neqbNeqFro : (n, m : Biz) -> Not (n = m) -> n == m = False
-neqbNeqFro n m neq with (n == m) proof nm
-  | False = Refl
-  | True  = absurd $ neq $ eqbEqTo n m $ sym nm
-
 -- Properties of equality
 
 eqSym : (x, y: BizMod2 n) -> x == y = y == x
@@ -1227,36 +1046,6 @@ addNegZero {n} x =
     (eqmodRefl (unsigned x) (modulus n))
     (eqmodSym (-unsigned x) (-unsigned x `bizMod` modulus n) (modulus n) $
      eqmodMod (-unsigned x) (modulus n) uninhabited)
-
--- TODO add to Biz.Proofs
-
-leRefl : (x : Biz) -> x `Le` x
-leRefl x = rewrite compareEqIffFro x x Refl in
-           uninhabited
-
-addLtMono : (p, q, r, s : Biz) -> p `Lt` q -> r `Lt` s -> (p+r) `Lt` (q+s)
-addLtMono p q r s pltq rlts =
-  let prqr = replace {P = \x => x=LT} (sym $ addCompareMonoR p q r) pltq
-      qrqs = replace {P = \x => x=LT} (sym $ addCompareMonoL q r s) rlts in
-  ltTrans (p+r) (q+r) (q+s) prqr qrqs
-
-addLeMono : (p, q, r, s : Biz) -> p `Le` q -> r `Le` s -> (p+r) `Le` (q+s)
-addLeMono p q r s pleq rles =
-  let prqr = replace {P = \x => Not (x=GT)} (sym $ addCompareMonoR p q r) pleq
-      qrqs = replace {P = \x => Not (x=GT)} (sym $ addCompareMonoL q r s) rles in
-  leTrans (p+r) (q+r) (q+s) prqr qrqs
-
-addLtLeMono : (p, q, r, s : Biz) -> p `Lt` q -> r `Le` s -> (p+r) `Lt` (q+s)
-addLtLeMono p q r s pltq rles =
-  let prqr = replace {P = \x => x=LT} (sym $ addCompareMonoR p q r) pltq
-      qrqs = replace {P = \x => Not (x=GT)} (sym $ addCompareMonoL q r s) rles in
-  ltLeTrans (p+r) (q+r) (q+s) prqr qrqs
-
-addLeLtMono : (p, q, r, s : Biz) -> p `Le` q -> r `Lt` s -> (p+r) `Lt` (q+s)
-addLeLtMono p q r s pleq rlts =
-  let prqr = replace {P = \x => Not (x=GT)} (sym $ addCompareMonoR p q r) pleq
-      qrqs = replace {P = \x => x=LT} (sym $ addCompareMonoL q r s) rlts in
-  leLtTrans (p+r) (q+r) (q+s) prqr qrqs
 
 unsignedAddCarry : (x, y : BizMod2 n) -> unsigned (x + y) = unsigned x + unsigned y - unsigned (addCarry x y 0) * (modulus n)
 unsignedAddCarry {n} x y =
@@ -1610,72 +1399,6 @@ modu1 {n} x with (decEq n 0)
     rewrite mul1R x in
     subIdem x
 
--- TODO add to Bin.Proofs
-
-bipDivEuclid1R : (a : Bip) -> a `bipDivEuclid` 1 = (BinP a, BinO)
-bipDivEuclid1R  U    = Refl
-bipDivEuclid1R (O a) = rewrite bipDivEuclid1R a in
-                       Refl
-bipDivEuclid1R (I a) = rewrite bipDivEuclid1R a in
-                       Refl
-
--- TODO add to Biz.Proofs
-
-remOppR : (a, b : Biz) -> a `bizRem` (-b) = a `bizRem` b
-remOppR  BizO     _       = Refl
-remOppR  _        BizO    = Refl
-remOppR (BizP _) (BizP _) = Refl
-remOppR (BizP _) (BizM _) = Refl
-remOppR (BizM _) (BizP _) = Refl
-remOppR (BizM _) (BizM _) = Refl
-
-quotOppR : (a, b : Biz) -> Not (b = 0) -> a `bizQuot` (-b) = -(a `bizQuot` b)
-quotOppR  BizO        _    _  = Refl
-quotOppR  _        BizO    bz = absurd $ bz Refl
-quotOppR (BizP _) (BizP _) _  = Refl
-quotOppR (BizP a) (BizM b) _  = sym $ oppInvolutive (toBizBin $ fst $ bipDivEuclid a (BinP b))
-quotOppR (BizM a) (BizP b) _  = sym $ oppInvolutive (toBizBin $ fst $ bipDivEuclid a (BinP b))
-quotOppR (BizM _) (BizM _) _  = Refl
-
-quot1R : (a : Biz) -> a `bizQuot` 1 = a
-quot1R  BizO    = Refl
-quot1R (BizP a) = rewrite bipDivEuclid1R a in
-                  Refl
-quot1R (BizM a) = rewrite bipDivEuclid1R a in
-                  Refl
-
-divLe : (x, y : Biz) -> 0 `Lt` y -> 0 `Le` x -> (x `bizDiv` y) `Le` x
-divLe x y zlty zlex =
-  rewrite sym $ mulCompareMonoR y (x `bizDiv` y) x zlty in
-  rewrite sym $ addCompareMonoR ((x `bizDiv` y)*y) (x*y) (x `bizMod` y) in
-  rewrite sym $ divEuclEq x y (ltNotEq y 0 zlty) in
-  case leLtOrEq 0 x zlex of
-    Left zltx => leTrans x (x*y) ((x*y)+(x `bizMod` y))
-                   (rewrite sym $ mul1R x in
-                    rewrite sym $ mulAssoc x 1 y in
-                    rewrite mul1L y in
-                    rewrite mulCompareMonoL x 1 y zltx in
-                    leSuccLFro 0 y zlty)
-                   (rewrite sym $ add0R (x*y) in
-                    rewrite sym $ addAssoc (x*y) 0 (x `bizMod` y) in
-                    rewrite addCompareMonoL (x*y) 0 (x `bizMod` y) in
-                    fst $ modPosBound x y zlty)
-    Right zx => rewrite sym zx in
-                uninhabited
-
-div2D : (x : Biz) -> bizDivTwo (bizD x) = x
-div2D  BizO    = Refl
-div2D (BizP _) = Refl
-div2D (BizM _) = Refl
-
-div2DPO : (x : Biz) -> bizDivTwo (bizDPO x) = x
-div2DPO  BizO        = Refl
-div2DPO (BizP  _)    = Refl
-div2DPO (BizM  U)    = Refl
-div2DPO (BizM (O a)) = rewrite succPredDouble a in
-                       Refl
-div2DPO (BizM (I _)) = Refl
-
 divsM1 : (x : BizMod2 n) -> x `divs` (-1) = -x
 divsM1 {n} x =
   rewrite signedMone n in
@@ -1733,122 +1456,7 @@ divmods2DivsMods {n} nl d nz dz nlord =
 
 -- Bit-level properties
 
--- TODO add to Biz.Proofs ?
--- Properties of bit-level operations over [Z]
-
-testbit1L : (n : Biz) -> bizTestBit 1 n = n == 0
-testbit1L  BizO    = Refl
-testbit1L (BizP _) = Refl
-testbit1L (BizM _) = Refl
-
-testbitM1L : (n : Biz) -> 0 `Le` n -> bizTestBit (-1) n = True
-testbitM1L  BizO    _    = Refl
-testbitM1L (BizP _) _    = Refl
-testbitM1L (BizM _) zlen = absurd $ zlen Refl
-
-zShiftinSpec : (b : Bool) -> (x : Biz) -> zShiftin b x = 2 * x + (if b then 1 else 0)
-zShiftinSpec False x = rewrite add0R (2*x) in
-                       doubleSpec x
-zShiftinSpec True x = succDoubleSpec x
-
-notDDPO : (x, y : Biz) -> Not (bizD x = bizDPO y)
-notDDPO  BizO     BizO    = uninhabited
-notDDPO  BizO    (BizP _) = uninhabited
-notDDPO  BizO    (BizM _) = uninhabited
-notDDPO (BizP _)  BizO    = uninhabited . bizPInj
-notDDPO (BizP _) (BizP _) = uninhabited . bizPInj
-notDDPO (BizP _) (BizM _) = uninhabited
-notDDPO (BizM _)  BizO    = uninhabited
-notDDPO (BizM _) (BizP _) = uninhabited
-notDDPO (BizM _) (BizM b) =
-  case succPredOr b of
-    Left bu => rewrite bu in
-               uninhabited . bizMInj
-    Right bs => rewrite sym bs in
-                rewrite predDoubleSucc (bipPred b) in
-                uninhabited . bizMInj
-
-zShiftinInj : (b1, b2 : Bool) -> (x1, x2 : Biz) -> zShiftin b1 x1 = zShiftin b2 x2 -> (b1 = b2, x1 = x2)
-zShiftinInj True  True  x1 x2 prf = (Refl,    prf
-                                           |> replace {P = \z => z = bizDPO x2} (succDoubleSpec x1)
-                                           |> replace {P = \z => 2*x1 + 1 = z} (succDoubleSpec x2)
-                                           |> addRegR 1 (2*x1) (2*x2)
-                                           |> mulRegL x1 x2 2 uninhabited)
-zShiftinInj True  False x1 x2 prf = absurd $ notDDPO x2 x1 (sym prf)
-zShiftinInj False True  x1 x2 prf = absurd $ notDDPO x1 x2 prf
-zShiftinInj False False x1 x2 prf = (Refl,    prf
-                                           |> replace {P = \z => z = bizD x2} (doubleSpec x1)
-                                           |> replace {P = \z => 2*x1 = z} (doubleSpec x2)
-                                           |> mulRegL x1 x2 2 uninhabited)
-
-zDecomp : (x : Biz) -> x = zShiftin (bizOdd x) (bizDivTwo x)
-zDecomp  BizO        = Refl
-zDecomp (BizP  U)    = Refl
-zDecomp (BizP (O _)) = Refl
-zDecomp (BizP (I _)) = Refl
-zDecomp (BizM  U)    = Refl
-zDecomp (BizM (O _)) = Refl
-zDecomp (BizM (I a)) = cong $ sym $ predDoubleSucc a
-
-leNeqLt : (x, y : Biz) -> y `Le` x -> Not (x=y) -> y `Lt` x
-leNeqLt x y ylex nxy =
-  case leLtOrEq y x ylex of
-    Left yltx => yltx
-    Right xy => absurd $ nxy $ sym xy
-
-zTestbitShiftin : (b : Bool) -> (x, n : Biz) -> 0 `Le` n
-               -> bizTestBit (zShiftin b x) n = if n == 0 then b else bizTestBit x (bizPred n)
-zTestbitShiftin b x n zlen with (n==0) proof nz
-  zTestbitShiftin False x n zlen | False =
-      testbitEvenSucc x (bizPred n) (ltPredRTo 0 n $ leNeqLt n 0 zlen $ neqbNeqTo n 0 (sym nz))
-   |> replace {P = \z => bizTestBit (bizD x) z = bizTestBit x (bizPred n)} (sym $ addAssoc n (-1) 1)
-   |> replace {P = \z => bizTestBit (bizD x) z = bizTestBit x (bizPred n)} (add0R n)
-  zTestbitShiftin True  x n zlen | False =
-      testbitOddSucc x (bizPred n) (ltPredRTo 0 n $ leNeqLt n 0 zlen $ neqbNeqTo n 0 (sym nz))
-   |> replace {P = \z => bizTestBit (bizDPO x) z = bizTestBit x (bizPred n)} (sym $ addAssoc n (-1) 1)
-   |> replace {P = \z => bizTestBit (bizDPO x) z = bizTestBit x (bizPred n)} (add0R n)
-  zTestbitShiftin False x n zlen | True  = rewrite eqbEqTo n 0 (sym nz) in
-                                           testbitEven0 x
-  zTestbitShiftin True  x n zlen | True  = rewrite eqbEqTo n 0 (sym nz) in
-                                           testbitOdd0 x
-
-zTestbitShiftinBase : (b : Bool) -> (x : Biz) -> bizTestBit (zShiftin b x) 0 = b
-zTestbitShiftinBase b x =
-  rewrite zTestbitShiftin b x 0 uninhabited in
-  Refl
-
-zTestbitShiftinSucc : (b : Bool) -> (x, n : Biz) -> 0 `Le` n -> bizTestBit (zShiftin b x) (bizSucc n) = bizTestBit x n
-zTestbitShiftinSucc b x n zlen =
-  rewrite zTestbitShiftin b x (bizSucc n) $ ltLeIncl 0 (n+1) $ ltSuccRFro 0 n zlen in
-  rewrite neqbNeqFro (n+1) 0 $ ltNotEq (n+1) 0 $ ltSuccRFro 0 n zlen in
-  rewrite sym $ addAssoc n 1 (-1) in
-  rewrite add0R n in
-  Refl
-
-zTestbitEq : (x, n : Biz) -> 0 `Le` n -> bizTestBit x n = if n == 0 then bizOdd x else bizTestBit (bizDivTwo x) (bizPred n)
-zTestbitEq x n zlen =
-  rewrite sym $ zTestbitShiftin (bizOdd x) (bizDivTwo x) n zlen in
-  rewrite sym $ zDecomp x in
-  Refl
-
--- zTestbitBase is trivial
-
-zTestbitSucc : (a, n : Biz) -> 0 `Le` n -> bizTestBit a (bizSucc n) = bizTestBit (bizDivTwo a) n
-zTestbitSucc a n zlen =
-  case evenOrOdd a of
-    Left  (b**eprf) =>
-      rewrite sym $ testbitEvenSucc (bizDivTwo a) n zlen in
-      rewrite eprf in
-      rewrite sym $ doubleSpec b in
-      rewrite div2D b in
-      Refl
-    Right (b**oprf) =>
-      rewrite sym $ testbitOddSucc (bizDivTwo a) n zlen in
-      rewrite oprf in
-      rewrite sym $ succDoubleSpec b in
-      rewrite div2DPO b in
-      Refl
-
+-- TODO eqmod -> eqm
 eqmodSameBits : (n : Nat) -> (x, y : Biz)
              -> ((i : Biz) -> 0 `Le` i -> i `Lt` toBizNat n -> bizTestBit x i = bizTestBit y i)
              -> eqmod x y (modulus n)
@@ -1870,8 +1478,8 @@ eqmodSameBits (S k) x y f =
   in
   (z ** rewrite zDecomp x in
         rewrite zDecomp y in
-        rewrite zShiftinSpec (bizOdd x) (bizDivTwo x) in
-        rewrite zShiftinSpec (bizOdd y) (bizDivTwo y) in
+        rewrite bizShiftinSpec (bizOdd x) (bizDivTwo x) in
+        rewrite bizShiftinSpec (bizOdd y) (bizDivTwo y) in
         rewrite f 0 uninhabited Refl in    -- bizOdd x = bizOdd y
         -- TODO bug: can't simply write `if bizOdd y then ..` - INTERNAL ERROR: Unelaboratable syntactic form
         rewrite addAssoc (z*modulus (S k)) (2*bizDivTwo y) (ifThenElse (bizOdd y) (Delay (BizP U)) (Delay BizO)) in
@@ -1880,27 +1488,6 @@ eqmodSameBits (S k) x y f =
         rewrite sym $ mulAssoc 2 z (modulus k) in
         rewrite sym $ mulAddDistrL 2 (z*modulus k) (bizDivTwo y) in
         cong {f = \a => 2*a + (ifThenElse (bizOdd y) (Delay (BizP U)) (Delay BizO))} prf)
-
-oddNotEven : (x : Biz) -> bizOdd x = not (bizEven x)
-oddNotEven  BizO        = Refl
-oddNotEven (BizP  U)    = Refl
-oddNotEven (BizP (O a)) = Refl
-oddNotEven (BizP (I a)) = Refl
-oddNotEven (BizM  U)    = Refl
-oddNotEven (BizM (O a)) = Refl
-oddNotEven (BizM (I a)) = Refl
-
-addTransferLZ : (x, y, z : Biz) -> x = y+z -> z = x-y
-addTransferLZ x y z prf =
-  rewrite prf in
-  rewrite addComm y z in
-  rewrite sym $ addAssoc z y (-y) in
-  rewrite addOppDiagR y in
-  sym $ add0R z
-
-succPredZ : (x : Biz) -> x = bizSucc (bizPred x)
-succPredZ x = rewrite sym $ addAssoc x (-1) 1 in
-              sym $ add0R x
 
 sameBitsEqmod : (n : Nat) -> (x, y, i : Biz) -> eqmod x y (modulus n) -> 0 `Le` i -> i `Lt` toBizNat n
             -> bizTestBit x i = bizTestBit y i
@@ -1944,7 +1531,7 @@ sameBitsEqmod (S k) x y i (z**xy) zlei iltn    =
       rewrite succPredZ i in
       let zleip = ltPredRTo 0 i $ leNeqLt i 0 zlei in0
           ih = sameBitsEqmod k (bizDivTwo x) (bizDivTwo y) (i-1)
-                 (z ** snd $ zShiftinInj (bizOdd x) (bizOdd y) (bizDivTwo x) (z * (modulus k) + bizDivTwo y) aux)
+                 (z ** snd $ bizShiftinInj (bizOdd x) (bizOdd y) (bizDivTwo x) (z * (modulus k) + bizDivTwo y) aux)
                  zleip
                  (rewrite sym $ addCompareMonoR (i-1) (toBizNat k) 1 in
                   rewrite sym $ addAssoc i (-1) 1 in
@@ -1956,27 +1543,18 @@ sameBitsEqmod (S k) x y i (z**xy) zlei iltn    =
       rewrite zTestbitSucc y (bizPred i) zleip in
       ih
   where
-  aux : zShiftin (bizOdd x) (bizDivTwo x) = zShiftin (bizOdd y) (z * (modulus k) + bizDivTwo y)
+  aux : bizShiftin (bizOdd x) (bizDivTwo x) = bizShiftin (bizOdd y) (z * (modulus k) + bizDivTwo y)
   aux =
     rewrite sym $ zDecomp x in
-    rewrite zShiftinSpec (bizOdd y) (z * (modulus k) + bizDivTwo y) in
+    rewrite bizShiftinSpec (bizOdd y) (z * (modulus k) + bizDivTwo y) in
     rewrite mulAddDistrL 2 (z*(modulus k)) (bizDivTwo y) in
     rewrite sym $ addAssoc (2*(z*(modulus k))) (2*(bizDivTwo y)) (ifThenElse (bizOdd y) (Delay 1) (Delay 0)) in
-    rewrite sym $ zShiftinSpec (bizOdd y) (bizDivTwo y) in
+    rewrite sym $ bizShiftinSpec (bizOdd y) (bizDivTwo y) in
     rewrite sym $ zDecomp y in
     rewrite mulAssoc 2 z (modulus k) in
     rewrite mulComm 2 z in
     rewrite sym $ mulAssoc z 2 (modulus k) in
     xy
-
-natlikeInd : (P : Biz -> Type) -> (f0 : P BizO)
-          -> ((y : Biz) -> 0 `Le` y -> P y -> P (bizSucc y))
-          -> (x : Biz) -> 0 `Le` x -> P x
-natlikeInd _ f0 _  BizO    _    = f0
-natlikeInd P f0 f (BizP a) zlex =
-  peanoRect (P . BizP) (f 0 uninhabited f0) (\p => rewrite sym $ add1R p in
-                                                   f (BizP p) uninhabited) a
-natlikeInd _ _  _ (BizM _) zlex = absurd $ zlex Refl
 
 modulusInfinity : (x : Biz) -> 0 `Le` x -> (n ** x `Lt` modulus n)
 modulusInfinity x zlex =
@@ -2025,67 +1603,7 @@ equalSameBits x y f with (x `compare` y) proof xy
         contra = replace {P = \a => 0 `Lt` a} xy0 zltxy
     in absurd contra
 
-zOneComplement : (i, x : Biz) -> 0 `Le` i -> bizTestBit (-x-1) i = not (bizTestBit x i)
-zOneComplement i x zlei =
-  natlikeInd
-    (\j => (y : Biz) -> bizTestBit (-y-1) j = not (bizTestBit y j))
-    base
-    (\j, zlej, pyj, y =>
-        let zltj1 = ltSuccRFro 0 j zlej
-            zlej1 = ltLeIncl 0 (j+1) zltj1 in
-        rewrite zDecomp y in
-        rewrite aux (bizOdd y) (bizDivTwo y) in
-        rewrite zTestbitShiftin (not (bizOdd y)) (-(bizDivTwo y)-1) (j+1) zlej1 in
-        rewrite zTestbitShiftin (bizOdd y) (bizDivTwo y) (j+1) zlej1 in
-        rewrite neqbNeqFro (j+1) 0 $ ltNotEq (j+1) 0 zltj1 in
-        rewrite sym $ addAssoc j 1 (-1) in
-        rewrite add0R j in
-        pyj (bizDivTwo y))
-    i zlei x
-  where
-  base : (x : Biz) -> bizOdd (-x-1) = not (bizOdd x)
-  base  BizO        = Refl
-  base (BizP  U)    = Refl
-  base (BizP (O _)) = Refl
-  base (BizP (I _)) = Refl
-  base (BizM  U)    = Refl
-  base (BizM (O a)) =
-    case succPredOr a of
-      Left au  => rewrite au in
-                  Refl
-      Right as => rewrite sym as in
-                  rewrite predDoubleSucc (bipPred a) in
-                  Refl
-  base (BizM (I _)) = Refl
-
-  aux : (b : Bool) -> (x : Biz) -> -(zShiftin b x)-1 = zShiftin (not b) (-x-1)
-  aux False  BizO        = Refl
-  aux False (BizP  a)    = rewrite add1R a in
-                           cong $ sym $ predDoubleSucc a
-  aux False (BizM  U)    = Refl
-  aux False (BizM (O _)) = Refl
-  aux False (BizM (I _)) = Refl
-  aux True   BizO        = Refl
-  aux True  (BizP  a)    = cong {f = BizM . O} $ sym $ add1R a
-  aux True  (BizM  U)    = Refl
-  aux True  (BizM (O _)) = Refl
-  aux True  (BizM (I _)) = Refl
-
-div2Pos : (x : Biz) -> 0 `Le` x -> 0 `Le` bizDivTwo x
-div2Pos  BizO        _    = uninhabited
-div2Pos (BizP  U)    _    = uninhabited
-div2Pos (BizP (O _)) _    = uninhabited
-div2Pos (BizP (I _)) _    = uninhabited
-div2Pos (BizM  _)    zlex = absurd $ zlex Refl
-
-dDiv2Le : (x : Biz) -> 0 `Le` x -> 2*(bizDivTwo x) `Le` x
-dDiv2Le  BizO        _    = uninhabited
-dDiv2Le (BizP  U)    _    = uninhabited
-dDiv2Le (BizP (O a)) _    = rewrite compareContRefl a EQ in
-                            uninhabited
-dDiv2Le (BizP (I a)) _    = rewrite compareContRefl a LT in
-                            uninhabited
-dDiv2Le (BizM  _)    zlex = absurd $ zlex Refl
+-- TODO can't move these because of dependency on `modulus`
 
 zTestbitAbove : (n : Nat) -> (x, i : Biz) -> 0 `Le` x -> x `Lt` modulus n -> toBizNat n `Le` i -> bizTestBit x i = False
 zTestbitAbove  Z     BizO    i _    _    _    = testbit0L i
@@ -2106,12 +1624,6 @@ zTestbitAbove (S k)  x       i zlex xltm nlei =
      rewrite sym $ succPredZ i in
      rewrite sym $ toBizNatInjSucc k in
      nlei)
-
-ltPredLTo : (n, m : Biz) -> n `Le` m -> bizPred n `Lt` m
-ltPredLTo n m nlem =
-  ltPredRFro (bizPred n) m $
-  rewrite addCompareMonoR n m (-1) in
-  nlem
 
 zTestbitAboveNeg : (n : Nat) -> (x, i : Biz) -> -(modulus n) `Le` x -> x `Lt` 0 -> toBizNat n `Le` i -> bizTestBit x i = True
 zTestbitAboveNeg n x i mmlex xlt0 nlei =
@@ -2172,43 +1684,9 @@ zSignBit (S k)  x           zlex xltsm =
            rewrite nltbLeFro (modulus k) (bizDivTwo x) mlex2 in
            Refl
 
-zShiftinInd : (P : Biz -> Type) -> (f0 : P 0)
-           -> ((b : Bool) -> (x : Biz) -> 0 `Le` x -> P x -> P (zShiftin b x))
-           -> (x : Biz) -> 0 `Le` x -> P x
-zShiftinInd _ f0 _  BizO    _    = f0
-zShiftinInd P f0 f (BizP a) _    = aux a
-  where
-  -- a workaround to convince totality checker that `BizP (O/I a) -> BizP a` is decreasing
-  aux : (p : Bip) -> P (BizP p)
-  aux  U    = f True 0 uninhabited f0
-  aux (O a) = f False (BizP a) uninhabited $ aux a
-  aux (I a) = f True (BizP a) uninhabited $ aux a
-zShiftinInd _ _  _ (BizM _) zlex = absurd $ zlex Refl
-
-zShiftinPosInd : (P : Biz -> Type) -> (f1 : P 1)
-              -> ((b : Bool) -> (x : Biz) -> 0 `Lt` x -> P x -> P (zShiftin b x))
-              -> (x : Biz) -> 0 `Lt` x -> P x
-zShiftinPosInd _ _  _  BizO    zltx = absurd zltx
-zShiftinPosInd P f1 f (BizP a) _    = aux a
-  where
-  -- a workaround to convince totality checker that `BizP (O/I a) -> BizP a` is decreasing
-  aux : (p : Bip) -> P (BizP p)
-  aux  U    = f1
-  aux (O a) = f False (BizP a) Refl $ aux a
-  aux (I a) = f True (BizP a) Refl $ aux a
-zShiftinPosInd _ _  _ (BizM _) zltx = absurd zltx
-
-notTrueIsFalse : (b : Bool) -> Not (b = True) -> b = False
-notTrueIsFalse True  nbt = absurd $ nbt Refl
-notTrueIsFalse False _   = Refl
-
-trueOrFalse : (b : Bool) -> Either (b = False) (b = True)
-trueOrFalse False = Left Refl
-trueOrFalse True = Right Refl
-
 zTestbitLe : (x, y : Biz) -> 0 `Le` y -> ((i : Biz) -> 0 `Le` i -> bizTestBit x i = True -> bizTestBit y i = True) -> x `Le` y
 zTestbitLe x y zley =
-  zShiftinInd
+  bizShiftinInd
     (\q => (p : Biz) -> ((i : Biz) -> 0 `Le` i -> bizTestBit p i = True -> bizTestBit q i = True) -> p `Le` q)
     (\p, fInd =>
      rewrite equalSameBits p 0 $ \i, zlei =>
@@ -2219,8 +1697,8 @@ zTestbitLe x y zley =
      uninhabited)
     (\b,q,zleq,ih,p,fInd =>
       rewrite zDecomp p in
-      rewrite zShiftinSpec (bizOdd p) (bizDivTwo p) in
-      rewrite zShiftinSpec b q in
+      rewrite bizShiftinSpec (bizOdd p) (bizDivTwo p) in
+      rewrite bizShiftinSpec b q in
       let p2leq = ih (bizDivTwo p) $ \i, zlei, btb2 =>
                     rewrite sym $ zTestbitShiftinSucc b q i zlei in
                     fInd (i+1)

@@ -30,7 +30,7 @@ biInduction : (P : Biz -> Type) -> (f0 : P BizO)
            -> (ffro : (x : Biz) -> P (bizSucc x) -> P x)
            -> (z : Biz) -> P z
 biInduction P f0 fto ffro z =
-  Iter.peanoRect P f0 fto (\x, psx =>
+  peanoRect P f0 fto (\x, psx =>
     ffro (x-1) $
       rewrite sym $ addAssoc x (-1) 1 in
       rewrite add0R x in

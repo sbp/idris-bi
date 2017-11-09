@@ -624,3 +624,32 @@ addDiag n =
   rewrite mulAddDistrR 1 1 n in
   rewrite mul1L n in
   Refl
+
+notDDPO : (x, y : Biz) -> Not (bizD x = bizDPO y)
+notDDPO  BizO     BizO    = uninhabited
+notDDPO  BizO    (BizP _) = uninhabited
+notDDPO  BizO    (BizM _) = uninhabited
+notDDPO (BizP _)  BizO    = uninhabited . bizPInj
+notDDPO (BizP _) (BizP _) = uninhabited . bizPInj
+notDDPO (BizP _) (BizM _) = uninhabited
+notDDPO (BizM _)  BizO    = uninhabited
+notDDPO (BizM _) (BizP _) = uninhabited
+notDDPO (BizM _) (BizM b) =
+  case succPredOr b of
+    Left bu => rewrite bu in
+               uninhabited . bizMInj
+    Right bs => rewrite sym bs in
+                rewrite predDoubleSucc (bipPred b) in
+                uninhabited . bizMInj
+
+addTransferLZ : (x, y, z : Biz) -> x = y+z -> z = x-y
+addTransferLZ x y z prf =
+  rewrite prf in
+  rewrite addComm y z in
+  rewrite sym $ addAssoc z y (-y) in
+  rewrite addOppDiagR y in
+  sym $ add0R z
+
+succPredZ : (x : Biz) -> x = bizSucc (bizPred x)
+succPredZ x = rewrite sym $ addAssoc x (-1) 1 in
+              sym $ add0R x

@@ -389,6 +389,16 @@ bizShiftL a (BizM b') = bipIter bizDivTwo a b'
 bizShiftR : (a, b : Biz) -> Biz
 bizShiftR a b = bizShiftL a (bizOpp b)
 
+-- TODO define via pattern matching
+bizShiftin : (b : Bool) -> (x : Biz) -> Biz
+bizShiftin b x = if b then bizDPO x else bizD x
+
+bizZeroExt : (n, x : Biz) -> Biz
+bizZeroExt n = bizIter (\rec, x => bizShiftin (bizOdd x) (rec (bizDivTwo x))) n (\_ => BizO)
+
+bizSignExt : (n, x : Biz) -> Biz
+bizSignExt n = bizIter (\rec, x => bizShiftin (bizOdd x) (rec (bizDivTwo x))) (bizPred n) (\x => if bizOdd x then BizM U else BizO)
+
 ||| Logical OR
 bizOr : (a, b : Biz) -> Biz
 bizOr  BizO      b        = b

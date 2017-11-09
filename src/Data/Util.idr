@@ -323,3 +323,11 @@ orbNotSelf True  = Refl
 xorbNotSelf : (a : Bool) -> a `xor` (not a) = True
 xorbNotSelf False = Refl
 xorbNotSelf True  = Refl
+
+notTrueIsFalse : (b : Bool) -> Not (b = True) -> b = False
+notTrueIsFalse True  nbt = absurd $ nbt Refl
+notTrueIsFalse False _   = Refl
+
+trueOrFalse : (b : Bool) -> Either (b = False) (b = True)
+trueOrFalse False = Left Refl
+trueOrFalse True = Right Refl

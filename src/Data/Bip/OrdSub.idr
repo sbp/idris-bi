@@ -1451,3 +1451,19 @@ mulMinDistrR p q r =
   rewrite mulComm q r in
   rewrite mulComm (min p q) r in
   minMonotone (bipMult r) (mulLeMonoLTo r) p q
+
+mutual
+  ltO : (n : Bip) -> n `Lt` O n
+  ltO  U    = Refl
+  ltO (O a) = ltO a
+  ltO (I a) = compareContGtLtFro a (I a) $ ltI a
+
+  ltI : (n : Bip) -> n `Lt` I n
+  ltI  U    = Refl
+  ltI (O a) = compareContLtLtFro a (O a) $ ltLeIncl a (O a) $ ltO a
+  ltI (I a) = ltI a
+
+leDMO : (n : Bip) -> n `Le` bipDMO n
+leDMO  U    = uninhabited
+leDMO (O a) = leDMO a . compareContLtGtTo a (bipDMO a)
+leDMO (I a) = ltLeIncl a (O a) $ ltO a

@@ -18,13 +18,44 @@ import Data.Biz.Ord
 %default total
 %access public export
 
+-- these seem to only be used here
+
+div2D : (x : Biz) -> bizDivTwo (bizD x) = x
+div2D  BizO    = Refl
+div2D (BizP _) = Refl
+div2D (BizM _) = Refl
+
+div2DPO : (x : Biz) -> bizDivTwo (bizDPO x) = x
+div2DPO  BizO        = Refl
+div2DPO (BizP  _)    = Refl
+div2DPO (BizM  U)    = Refl
+div2DPO (BizM (O a)) = rewrite succPredDouble a in
+                       Refl
+div2DPO (BizM (I _)) = Refl
+
+div2Pos : (x : Biz) -> 0 `Le` x -> 0 `Le` bizDivTwo x
+div2Pos  BizO        _    = uninhabited
+div2Pos (BizP  U)    _    = uninhabited
+div2Pos (BizP (O _)) _    = uninhabited
+div2Pos (BizP (I _)) _    = uninhabited
+div2Pos (BizM  _)    zlex = absurd $ zlex Refl
+
+dDiv2Le : (x : Biz) -> 0 `Le` x -> 2*(bizDivTwo x) `Le` x
+dDiv2Le  BizO        _    = uninhabited
+dDiv2Le (BizP  U)    _    = uninhabited
+dDiv2Le (BizP (O a)) _    = rewrite compareContRefl a EQ in
+                            uninhabited
+dDiv2Le (BizP (I a)) _    = rewrite compareContRefl a LT in
+                            uninhabited
+dDiv2Le (BizM  _)    zlex = absurd $ zlex Refl
+
+-- Specification of parity functions
+
 Even : Biz -> Type
 Even a = (b ** a = 2*b)
 
 Odd : Biz -> Type
 Odd a = (b ** a = 2*b+1)
-
--- Specification of parity functions
 
 -- even_spec
 -- TODO split into `to` and `fro`
@@ -97,6 +128,14 @@ evenOrOdd =
         Right (b ** prf) => Left  (b ** addRegR 1 x (2*b) prf)
     )
 
+oddNotEven : (x : Biz) -> bizOdd x = not (bizEven x)
+oddNotEven  BizO        = Refl
+oddNotEven (BizP  U)    = Refl
+oddNotEven (BizP (O a)) = Refl
+oddNotEven (BizP (I a)) = Refl
+oddNotEven (BizM  U)    = Refl
+oddNotEven (BizM (O a)) = Refl
+oddNotEven (BizM (I a)) = Refl
 
 -- Conversions between [Z.testbit] and [N.testbit]
 
@@ -142,6 +181,16 @@ testbit0L : (n : Biz) -> bizTestBit 0 n = False
 testbit0L  BizO    = Refl
 testbit0L (BizP _) = Refl
 testbit0L (BizM _) = Refl
+
+testbit1L : (n : Biz) -> bizTestBit 1 n = n == 0
+testbit1L  BizO    = Refl
+testbit1L (BizP _) = Refl
+testbit1L (BizM _) = Refl
+
+testbitM1L : (n : Biz) -> 0 `Le` n -> bizTestBit (-1) n = True
+testbitM1L  BizO    _    = Refl
+testbitM1L (BizP _) _    = Refl
+testbitM1L (BizM _) zlen = absurd $ zlen Refl
 
 -- testbit_neg_r
 
@@ -579,3 +628,154 @@ lxorSpec a b n@(BizM _) =
 
 -- TODO boolean comparisons ?
 
+bizShiftinSpec : (b : Bool) -> (x : Biz) -> bizShiftin b x = 2 * x + (if b then 1 else 0)
+bizShiftinSpec False x = rewrite add0R (2*x) in
+                         doubleSpec x
+bizShiftinSpec True x = succDoubleSpec x
+
+bizShiftinInj : (b1, b2 : Bool) -> (x1, x2 : Biz) -> bizShiftin b1 x1 = bizShiftin b2 x2 -> (b1 = b2, x1 = x2)
+bizShiftinInj True  True  x1 x2 prf = (Refl,    prf
+                                           |> replace {P = \z => z = bizDPO x2} (succDoubleSpec x1)
+                                           |> replace {P = \z => 2*x1 + 1 = z} (succDoubleSpec x2)
+                                           |> addRegR 1 (2*x1) (2*x2)
+                                           |> mulRegL x1 x2 2 uninhabited)
+bizShiftinInj True  False x1 x2 prf = absurd $ notDDPO x2 x1 (sym prf)
+bizShiftinInj False True  x1 x2 prf = absurd $ notDDPO x1 x2 prf
+bizShiftinInj False False x1 x2 prf = (Refl,    prf
+                                           |> replace {P = \z => z = bizD x2} (doubleSpec x1)
+                                           |> replace {P = \z => 2*x1 = z} (doubleSpec x2)
+                                           |> mulRegL x1 x2 2 uninhabited)
+
+bizShiftinInd : (P : Biz -> Type) -> (f0 : P 0)
+           -> ((b : Bool) -> (x : Biz) -> 0 `Le` x -> P x -> P (bizShiftin b x))
+           -> (x : Biz) -> 0 `Le` x -> P x
+bizShiftinInd _ f0 _  BizO    _    = f0
+bizShiftinInd P f0 f (BizP a) _    = aux a
+  where
+  -- a workaround to convince totality checker that `BizP (O/I a) -> BizP a` is decreasing
+  aux : (p : Bip) -> P (BizP p)
+  aux  U    = f True 0 uninhabited f0
+  aux (O a) = f False (BizP a) uninhabited $ aux a
+  aux (I a) = f True (BizP a) uninhabited $ aux a
+bizShiftinInd _ _  _ (BizM _) zlex = absurd $ zlex Refl
+
+bizShiftinPosInd : (P : Biz -> Type) -> (f1 : P 1)
+              -> ((b : Bool) -> (x : Biz) -> 0 `Lt` x -> P x -> P (bizShiftin b x))
+              -> (x : Biz) -> 0 `Lt` x -> P x
+bizShiftinPosInd _ _  _  BizO    zltx = absurd zltx
+bizShiftinPosInd P f1 f (BizP a) _    = aux a
+  where
+  -- a workaround to convince totality checker that `BizP (O/I a) -> BizP a` is decreasing
+  aux : (p : Bip) -> P (BizP p)
+  aux  U    = f1
+  aux (O a) = f False (BizP a) Refl $ aux a
+  aux (I a) = f True (BizP a) Refl $ aux a
+bizShiftinPosInd _ _  _ (BizM _) zltx = absurd zltx
+
+zDecomp : (x : Biz) -> x = bizShiftin (bizOdd x) (bizDivTwo x)
+zDecomp  BizO        = Refl
+zDecomp (BizP  U)    = Refl
+zDecomp (BizP (O _)) = Refl
+zDecomp (BizP (I _)) = Refl
+zDecomp (BizM  U)    = Refl
+zDecomp (BizM (O _)) = Refl
+zDecomp (BizM (I a)) = cong $ sym $ predDoubleSucc a
+
+zTestbitShiftin : (b : Bool) -> (x, n : Biz) -> 0 `Le` n
+               -> bizTestBit (bizShiftin b x) n = if n == 0 then b else bizTestBit x (bizPred n)
+zTestbitShiftin b x n zlen with (n==0) proof nz
+  zTestbitShiftin False x n zlen | False =
+      testbitEvenSucc x (bizPred n) (ltPredRTo 0 n $ leNeqLt n 0 zlen $ neqbNeqTo n 0 (sym nz))
+   |> replace {P = \z => bizTestBit (bizD x) z = bizTestBit x (bizPred n)} (sym $ addAssoc n (-1) 1)
+   |> replace {P = \z => bizTestBit (bizD x) z = bizTestBit x (bizPred n)} (add0R n)
+  zTestbitShiftin True  x n zlen | False =
+      testbitOddSucc x (bizPred n) (ltPredRTo 0 n $ leNeqLt n 0 zlen $ neqbNeqTo n 0 (sym nz))
+   |> replace {P = \z => bizTestBit (bizDPO x) z = bizTestBit x (bizPred n)} (sym $ addAssoc n (-1) 1)
+   |> replace {P = \z => bizTestBit (bizDPO x) z = bizTestBit x (bizPred n)} (add0R n)
+  zTestbitShiftin False x n zlen | True  = rewrite eqbEqTo n 0 (sym nz) in
+                                           testbitEven0 x
+  zTestbitShiftin True  x n zlen | True  = rewrite eqbEqTo n 0 (sym nz) in
+                                           testbitOdd0 x
+
+zTestbitShiftinBase : (b : Bool) -> (x : Biz) -> bizTestBit (bizShiftin b x) 0 = b
+zTestbitShiftinBase b x =
+  rewrite zTestbitShiftin b x 0 uninhabited in
+  Refl
+
+zTestbitShiftinSucc : (b : Bool) -> (x, n : Biz) -> 0 `Le` n -> bizTestBit (bizShiftin b x) (bizSucc n) = bizTestBit x n
+zTestbitShiftinSucc b x n zlen =
+  rewrite zTestbitShiftin b x (bizSucc n) $ ltLeIncl 0 (n+1) $ ltSuccRFro 0 n zlen in
+  rewrite neqbNeqFro (n+1) 0 $ ltNotEq (n+1) 0 $ ltSuccRFro 0 n zlen in
+  rewrite sym $ addAssoc n 1 (-1) in
+  rewrite add0R n in
+  Refl
+
+zTestbitEq : (x, n : Biz) -> 0 `Le` n -> bizTestBit x n = if n == 0 then bizOdd x else bizTestBit (bizDivTwo x) (bizPred n)
+zTestbitEq x n zlen =
+  rewrite sym $ zTestbitShiftin (bizOdd x) (bizDivTwo x) n zlen in
+  rewrite sym $ zDecomp x in
+  Refl
+
+-- zTestbitBase is trivial
+
+zTestbitSucc : (a, n : Biz) -> 0 `Le` n -> bizTestBit a (bizSucc n) = bizTestBit (bizDivTwo a) n
+zTestbitSucc a n zlen =
+  case evenOrOdd a of
+    Left  (b**eprf) =>
+      rewrite sym $ testbitEvenSucc (bizDivTwo a) n zlen in
+      rewrite eprf in
+      rewrite sym $ doubleSpec b in
+      rewrite div2D b in
+      Refl
+    Right (b**oprf) =>
+      rewrite sym $ testbitOddSucc (bizDivTwo a) n zlen in
+      rewrite oprf in
+      rewrite sym $ succDoubleSpec b in
+      rewrite div2DPO b in
+      Refl
+
+zOneComplement : (i, x : Biz) -> 0 `Le` i -> bizTestBit (-x-1) i = not (bizTestBit x i)
+zOneComplement i x zlei =
+  natlikeInd
+    (\j => (y : Biz) -> bizTestBit (-y-1) j = not (bizTestBit y j))
+    base
+    (\j, zlej, pyj, y =>
+        let zltj1 = ltSuccRFro 0 j zlej
+            zlej1 = ltLeIncl 0 (j+1) zltj1 in
+        rewrite zDecomp y in
+        rewrite aux (bizOdd y) (bizDivTwo y) in
+        rewrite zTestbitShiftin (not (bizOdd y)) (-(bizDivTwo y)-1) (j+1) zlej1 in
+        rewrite zTestbitShiftin (bizOdd y) (bizDivTwo y) (j+1) zlej1 in
+        rewrite neqbNeqFro (j+1) 0 $ ltNotEq (j+1) 0 zltj1 in
+        rewrite sym $ addAssoc j 1 (-1) in
+        rewrite add0R j in
+        pyj (bizDivTwo y))
+    i zlei x
+  where
+  base : (x : Biz) -> bizOdd (-x-1) = not (bizOdd x)
+  base  BizO        = Refl
+  base (BizP  U)    = Refl
+  base (BizP (O _)) = Refl
+  base (BizP (I _)) = Refl
+  base (BizM  U)    = Refl
+  base (BizM (O a)) =
+    case succPredOr a of
+      Left au  => rewrite au in
+                  Refl
+      Right as => rewrite sym as in
+                  rewrite predDoubleSucc (bipPred a) in
+                  Refl
+  base (BizM (I _)) = Refl
+
+  aux : (b : Bool) -> (x : Biz) -> -(bizShiftin b x)-1 = bizShiftin (not b) (-x-1)
+  aux False  BizO        = Refl
+  aux False (BizP  a)    = rewrite add1R a in
+                           cong $ sym $ predDoubleSucc a
+  aux False (BizM  U)    = Refl
+  aux False (BizM (O _)) = Refl
+  aux False (BizM (I _)) = Refl
+  aux True   BizO        = Refl
+  aux True  (BizP  a)    = cong {f = BizM . O} $ sym $ add1R a
+  aux True  (BizM  U)    = Refl
+  aux True  (BizM (O _)) = Refl
+  aux True  (BizM (I _)) = Refl
