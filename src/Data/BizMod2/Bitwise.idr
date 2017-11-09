@@ -742,3 +742,75 @@ subAddNot x y =
   rewrite subAddNeg x y in
   rewrite negNot y in
   addAssoc x (not y) 1
+
+subAddNot3 : (x, y : BizMod2 n) -> Either (b = 0) (b = 1) -> (x - y) - b = (x + (not y)) + (b `xor` 1)
+subAddNot3 {n} x y (Left b0) =
+  rewrite b0 in
+  rewrite unsignedZero n in
+  rewrite add0R (unsigned (x-y)) in
+  rewrite reprUnsigned (repr 1 n) in
+  rewrite reprUnsigned (x-y) in
+  subAddNot x y
+subAddNot3 {n} x y (Right b1) =
+  rewrite b1 in
+  rewrite xorIdem (repr 1 n) in
+  rewrite unsignedZero n in
+  rewrite add0R (unsigned (x+(not y))) in
+  rewrite reprUnsigned (x+(not y)) in
+  rewrite subAddNot x y in
+  rewrite subAddNeg ((x+(not y))+1) 1 in
+  rewrite sym $ addAssoc (x+(not y)) (repr 1 n) (-(repr 1 n)) in
+  rewrite addNegZero (repr 1 n) in
+  add0R (x+(not y))
+
+-- we can't have a common helper for several `with` branches
+subBorrowAddCarryAux : (n : Nat) -> (x, y, b : BizMod2 n) -> Not (n=0) -> Either (b = 0) (b = 1) ->
+                       (unsigned x + unsigned (not y) + unsigned (b `xor` 1)) `compare` modulus n = unsigned x - unsigned y - unsigned b `compare` 0
+subBorrowAddCarryAux n x y b nz b01 =
+  rewrite unsignedNot y in
+  rewrite aux in
+  rewrite addComm (maxUnsigned n) (-(unsigned y)) in
+  rewrite addAssoc (unsigned x) (-(unsigned y)) (maxUnsigned n) in
+  rewrite sym $ addAssoc (unsigned x - unsigned y) (maxUnsigned n) (1 - unsigned b) in
+  rewrite addAssoc (maxUnsigned n) 1 (-(unsigned b)) in
+  rewrite sym $ addAssoc (modulus n) (-1) 1 in
+  rewrite addComm (modulus n) (-(unsigned b)) in
+  rewrite addAssoc (unsigned x - unsigned y) (-(unsigned b)) (modulus n) in
+  addCompareMonoR (unsigned x - unsigned y - unsigned b) 0 (modulus n)
+  where
+  aux : unsigned (b `xor` (repr 1 n)) = 1 - unsigned b
+  aux = case b01 of
+    Left b0 =>
+      rewrite b0 in
+      rewrite unsignedZero n in
+      rewrite reprUnsigned (repr 1 n) in
+      unsignedOne n nz
+    Right b1 =>
+      rewrite b1 in
+      rewrite xorIdem (repr 1 n) in
+      rewrite unsignedOne n nz in
+      unsignedZero n
+
+subBorrowAddCarry : (x, y : BizMod2 n) -> Either (b = 0) (b = 1) -> subBorrow x y b = (addCarry x (not y) (b `xor` 1)) `xor` 1
+subBorrowAddCarry {n} {b} x y b01 with (decEq n 0)
+  subBorrowAddCarry {n} {b} x y b01 | Yes n0 =
+    rewrite n0 in
+    aux0 (MkBizMod2 BizO (Refl, Refl)) (unsigned x - unsigned y - unsigned b < 0)
+    where
+    aux0 : (x : a) -> (b : Bool) -> (if b then x else x) = x
+    aux0 _ True = Refl
+    aux0 _ False = Refl
+  subBorrowAddCarry {n} {b} x y b01 | No nz with (bizCompare (unsigned x - unsigned y - unsigned b) 0) proof cmp
+    subBorrowAddCarry {n} {b} x y b01 | No nz | LT =
+      rewrite subBorrowAddCarryAux n x y b nz b01 in
+      rewrite sym cmp in
+      rewrite unsignedZero n in
+      sym $ reprUnsigned (repr 1 n)
+    subBorrowAddCarry {n} {b} x y b01 | No nz | EQ =
+      rewrite subBorrowAddCarryAux n x y b nz b01 in
+      rewrite sym cmp in
+      sym $ xorIdem (repr 1 n)
+    subBorrowAddCarry {n} {b} x y b01 | No nz | GT =
+      rewrite subBorrowAddCarryAux n x y b nz b01 in
+      rewrite sym cmp in
+      sym $ xorIdem (repr 1 n)
