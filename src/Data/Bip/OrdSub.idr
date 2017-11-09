@@ -6,7 +6,7 @@ import Data.Bip
 import Data.Bip.AddMul
 import Data.Bip.Iter
 
-%access public export
+%access export
 %default total
 
 %hide Prelude.Nat.GT
@@ -64,7 +64,7 @@ subMaskCarrySpec (I  a   ) (I b) = rewrite subMaskCarrySpec a b in
 -- TODO we use explicit proof arguments instead of Coq's GADT-like style,
 -- because we can't directly split arbitrary terms in later proofs, only "bind"
 -- them.
-
+public export
 data BimMinusSpec : (p, q : Bip) -> (m : Bim) -> Type where
   SubIsNul :     p = q -> m=BimO   -> BimMinusSpec p q m
   SubIsPos : q + r = p -> m=BimP r -> BimMinusSpec p q m
@@ -218,15 +218,19 @@ eqbEqFro (I _)  U    Refl impossible
 eqbEqFro (I _) (O _) Refl impossible
 eqbEqFro (I a) (I a) Refl = eqbEqFro a a Refl
 
+public export
 Lt : (x, y : Bip) -> Type
 Lt x y = x `compare` y = LT
 
+public export
 Gt : (x, y : Bip) -> Type
 Gt x y = x `compare` y = GT
 
+public export
 Le : (x, y : Bip) -> Type
 Le x y = Not (x `compare` y = GT)
 
+public export
 Ge : (x, y : Bip) -> Type
 Ge x y = Not (x `compare` y = LT)
 
@@ -418,7 +422,7 @@ compareXOXI : (p, q : Bip) -> O p `compare` I q = switchEq LT (p `compare` q)
 compareXOXI p q = compareContSpec p q LT
 
 -- mask2cmp
-
+public export
 mask2cmp : (p : Bim) -> Ordering
 mask2cmp  BimO    = EQ
 mask2cmp (BimP _) = GT

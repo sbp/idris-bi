@@ -3,7 +3,7 @@ module Data.Bip.Iter
 import Data.Bip
 import Data.Bip.AddMul
 
-%access public export
+%access export
 %default total
 
 -- peano_rect

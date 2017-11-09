@@ -14,7 +14,7 @@ import Data.Biz.Nat
 
 import Data.BizMod2
 
-%access public export
+%access export
 %default total
 
 -- Properties of [modulus], [max_unsigned], etc.
@@ -158,6 +158,7 @@ signedReprEq x n = rewrite unsignedReprEq x n in
 -- We define and state properties of equality and arithmetic modulo a positive
 -- integer.
 
+public export
 eqmod : (x, y, m : Biz) -> Type
 eqmod x y m = (k ** x = k * m + y)
 
@@ -248,6 +249,7 @@ eqmodDivides n m x y (k**prf1) (p**prf2) =
           rewrite sym prf2 in
           prf1)
 
+public export
 eqm : (x, y : Biz) -> (n : Nat) -> Type
 eqm x y = eqmod x y . modulus
 

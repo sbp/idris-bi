@@ -7,7 +7,7 @@ import Data.Bip.OrdSub
 
 import Data.Biz
 
-%access public export
+%access export
 %default total
 
 -- Properties of [pos_sub]
@@ -17,6 +17,7 @@ import Data.Biz
 
 -- pos_sub_spec
 -- TODO workaround for #4001
+public export
 posSubSpecHelp : (p, q : Bip) -> (o : Ordering) -> Biz
 posSubSpecHelp p q LT = BizM (q-p)
 posSubSpecHelp _ _ EQ = BizO

@@ -2,7 +2,6 @@ module Data.Bin.PowSqrt
 
 import Data.Util
 
---import Data.Bip.Iter
 import Data.Bip.AddMul
 import Data.Bip.OrdSub
 import Data.Bip.PowSqrt
@@ -11,7 +10,7 @@ import Data.Bin
 import Data.Bin.AddSubMul
 import Data.Bin.Ord
 
-%access public export
+%access export
 %default total
 
 -- Specifications of power

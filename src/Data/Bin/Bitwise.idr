@@ -12,7 +12,7 @@ import Data.Bin.AddSubMul
 import Data.Bin.Iter
 import Data.Bin.Ord
 
-%access public export
+%access export
 %default total
 
 -- Specification of bitwise functions

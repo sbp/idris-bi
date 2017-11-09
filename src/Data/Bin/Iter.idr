@@ -3,7 +3,7 @@ module Data.Bin.Iter
 import Data.Bin
 import Data.Bip.Iter
 
-%access public export
+%access export
 %default total
 
 -- Peano induction

@@ -7,7 +7,7 @@ import Data.Bip.AddMul
 import Data.Bip.Iter
 import Data.Bip.OrdSub
 
-%access public export
+%access export
 %default total
 
 -- Properties of the injection from binary positive numbers to Peano natural

@@ -59,6 +59,7 @@ maxSigned = bizPred . halfModulus
 minSigned : (n : Nat) -> Biz
 minSigned = bizOpp . halfModulus
 
+export
 modulusPower : (n : Nat) -> modulus n = bizPow2 (toBizNat n)
 modulusPower  Z        = Refl
 modulusPower (S  Z)    = Refl
@@ -74,9 +75,11 @@ modulusPower (S (S k)) =
 data BizMod2 : (n : Nat) -> Type where
   MkBizMod2 : (intVal : Biz) -> (range : (-1 `Lt` intVal, intVal `Lt` modulus n)) -> BizMod2 n
 
+export
 MkBizMod2Inj : MkBizMod2 x rx = MkBizMod2 y ry -> x = y
 MkBizMod2Inj Refl = Refl
 
+export
 bizMod2P0 : (x : BizMod2 0) -> x = MkBizMod2 0 (Refl, Refl)
 bizMod2P0 (MkBizMod2  BizO    (Refl, Refl)) = Refl
 bizMod2P0 (MkBizMod2 (BizP a) (_   , altu)) = absurd $ le1L a $ ltGt a U altu
@@ -105,6 +108,7 @@ bipMod2BizRange (S k) (I a) =
     Refl
   )
 
+export
 bipMod2BizEq : (n : Nat) -> (p : Bip) -> bipMod2Biz p n = BizP p `bizMod` modulus n
 bipMod2BizEq n p = let (y**prf) = aux n p
                        (zlemt, mtltmod) = bipMod2BizRange n p
@@ -162,6 +166,7 @@ bizMod2Range x n =
     ltSuccRFro 0 (x `bizMod2` n) lo
   , hi)
 
+export
 bizMod2Eq : (x : Biz) -> (n : Nat) -> x `bizMod2` n = x `bizMod` (modulus n)
 bizMod2Eq  BizO    _ = Refl
 bizMod2Eq (BizP a) n = bipMod2BizEq n a
@@ -465,4 +470,3 @@ divmods2 {n} nhi nlo d =
              q = fst qr
              r = snd qr in
          if minSigned n <= q && q <= maxSigned n then Just (repr q n, repr r n) else Nothing
-

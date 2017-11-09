@@ -7,7 +7,7 @@ import Data.Biz
 import Data.Biz.AddSubMul
 
 %default total
-%access public export
+%access export
 
 -- peano_ind
 -- TODO rename all versions to peanoInd ?

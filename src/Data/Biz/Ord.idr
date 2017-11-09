@@ -10,7 +10,7 @@ import Data.Biz
 import Data.Biz.AddSubMul
 import Data.Biz.Iter
 
-%access public export
+%access export
 %default total
 
 -- Specification of comparisons and order
@@ -50,15 +50,19 @@ neqbNeqFro n m neq with (n == m) proof nm
   | False = Refl
   | True  = absurd $ neq $ eqbEqTo n m $ sym nm
 
+public export
 Lt : (x, y : Biz) -> Type
 Lt x y = x `compare` y = LT
 
+public export
 Gt : (x, y : Biz) -> Type
 Gt x y = x `compare` y = GT
 
+public export
 Le : (x, y : Biz) -> Type
 Le x y = Not (x `compare` y = GT)
 
+public export
 Ge : (x, y : Biz) -> Type
 Ge x y = Not (x `compare` y = LT)
 

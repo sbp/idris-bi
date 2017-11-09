@@ -16,7 +16,7 @@ import Data.Biz.AddSubMul
 import Data.Biz.Ord
 import Data.Biz.Bitwise
 
-%access public export
+%access export
 %default total
 
 -- Specification of power

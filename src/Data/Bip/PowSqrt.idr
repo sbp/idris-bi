@@ -7,7 +7,7 @@ import Data.Bip.Iter
 import Data.Bip.AddMul
 import Data.Bip.OrdSub
 
-%access public export
+%access export
 %default total
 
 -- pow_1_r
@@ -62,7 +62,7 @@ sizeLe (I a) = rewrite powSuccR 2 (bipDigits a) in
 
 -- TODO like in other specs, e.g., `BimMinusSpec` we use a workaround with eq
 -- parameter
-
+public export
 data SqrtSpec : (Bip, Bim) -> Bip -> Type where
   SqrtExact  : x=s*s   ->               pm = (s, BimO)   -> SqrtSpec pm x
   SqrtApprox : x=s*s+r -> r `Le` O s -> pm = (s, BimP r) -> SqrtSpec pm x

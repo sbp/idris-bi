@@ -8,7 +8,7 @@ import Data.Biz.DivMod
 import Data.BizMod2
 import Data.BizMod2.Core
 
-%access public export
+%access export
 %default total
 
 -- Properties of addition

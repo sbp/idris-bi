@@ -9,7 +9,7 @@ import Data.Bin
 import Data.Bin.Iter
 import Data.Bin.AddSubMul
 
-%access public export
+%access export
 %default total
 
 -- Specification of boolean comparisons (using <->)
@@ -28,15 +28,19 @@ eqbEqFro  BinO    (BinP _) Refl impossible
 eqbEqFro (BinP _)  BinO    Refl impossible
 eqbEqFro (BinP a) (BinP b) prf = eqbEqFro a b (binPInj prf)
 
+public export
 Lt : (x, y : Bin) -> Type
 Lt x y = x `compare` y = LT
 
+public export
 Gt : (x, y : Bin) -> Type
 Gt x y = x `compare` y = GT
 
+public export
 Le : (x, y : Bin) -> Type
 Le x y = Not (x `compare` y = GT)
 
+public export
 Ge : (x, y : Bin) -> Type
 Ge x y = Not (x `compare` y = LT)
 

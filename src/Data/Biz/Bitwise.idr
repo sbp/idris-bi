@@ -16,7 +16,7 @@ import Data.Biz.Iter
 import Data.Biz.Ord
 
 %default total
-%access public export
+%access export
 
 -- these seem to only be used here
 
@@ -51,9 +51,11 @@ dDiv2Le (BizM  _)    zlex = absurd $ zlex Refl
 
 -- Specification of parity functions
 
+public export
 Even : Biz -> Type
 Even a = (b ** a = 2*b)
 
+public export
 Odd : Biz -> Type
 Odd a = (b ** a = 2*b+1)
 

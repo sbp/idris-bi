@@ -4,7 +4,7 @@ import Data.Bin
 import Data.Bip.AddMul
 import Data.Bip.OrdSub
 
-%access public export
+%access export
 %default total
 
 -- Properties of mixed successor and predecessor

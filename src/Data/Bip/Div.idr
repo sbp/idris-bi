@@ -6,9 +6,10 @@ import Data.Bip
 import Data.Bip.AddMul
 import Data.Bip.OrdSub
 
-%access public export
+%access export
 %default total
 
+public export
 bipDivides : (p, q : Bip) -> Type
 bipDivides p q = (r ** q = r*p)
 

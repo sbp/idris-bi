@@ -16,7 +16,7 @@ import Data.BizMod2
 import Data.BizMod2.Core
 import Data.BizMod2.AddSubMul
 
-%access public export
+%access export
 %default total
 
 -- Bit-level properties

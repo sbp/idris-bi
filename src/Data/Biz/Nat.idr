@@ -21,7 +21,7 @@ import Data.Biz.PowSqrt
 import Data.Biz.DivMod
 
 %default total
-%access public export
+%access export
 
 -- Chains of conversions
 

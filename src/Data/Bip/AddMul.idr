@@ -2,7 +2,7 @@ module Data.Bip.AddMul
 
 import Data.Bip
 
-%access public export
+%access export
 %default total
 
 -- xI_succ_xO is trivial

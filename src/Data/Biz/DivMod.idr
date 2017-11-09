@@ -15,7 +15,7 @@ import Data.Biz.AddSubMul
 import Data.Biz.Ord
 import Data.Biz.Bitwise
 
-%access public export
+%access export
 %default total
 
 -- Correctness proofs for Trunc division
@@ -439,6 +439,7 @@ remOppR (BizM _) (BizM _) = Refl
 
 -- Basic properties of divisibility
 
+public export
 bizDivides : (x, y : Biz) -> Type
 bizDivides x y = (z ** y = z*x)
 

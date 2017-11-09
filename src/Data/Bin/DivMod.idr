@@ -9,7 +9,7 @@ import Data.Bin
 import Data.Bin.AddSubMul
 import Data.Bin.Ord
 
-%access public export
+%access export
 %default total
 
 -- Specification of the euclidean division
