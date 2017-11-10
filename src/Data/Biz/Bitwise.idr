@@ -133,11 +133,11 @@ evenOrOdd =
 oddNotEven : (x : Biz) -> bizOdd x = not (bizEven x)
 oddNotEven  BizO        = Refl
 oddNotEven (BizP  U)    = Refl
-oddNotEven (BizP (O a)) = Refl
-oddNotEven (BizP (I a)) = Refl
+oddNotEven (BizP (O _)) = Refl
+oddNotEven (BizP (I _)) = Refl
 oddNotEven (BizM  U)    = Refl
-oddNotEven (BizM (O a)) = Refl
-oddNotEven (BizM (I a)) = Refl
+oddNotEven (BizM (O _)) = Refl
+oddNotEven (BizM (I _)) = Refl
 
 -- Conversions between [Z.testbit] and [N.testbit]
 
@@ -781,3 +781,85 @@ zOneComplement i x zlei =
   aux True  (BizM  U)    = Refl
   aux True  (BizM (O _)) = Refl
   aux True  (BizM (I _)) = Refl
+
+zAddIsOr : (x, y, i : Biz) -> 0 `Le` i -> ((j : Biz) -> 0 `Le` j -> j `Le` i -> bizTestBit x j && bizTestBit y j = False)
+       -> bizTestBit (x + y) i = bizTestBit x i || bizTestBit y i
+zAddIsOr x y i zlei f =
+  natlikeInd
+    (\k => (a, b : Biz) -> ((j : Biz) -> 0 `Le` j -> j `Le` k -> bizTestBit a j && bizTestBit b j = False) ->
+           bizTestBit (a + b) k = bizTestBit a k || bizTestBit b k)
+    (\a,b,g => base a b $ g 0 uninhabited uninhabited)
+    (\k, zlek, ihk, a, b, g =>
+      rewrite zDecomp a in
+      rewrite zDecomp b in
+      trans {b = bizTestBit (bizShiftin (bizOdd a || bizOdd b) (bizDivTwo a + bizDivTwo b)) (k+1)}
+        (rewrite bizShiftinSpec (bizOdd a) (bizDivTwo a) in
+         rewrite bizShiftinSpec (bizOdd b) (bizDivTwo b) in
+         rewrite bizShiftinSpec (bizOdd a || bizOdd b) (bizDivTwo a + bizDivTwo b) in
+         rewrite addAssoc (2*(bizDivTwo a)+(ifThenElse (bizOdd a) (Delay 1) (Delay 0))) (2*(bizDivTwo b)) (ifThenElse (bizOdd b) (Delay 1) (Delay 0)) in
+         rewrite sym $ addAssoc (2*(bizDivTwo a)) (ifThenElse (bizOdd a) (Delay 1) (Delay 0)) (2*(bizDivTwo b)) in
+         rewrite addComm (ifThenElse (bizOdd a) (Delay 1) (Delay 0)) (2*(bizDivTwo b)) in
+         rewrite addAssoc (2*(bizDivTwo a)) (2*(bizDivTwo b)) (ifThenElse (bizOdd a) (Delay 1) (Delay 0)) in
+         rewrite sym $ mulAddDistrL 2 (bizDivTwo a) (bizDivTwo b) in
+         rewrite sym $ addAssoc (2*(bizDivTwo a + bizDivTwo b)) (ifThenElse (bizOdd a) (Delay 1) (Delay 0)) (ifThenElse (bizOdd b) (Delay 1) (Delay 0)) in
+         rewrite aux (bizOdd a) (bizOdd b) (g 0 uninhabited $ leSuccR 0 k zlek) in
+         Refl)
+        (rewrite zTestbitShiftinSucc (bizOdd a || bizOdd b) (bizDivTwo a + bizDivTwo b) k zlek in
+         rewrite zTestbitShiftinSucc (bizOdd a) (bizDivTwo a) k zlek in
+         rewrite zTestbitShiftinSucc (bizOdd b) (bizDivTwo b) k zlek in
+         ihk (bizDivTwo a) (bizDivTwo b) $
+         \t, zlet, tlek =>
+          rewrite sym $ zTestbitSucc a t zlet in
+          rewrite sym $ zTestbitSucc b t zlet in
+          g (t+1) (leSuccR 0 t zlet) (rewrite addCompareMonoR t k 1 in tlek)
+        )
+    )
+    i zlei
+    x y f
+    where
+    base : (x, y : Biz) -> bizOdd x && bizOdd y = False -> bizOdd (x + y) = bizOdd x || bizOdd y
+    base x y prf with (bizOdd x) proof ox
+      base x y prf | True with (bizOdd y) proof oy
+        base x y prf | True | True = absurd prf
+        base x y prf | True | False =
+          let (a**prfa) = oddSpecTo x (sym ox)
+              (b**prfb) = evenSpecTo y $ trans (sym $ notNot (bizEven y))
+                                               (cong {f=not} $ trans (sym $ oddNotEven y) (sym oy))
+          in
+          oddSpecFro (x+y) $
+          (a+b ** rewrite prfa in
+                  rewrite prfb in
+                  rewrite sym $ addAssoc (2*a) 1 (2*b) in
+                  rewrite addComm 1 (2*b) in
+                  rewrite addAssoc (2*a) (2*b) 1 in
+                  rewrite mulAddDistrL 2 a b in
+                  Refl)
+      base x y prf | False with (bizOdd y) proof oy
+        base x y prf | False | True =
+          let (a**prfa) = evenSpecTo x $ trans (sym $ notNot (bizEven x))
+                                               (cong {f=not} $ trans (sym $ oddNotEven x) (sym ox))
+              (b**prfb) = oddSpecTo y (sym oy)
+          in
+          oddSpecFro (x+y) $
+          (a+b ** rewrite prfa in
+                  rewrite prfb in
+                  rewrite addAssoc (2*a) (2*b) 1 in
+                  rewrite mulAddDistrL 2 a b in
+                  Refl)
+        base x y prf | False | False =
+          let (a**prfa) = evenSpecTo x $ trans (sym $ notNot (bizEven x))
+                                               (cong {f=not} $ trans (sym $ oddNotEven x) (sym ox))
+              (b**prfb) = evenSpecTo y $ trans (sym $ notNot (bizEven y))
+                                               (cong {f=not} $ trans (sym $ oddNotEven y) (sym oy))
+          in
+          rewrite oddNotEven (x+y) in
+          cong {f=not} {a=bizEven (x+y)} {b=True} $
+          evenSpecFro (x+y) $
+          (a+b ** rewrite prfa in
+                  rewrite prfb in
+                  sym $ mulAddDistrL 2 a b)
+    aux : (b1, b2: Bool) -> b1 && b2 = False -> (if b1 then BizP U else BizO) + (if b2 then BizP U else BizO) = if b1 || b2 then BizP U else BizO
+    aux True  True  prf = absurd prf
+    aux True  False _   = Refl
+    aux False True  _   = Refl
+    aux False False _   = Refl

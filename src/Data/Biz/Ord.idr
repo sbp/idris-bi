@@ -588,6 +588,14 @@ leRefl : (x : Biz) -> x `Le` x
 leRefl x = rewrite compareEqIffFro x x Refl in
            uninhabited
 
+-- TODO look where else this can be applied
+leSuccR : (x, y : Biz) -> x `Le` y -> x `Le` bizSucc y
+leSuccR x y xley =
+  leTrans x y (bizSucc y) xley $
+  rewrite addComm y 1 in
+  rewrite addCompareMonoR 0 1 y in
+  uninhabited
+
 addLtMono : (p, q, r, s : Biz) -> p `Lt` q -> r `Lt` s -> (p+r) `Lt` (q+s)
 addLtMono p q r s pltq rlts =
   let prqr = replace {P = \x => x=LT} (sym $ addCompareMonoR p q r) pltq
