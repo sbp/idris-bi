@@ -91,7 +91,7 @@ divsM1 {n} x =
   rewrite signedMone n in
   rewrite quotOppR (signed x) 1 uninhabited in
   rewrite quot1R (signed x) in
-  eqmSamerepr (-(signed x)) (-(unsigned x)) n $
+  eqmSamerepr (-signed x) (-unsigned x) n $
   eqmodNeg (signed x) (unsigned x) (modulus n) $
   eqmSignedUnsigned x
 

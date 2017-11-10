@@ -190,7 +190,7 @@ bizMod2Eq (BizM a) n with (a `bipMod2Biz` n) proof pz
              )
              (rewrite compareSubR ((modulus n)-(BizP b)) (modulus n) in
               rewrite oppAddDistr (modulus n) (BizM b) in
-              rewrite addAssoc (modulus n) (-(modulus n)) (BizP b) in
+              rewrite addAssoc (modulus n) (-modulus n) (BizP b) in
               rewrite posSubDiag (bipPow2 n) in
               Refl
              ) $
@@ -270,7 +270,7 @@ Num (BizMod2 n) where
   fromInteger i = repr (fromInteger i) n
 
 Neg (BizMod2 n) where
-  negate x = repr (-(unsigned x)) n
+  negate x = repr (-unsigned x) n
   abs x    = repr (abs (signed x)) n  -- TODO is this correct?
   x - y    = repr (unsigned x - unsigned y) n
 

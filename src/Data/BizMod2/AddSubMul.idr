@@ -128,7 +128,7 @@ unsignedAddEither {n} x y =
 
 -- Properties of negation
 
-negRepr : (z : Biz) -> (n : Nat) -> -(repr z n) = repr (-z) n
+negRepr : (z : Biz) -> (n : Nat) -> -repr z n = repr (-z) n
 negRepr z n =
   sym $
   eqmSamerepr (-z) (-(unsigned $ repr z n)) n $
@@ -175,10 +175,10 @@ sub0R {n} x =
 
 subAddNeg : (x, y : BizMod2 n) -> x - y = x + (-y)
 subAddNeg {n} x y =
-  eqmSamerepr (unsigned x - unsigned y) ((unsigned x)+(unsigned $ repr (-(unsigned y)) n)) n $
-  eqmodAdd (unsigned x) (unsigned x) (-(unsigned y)) (unsigned $ repr (-(unsigned y)) n) (modulus n)
+  eqmSamerepr (unsigned x - unsigned y) ((unsigned x)+(unsigned $ repr (-unsigned y) n)) n $
+  eqmodAdd (unsigned x) (unsigned x) (-unsigned y) (unsigned $ repr (-unsigned y) n) (modulus n)
     (eqmodRefl (unsigned x) (modulus n))
-    (eqmUnsignedRepr (-(unsigned y)) n)
+    (eqmUnsignedRepr (-unsigned y) n)
 
 subIdem : (x : BizMod2 n) -> x - x = 0
 subIdem x =
@@ -238,22 +238,22 @@ unsignedSubBorrow {n} x y =
     | False = rewrite add0R (unsigned x - unsigned y) in
               snd $ divModSmall (unsigned x - unsigned y) (modulus (S n))
                 (nltbLeTo 0 (unsigned x - unsigned y) (sym xy))
-                (addLtLeMono (unsigned x) (modulus (S n)) (-(unsigned y)) 0
+                (addLtLeMono (unsigned x) (modulus (S n)) (-unsigned y) 0
                             (snd $ unsignedRange x)
                             (rewrite sym $ compareOpp 0 (unsigned y) in
                              fst $ unsignedRange y))
     | True = sym $ snd $ divModPos (unsigned x - unsigned y) (modulus (S n)) (-1) (unsigned x - unsigned y + modulus (S n))
                 (rewrite addComm (unsigned x - unsigned y) (modulus (S n)) in
                  rewrite addCompareTransferL 0 (modulus (S n)) (unsigned x - unsigned y) in
-                 ltLeIncl (-(modulus (S n))) (unsigned x - unsigned y) $
-                 addLeLtMono 0 (unsigned x) (-(modulus (S n))) (-(unsigned y))
+                 ltLeIncl (-modulus (S n)) (unsigned x - unsigned y) $
+                 addLeLtMono 0 (unsigned x) (-modulus (S n)) (-unsigned y)
                    (fst $ unsignedRange x)
                    (rewrite sym $ compareOpp (unsigned y) (modulus (S n)) in
                     snd $ unsignedRange y))
                 (rewrite addCompareMonoR (unsigned x - unsigned y) 0 (modulus (S n)) in
                  ltbLtTo (unsigned x - unsigned y) 0 (sym xy))
                 (rewrite addComm (unsigned x - unsigned y) (modulus (S n)) in
-                 rewrite addAssoc (-(modulus (S n))) (modulus (S n)) (unsigned x - unsigned y) in
+                 rewrite addAssoc (-modulus (S n)) (modulus (S n)) (unsigned x - unsigned y) in
                  rewrite addOppDiagL (modulus (S n)) in
                  Refl)
 

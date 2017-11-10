@@ -413,7 +413,7 @@ remBoundPos (BizP a) (BizP b) zlea zltb with (snd $ bipDivEuclid a (BinP b)) pro
 
 -- rem_opp_l'
 
-remOppL : (a, b : Biz) -> bizRem (-a) b = -(bizRem a b)
+remOppL : (a, b : Biz) -> bizRem (-a) b = -bizRem a b
 remOppL  BizO     _       = Refl
 remOppL (BizP _)  BizO    = Refl
 remOppL (BizM _)  BizO    = Refl

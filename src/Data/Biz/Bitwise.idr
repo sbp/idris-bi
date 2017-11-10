@@ -405,7 +405,7 @@ shiftrSpec a   (BizM b) m zlem with ((BizP b) `compare` m) proof nm
   | EQ = shiftlSpecHigh a (BizP b) m zlem $ rewrite sym nm in
                                             uninhabited
   | GT = rewrite shiftlSpecLow a (BizP b) m $ gtLt (BizP b) m $ sym nm in
-         sym $ testbitNegR a (m-(BizP b)) $
+         sym $ testbitNegR a (m-BizP b) $
            rewrite sym $ compareSub m (BizP b) in
            gtLt (BizP b) m $ sym nm
 
@@ -729,7 +729,7 @@ zOneComplement i x zlei =
             zlej1 = ltLeIncl 0 (j+1) zltj1 in
         rewrite zDecomp y in
         rewrite aux (bizOdd y) (bizDivTwo y) in
-        rewrite zTestbitShiftin (not (bizOdd y)) (-(bizDivTwo y)-1) (j+1) zlej1 in
+        rewrite zTestbitShiftin (not (bizOdd y)) (-bizDivTwo y-1) (j+1) zlej1 in
         rewrite zTestbitShiftin (bizOdd y) (bizDivTwo y) (j+1) zlej1 in
         rewrite neqbNeqFro (j+1) 0 $ ltNotEq (j+1) 0 zltj1 in
         rewrite sym $ addAssoc j 1 (-1) in

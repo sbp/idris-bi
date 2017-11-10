@@ -96,7 +96,7 @@ powOppEven _ (BizM _)  _              = Refl
 
 -- pow_opp_odd
 
-powOppOdd : (a, b : Biz) -> Odd b -> bizPow (-a) b = -(bizPow a b)
+powOppOdd : (a, b : Biz) -> Odd b -> bizPow (-a) b = -bizPow a b
 powOppOdd _  BizO    (BizO   ** prf) = absurd prf
 powOppOdd _  BizO    (BizP _ ** prf) = absurd prf
 powOppOdd _  BizO    (BizM _ ** prf) = absurd prf

@@ -286,7 +286,7 @@ eqmUnsignedReprR a b n ab =
 
 eqmSignedUnsigned : (x : BizMod2 n) -> eqm (signed x) (unsigned x) n
 eqmSignedUnsigned {n} x with (unsigned x < halfModulus n)
-  | False = (-1 ** addComm (unsigned x) (-(modulus n)))
+  | False = (-1 ** addComm (unsigned x) (-modulus n))
   | True  = (0  ** Refl)
 
 eqmUnsignedSigned : (x : BizMod2 n) -> eqm (unsigned x) (signed x) n
@@ -403,7 +403,7 @@ signedRepr   (BizM a)  n    nz milex _     =
   rewrite xm in
   rewrite unsignedRepr ((BizM a)+(modulus n)) n
             (rewrite addCompareTransferL 0 (modulus n) (BizM a) in
-             leTrans (-(modulus n)) (-(halfModulus n)) (BizM a)
+             leTrans (-modulus n) (-halfModulus n) (BizM a)
                (rewrite mhm in
                 rewrite sym $ compareOpp (halfModulus n) (2*(halfModulus n)) in
                 rewrite sym $ mul1L (halfModulus n) in
@@ -424,8 +424,8 @@ signedRepr   (BizM a)  n    nz milex _     =
             rewrite mul1L (halfModulus n) in
             milex
   in
-  rewrite addComm ((modulus n)+(BizM a)) (-(modulus n)) in
-  rewrite addAssoc (-(modulus n)) (modulus n) (BizM a)  in
+  rewrite addComm ((modulus n)+(BizM a)) (-modulus n) in
+  rewrite addAssoc (-modulus n) (modulus n) (BizM a)  in
   rewrite posSubDiag (bipPow2 n) in
   Refl
 

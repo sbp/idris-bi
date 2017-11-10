@@ -109,22 +109,22 @@ posSubGt p q qltp =
 
 -- The opposite of [pos_sub] is [pos_sub] with reversed arguments
 -- pos_sub_opp
-oppD : (z : Biz) -> -(bizD z) = bizD (-z)
+oppD : (z : Biz) -> -bizD z = bizD (-z)
 oppD  BizO    = Refl
 oppD (BizP _) = Refl
 oppD (BizM _) = Refl
 
-oppDMODPO : (z : Biz) -> -(bizDMO z) = bizDPO (-z)
+oppDMODPO : (z : Biz) -> -bizDMO z = bizDPO (-z)
 oppDMODPO  BizO    = Refl
 oppDMODPO (BizP _) = Refl
 oppDMODPO (BizM _) = Refl
 
-oppDPODMO : (z : Biz) -> -(bizDPO z) = bizDMO (-z)
+oppDPODMO : (z : Biz) -> -bizDPO z = bizDMO (-z)
 oppDPODMO  BizO    = Refl
 oppDPODMO (BizP _) = Refl
 oppDPODMO (BizM _) = Refl
 
-posSubOpp : (p, q : Bip) -> -(bipMinusBiz p q) = bipMinusBiz q p
+posSubOpp : (p, q : Bip) -> -bipMinusBiz p q = bipMinusBiz q p
 posSubOpp  U     U    = Refl
 posSubOpp  U    (O _) = Refl
 posSubOpp  U    (I _) = Refl
@@ -502,7 +502,7 @@ addSuccL n m =
 
 -- opp_succ
 
-oppSucc : (n : Biz) -> -(bizSucc n) = bizPred (-n)
+oppSucc : (n : Biz) -> -bizSucc n = bizPred (-n)
 oppSucc n = oppAddDistr n 1
 
 -- Specification of successor and predecessor
