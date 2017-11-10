@@ -60,3 +60,30 @@ shlZero {n} x =
   rewrite unsignedZero n in
   rewrite reprUnsigned x in
   Refl
+
+bitwiseBinopShl : (f : BizMod2 n -> BizMod2 n -> BizMod2 n) -> (fb : Bool -> Bool -> Bool) -> (x, y, k : BizMod2 n) 
+               -> ((a, b : BizMod2 n) -> (j : Biz) -> 0 `Le` j -> j `Lt` toBizNat n -> testbit (f a b) j = fb (testbit a j) (testbit b j)) 
+               -> fb False False = False -> f (shl x k) (shl y k) = shl (f x y) k
+bitwiseBinopShl {n} f fb x y k ftest fbprf = 
+  sameBitsEq (f (shl x k) (shl y k)) (shl (f x y) k) $ \i, zlei, iltn => 
+  rewrite ftest (shl x k) (shl y k) i zlei iltn in
+  rewrite bitsShl (f x y) k i zlei iltn in
+  rewrite bitsShl x k i zlei iltn in
+  rewrite bitsShl y k i zlei iltn in
+  aux i zlei iltn
+  where
+  aux : (i : Biz) -> 0 `Le` i -> i `Lt` toBizNat n 
+     -> fb (if i < unsigned k then False else testbit x (i - unsigned k)) 
+           (if i < unsigned k then False else testbit y (i - unsigned k)) = 
+          if i < unsigned k then False else testbit (f x y) (i - unsigned k)
+  aux i zlei iltn with (i < unsigned k) proof ik
+    | True = fbprf
+    | False = sym $ ftest x y (i - unsigned k) 
+                (rewrite sym $ compareSubR (unsigned k) i in 
+                 nltbLeTo (unsigned k) i (sym ik)) 
+                (Biz.Ord.leLtTrans (i - unsigned k) i (toBizNat n) 
+                   (rewrite addComm i (-unsigned k) in 
+                    rewrite addCompareMonoR (-unsigned k) 0 i in 
+                    rewrite sym $ compareOpp 0 (unsigned k) in 
+                    fst $ unsignedRange k)
+                   iltn)
