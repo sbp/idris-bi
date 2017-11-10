@@ -814,3 +814,39 @@ subBorrowAddCarry {n} {b} x y b01 with (decEq n 0)
       rewrite subBorrowAddCarryAux n x y b nz b01 in
       rewrite sym cmp in
       sym $ xorIdem (repr 1 n)
+
+-- Connections between [add] and bitwise logical operations.
+
+addIsOr : (x, y : BizMod2 n) -> x `and` y = 0 -> x + y = x `or` y
+addIsOr {n} x y prf =
+  sameBitsEq (x+y) (x `or` y) $ \i, zlei, iltn =>
+  rewrite testbitRepr n (unsigned x + unsigned y) i zlei iltn in
+  rewrite testbitRepr n (unsigned x `bizOr` unsigned y) i zlei iltn in
+  rewrite lorSpec (unsigned x) (unsigned y) i in
+  zAddIsOr (unsigned x) (unsigned y) i zlei $ \j, zlej, jlei =>
+  rewrite sym $ landSpec (unsigned x) (unsigned y) j in
+  rewrite sym $ testbitRepr n (unsigned x `bizAnd` unsigned y) j zlej (leLtTrans j i (toBizNat n) jlei iltn) in
+  rewrite prf in
+  bitsZero j
+
+xorIsOr : (x, y : BizMod2 n) -> x `and` y = 0 -> x `xor` y = x `or` y
+xorIsOr {n} x y prf =
+  sameBitsEq (x `xor` y) (x `or` y) $ \i, zlei, iltn =>
+  rewrite bitsOr x y i zlei iltn in
+  rewrite bitsXor x y i zlei iltn in
+  let tbxyf = trans (trans (sym $ bitsAnd x y i zlei iltn)
+                           (cong {f=\z=>testbit z i} prf))
+                    (bitsZero i)
+  in
+  aux (testbit x i) (testbit y i) tbxyf
+  where
+  aux : (b1, b2 : Bool) -> b1 && b2 = False -> b1 `xor` b2 = b1 || b2
+  aux True  True  prf = absurd prf
+  aux True  False _   = Refl
+  aux False True  _   = Refl
+  aux False False _   = Refl
+
+addIsXor : (x, y : BizMod2 n) -> x `and` y = 0 -> x + y = x `xor` y
+addIsXor x y prf =
+  rewrite xorIsOr x y prf in
+  addIsOr x y prf
