@@ -272,7 +272,7 @@ zTestbitLe x y zley =
     y zley x
 
 -- Bit-level reasoning over type [int]
-
+public export
 testbit : (x : BizMod2 n) -> (i : Biz) -> Bool
 testbit x i = bizTestBit (unsigned x) i
 
@@ -850,3 +850,15 @@ addIsXor : (x, y : BizMod2 n) -> x `and` y = 0 -> x + y = x `xor` y
 addIsXor x y prf =
   rewrite xorIsOr x y prf in
   addIsOr x y prf
+
+addAnd : (x, y, z : BizMod2 n) -> y `and` z = 0 -> (x `and` y) + (x `and` z) = x `and` (y `or` z)
+addAnd x y z prf =
+  rewrite addIsOr (x `and` y) (x `and` z) $
+    rewrite andCommut x z in
+    rewrite sym $ andAssoc (x `and` y) z x in
+    rewrite andAssoc x y z in
+    rewrite prf in
+    rewrite andZero x in
+    andZeroL x
+  in
+  sym $ andOrDistrib x y z

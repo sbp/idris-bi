@@ -649,3 +649,20 @@ addTransferLZ x y z prf =
 succPredZ : (x : Biz) -> x = bizSucc (bizPred x)
 succPredZ x = rewrite sym $ addAssoc x (-1) 1 in
               sym $ add0R x
+
+minusBiz : (p, q : Bip) -> bimToBin $ bimMinus p q = toBinBiz $ bipMinusBiz p q
+minusBiz p q = case ltTotal p q of
+  Left $ Left pq  =>
+    rewrite subMaskNeg p q pq in
+    rewrite posSubLt p q pq in
+    Refl
+  Right eq        =>
+    rewrite eq in
+    rewrite subMaskDiag q in
+    rewrite posSubDiag q in
+    Refl
+  Left $ Right qp =>
+    let (_**prf) = subMaskPos p q qp in
+    rewrite prf in
+    rewrite posSubGt p q qp in
+    cong {f = BinP . bipMinusHelp} $ sym prf

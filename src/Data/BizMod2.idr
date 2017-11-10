@@ -306,9 +306,11 @@ not x = x `xor` (-1)
 shl : (x, y : BizMod2 n) -> BizMod2 n
 shl {n} x y = repr ((unsigned x) `bizShiftL` (unsigned y)) n
 
+-- aka logical right shift
 shru : (x, y : BizMod2 n) -> BizMod2 n
 shru {n} x y = repr ((unsigned x) `bizShiftR` (unsigned y)) n
 
+-- aka arithmetic right shift
 shr : (x, y : BizMod2 n) -> BizMod2 n
 shr {n} x y = repr ((signed x) `bizShiftR` (unsigned y)) n
 

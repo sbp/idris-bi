@@ -365,23 +365,6 @@ shiftlSpecLow  _       (BizM _) (BizP _) mltn = absurd mltn
 
 -- shiftl_spec_high
 
-minusBiz : (p, q : Bip) -> bimToBin $ bimMinus p q = toBinBiz $ bipMinusBiz p q
-minusBiz p q = case ltTotal p q of
-  Left $ Left pq  =>
-    rewrite subMaskNeg p q pq in
-    rewrite posSubLt p q pq in
-    Refl
-  Right eq        =>
-    rewrite eq in
-    rewrite subMaskDiag q in
-    rewrite posSubDiag q in
-    Refl
-  Left $ Right qp =>
-    let (_**prf) = subMaskPos p q qp in
-    rewrite prf in
-    rewrite posSubGt p q qp in
-    cong {f = BinP . bipMinusHelp} $ sym prf
-
 shiftlSpecHigh : (a, n, m : Biz) -> 0 `Le` m -> n `Le` m -> bizTestBit (bizShiftL a n) m = bizTestBit a (m-n)
 shiftlSpecHigh  _        BizO     m       _    _    = rewrite add0R m in
                                                       Refl

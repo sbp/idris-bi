@@ -66,42 +66,6 @@ public export
 Ge : (x, y : Biz) -> Type
 Ge x y = Not (x `compare` y = LT)
 
--- ltb_lt
-
--- TODO split into `to` and `fro`
-
-ltbLtTo : (n, m : Biz) -> n < m = True -> n `Lt` m
-ltbLtTo n m prf with (n `compare` m)
-  | LT = Refl
-  | EQ = absurd prf
-  | GT = absurd prf
-
-ltbLtFro : (n, m : Biz) -> n `Lt` m -> n < m = True
-ltbLtFro _ _ nltm = rewrite nltm in
-                    Refl
-
--- leb_le
-
--- TODO split into `to` and `fro`
-
-ngtbLeTo : (n, m : Biz) -> n > m = False -> n `Le` m
-ngtbLeTo n m prf nm with (n `compare` m)
-  | LT = absurd nm
-  | EQ = absurd nm
-  | GT = absurd prf
-
-ngtbLeFro : (n, m : Biz) -> n `Le` m -> n > m = False
-ngtbLeFro n m nlem with (n `compare` m)
-  | LT = Refl
-  | EQ = Refl
-  | GT = absurd $ nlem Refl
-
-ltLeIncl : (n, m : Biz) -> n `Lt` m -> n `Le` m
-ltLeIncl n m nltm ngtm with (n `compare` m)
-  | LT = uninhabited ngtm
-  | EQ = uninhabited ngtm
-  | GT = uninhabited nltm
-
 -- compare_eq_iff
 -- TODO split into `to` and `fro`
 
@@ -226,6 +190,60 @@ leGe n m nlem = rewrite compareAntisym n m in
 
 -- compare_lt_iff is trivial
 -- compare_le_iff is trivial
+
+-- ltb_lt
+
+-- TODO split into `to` and `fro`
+
+ltbLtTo : (n, m : Biz) -> n < m = True -> n `Lt` m
+ltbLtTo n m prf with (n `compare` m)
+  | LT = Refl
+  | EQ = absurd prf
+  | GT = absurd prf
+
+ltbLtFro : (n, m : Biz) -> n `Lt` m -> n < m = True
+ltbLtFro _ _ nltm = rewrite nltm in
+                    Refl
+
+-- leb_le
+
+-- TODO split into `to` and `fro`
+
+ngtbLeTo : (n, m : Biz) -> n > m = False -> n `Le` m
+ngtbLeTo n m prf nm with (n `compare` m)
+  | LT = absurd nm
+  | EQ = absurd nm
+  | GT = absurd prf
+
+ngtbLeFro : (n, m : Biz) -> n `Le` m -> n > m = False
+ngtbLeFro n m nlem with (n `compare` m)
+  | LT = Refl
+  | EQ = Refl
+  | GT = absurd $ nlem Refl
+
+ltLeIncl : (n, m : Biz) -> n `Lt` m -> n `Le` m
+ltLeIncl n m nltm ngtm with (n `compare` m)
+  | LT = uninhabited ngtm
+  | EQ = uninhabited ngtm
+  | GT = uninhabited nltm
+
+nltbLeTo : (n, m : Biz) -> m < n = False -> n `Le` m
+nltbLeTo n m prf nm with (m `compare` n) proof mn
+  | LT = absurd prf
+  | EQ = absurd $ replace (gtLt n m nm) mn
+  | GT = absurd $ replace (gtLt n m nm) mn
+
+nltbLeFro : (n, m : Biz) -> n `Le` m -> m < n = False
+nltbLeFro n m nlem with (m `compare` n) proof mn
+  | LT = absurd $ nlem $ ltGt m n (sym mn)
+  | EQ = Refl
+  | GT = Refl
+
+lebLeFro : (n, m : Biz) -> n `Le` m -> n <= m = True
+lebLeFro n m nlem with (n `compare` m) proof nm
+  | LT = Refl
+  | EQ = eqbEqFro n m $ compareEqIffTo n m (sym nm)
+  | GT = absurd $ nlem Refl
 
 -- Some more advanced properties of comparison and orders, including
 -- [compare_spec] and [lt_irrefl] and [lt_eq_cases].
@@ -545,24 +563,6 @@ ltPredLTo n m nlem =
   ltPredRFro (bizPred n) m $
   rewrite addCompareMonoR n m (-1) in
   nlem
-
-nltbLeTo : (n, m : Biz) -> m < n = False -> n `Le` m
-nltbLeTo n m prf nm with (m `compare` n) proof mn
-  | LT = absurd prf
-  | EQ = absurd $ replace (gtLt n m nm) mn
-  | GT = absurd $ replace (gtLt n m nm) mn
-
-nltbLeFro : (n, m : Biz) -> n `Le` m -> m < n = False
-nltbLeFro n m nlem with (m `compare` n) proof mn
-  | LT = absurd $ nlem $ ltGt m n (sym mn)
-  | EQ = Refl
-  | GT = Refl
-
-lebLeFro : (n, m : Biz) -> n `Le` m -> n <= m = True
-lebLeFro n m nlem with (n `compare` m) proof nm
-  | LT = Refl
-  | EQ = eqbEqFro n m $ compareEqIffTo n m (sym nm)
-  | GT = absurd $ nlem Refl
 
 mulCompareMonoR : (p, q, r : Biz) -> 0 `Lt` p -> (q*p) `compare` (r*p) = q `compare` r
 mulCompareMonoR p q r zltp =
