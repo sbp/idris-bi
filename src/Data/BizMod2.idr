@@ -253,6 +253,9 @@ DecEq (BizMod2 n) where
     Yes prf => Yes (mkintEq x y n rx ry prf)
     No contra => No (contra . MkBizMod2Inj)
 
+iwordsize : (n : Nat) -> BizMod2 n
+iwordsize n = repr (toBizNat n) n
+
 -- Arithmetic and logical operations over machine integers
 
 Eq (BizMod2 n) where
@@ -387,7 +390,7 @@ signExt : (m : Biz) -> (x : BizMod2 n) -> BizMod2 n
 signExt {n} m x = repr (bizSignExt m (unsigned x)) n
 
 -- Decomposition of a number as a sum of powers of two.
-
+-- TODO move to Biz?
 zOneBits : (n : Nat) -> (x, i : Biz) -> List Biz
 zOneBits  Z    _ _ = []
 zOneBits (S k) x i = if bizOdd x

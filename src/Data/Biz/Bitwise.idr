@@ -729,7 +729,7 @@ zOneComplement i x zlei =
             zlej1 = ltLeIncl 0 (j+1) zltj1 in
         rewrite zDecomp y in
         rewrite aux (bizOdd y) (bizDivTwo y) in
-        rewrite zTestbitShiftin (not (bizOdd y)) (-bizDivTwo y-1) (j+1) zlej1 in
+        rewrite zTestbitShiftin (not (bizOdd y)) (-bizDivTwo y - 1) (j+1) zlej1 in
         rewrite zTestbitShiftin (bizOdd y) (bizDivTwo y) (j+1) zlej1 in
         rewrite neqbNeqFro (j+1) 0 $ ltNotEq (j+1) 0 zltj1 in
         rewrite sym $ addAssoc j 1 (-1) in

@@ -61,29 +61,106 @@ shlZero {n} x =
   rewrite reprUnsigned x in
   Refl
 
-bitwiseBinopShl : (f : BizMod2 n -> BizMod2 n -> BizMod2 n) -> (fb : Bool -> Bool -> Bool) -> (x, y, k : BizMod2 n) 
-               -> ((a, b : BizMod2 n) -> (j : Biz) -> 0 `Le` j -> j `Lt` toBizNat n -> testbit (f a b) j = fb (testbit a j) (testbit b j)) 
+bitwiseBinopShl : (f : BizMod2 n -> BizMod2 n -> BizMod2 n) -> (fb : Bool -> Bool -> Bool) -> (x, y, k : BizMod2 n)
+               -> ((a, b : BizMod2 n) -> (j : Biz) -> 0 `Le` j -> j `Lt` toBizNat n -> testbit (f a b) j = fb (testbit a j) (testbit b j))
                -> fb False False = False -> f (shl x k) (shl y k) = shl (f x y) k
-bitwiseBinopShl {n} f fb x y k ftest fbprf = 
-  sameBitsEq (f (shl x k) (shl y k)) (shl (f x y) k) $ \i, zlei, iltn => 
+bitwiseBinopShl {n} f fb x y k ftest fbprf =
+  sameBitsEq (f (shl x k) (shl y k)) (shl (f x y) k) $ \i, zlei, iltn =>
   rewrite ftest (shl x k) (shl y k) i zlei iltn in
   rewrite bitsShl (f x y) k i zlei iltn in
   rewrite bitsShl x k i zlei iltn in
   rewrite bitsShl y k i zlei iltn in
   aux i zlei iltn
   where
-  aux : (i : Biz) -> 0 `Le` i -> i `Lt` toBizNat n 
-     -> fb (if i < unsigned k then False else testbit x (i - unsigned k)) 
-           (if i < unsigned k then False else testbit y (i - unsigned k)) = 
+  aux : (i : Biz) -> 0 `Le` i -> i `Lt` toBizNat n
+     -> fb (if i < unsigned k then False else testbit x (i - unsigned k))
+           (if i < unsigned k then False else testbit y (i - unsigned k)) =
           if i < unsigned k then False else testbit (f x y) (i - unsigned k)
   aux i zlei iltn with (i < unsigned k) proof ik
     | True = fbprf
-    | False = sym $ ftest x y (i - unsigned k) 
-                (rewrite sym $ compareSubR (unsigned k) i in 
-                 nltbLeTo (unsigned k) i (sym ik)) 
-                (Biz.Ord.leLtTrans (i - unsigned k) i (toBizNat n) 
-                   (rewrite addComm i (-unsigned k) in 
-                    rewrite addCompareMonoR (-unsigned k) 0 i in 
-                    rewrite sym $ compareOpp 0 (unsigned k) in 
+    | False = sym $ ftest x y (i - unsigned k)
+                (rewrite sym $ compareSubR (unsigned k) i in
+                 nltbLeTo (unsigned k) i (sym ik))
+                (leLtTrans (i - unsigned k) i (toBizNat n)
+                   (rewrite addComm i (-unsigned k) in
+                    rewrite addCompareMonoR (-unsigned k) 0 i in
+                    rewrite sym $ compareOpp 0 (unsigned k) in
                     fst $ unsignedRange k)
                    iltn)
+
+andShl : (x, y, k : BizMod2 n) -> (shl x k) `and` (shl y k) = shl (x `and` y) k
+andShl x y k = bitwiseBinopShl and (\a, b => a && b) x y k bitsAnd Refl
+
+orShl : (x, y, k : BizMod2 n) -> (shl x k) `or` (shl y k) = shl (x `or` y) k
+orShl x y k = bitwiseBinopShl or (\a, b => a || b) x y k bitsOr Refl
+
+xorShl : (x, y, k : BizMod2 n) -> (shl x k) `xor` (shl y k) = shl (x `xor` y) k
+xorShl x y k = bitwiseBinopShl xor xor x y k bitsXor Refl
+
+-- TODO put in Ord
+-- `0 <= unsigned x` is just unsignedRange
+ltuInv : (x, y : BizMod2 n) -> x `ltu` y = True -> unsigned x `Lt` unsigned y
+ltuInv x y = ltbLtTo (unsigned x) (unsigned y)
+
+ltuIwordsizeInv : (x : BizMod2 n) -> x `ltu` iwordsize n = True -> unsigned x `Lt` toBizNat n
+ltuIwordsizeInv {n} x prf =
+  rewrite sym $ unsignedReprWordsize n in
+  ltuInv x (iwordsize n) prf
+
+shlShl : (x, y, z : BizMod2 n)
+      -> y `ltu` iwordsize n = True -> z `ltu` iwordsize n = True -> (y+z) `ltu` iwordsize n = True
+      -> shl (shl x y) z = shl x (y+z)
+shlShl {n} x y z yn zn yzn =
+  sameBitsEq (shl (shl x y) z) (shl x (y+z)) $ \i, zlei, iltn =>
+  rewrite bitsShl (shl x y) z i zlei iltn in
+  rewrite bitsShl x (y+z) i zlei iltn in
+  rewrite aux in
+  aux2 i zlei iltn
+  where
+  aux : unsigned (y+z) = unsigned y + unsigned z
+  aux = unsignedRepr (unsigned y + unsigned z) n
+          (addLeMono 0 (unsigned y) 0 (unsigned z) (fst $ unsignedRange y) (fst $ unsignedRange z))
+          (leTrans (unsigned y + unsigned z) (bizDMO (toBizNat n)) (maxUnsigned n)
+            (rewrite predDoubleSpec (toBizNat n) in
+             ltPredRTo (unsigned y + unsigned z) (2*(toBizNat n)) $
+             rewrite mulAddDistrR 1 1 (toBizNat n) in
+             rewrite mul1L (toBizNat n) in
+             addLtMono (unsigned y) (toBizNat n) (unsigned z) (toBizNat n) (ltuIwordsizeInv y yn) (ltuIwordsizeInv z zn))
+            (twoWordsizeMaxUnsigned n)
+          )
+  auxCompare : (p, q : Biz) -> Either (Either (p `Lt` q) (p `Gt` q)) (bizCompare p q = EQ)
+  auxCompare p q with (p `compare` q)
+    | LT = Left $ Left Refl
+    | EQ = Right Refl
+    | GT = Left $ Right Refl
+  aux2 : (i : Biz) -> 0 `Le` i -> i `Lt` toBizNat n
+      -> (if i < unsigned z then False else testbit (shl x y) (i - unsigned z)) =
+           (if i < unsigned y + unsigned z then False else testbit x (i - (unsigned y + unsigned z)))
+  aux2 i zlei iltn with (i < unsigned z) proof iz
+    | True =
+      rewrite ltbLtFro i (unsigned y + unsigned z) $
+         ltLeTrans i (unsigned z) (unsigned y + unsigned z)
+           (ltbLtTo i (unsigned z) (sym iz))
+           (rewrite addCompareMonoR 0 (unsigned y) (unsigned z) in
+            fst $ unsignedRange y)
+      in Refl
+    | False =
+      rewrite bitsShl x y (i - unsigned z)
+               (rewrite sym $ compareSubR (unsigned z) i in
+                nltbLeTo (unsigned z) i (sym iz))
+               (leLtTrans (i - unsigned z) i (toBizNat n)
+                  (rewrite addComm i (-unsigned z) in
+                    rewrite addCompareMonoR (-unsigned z) 0 i in
+                    rewrite sym $ compareOpp 0 (unsigned z) in
+                    fst $ unsignedRange z)
+                  iltn)
+            in
+      rewrite addComm (unsigned y) (unsigned z) in
+      rewrite addCompareTransferL i (unsigned z) (unsigned y) in
+      rewrite addComm (-unsigned z) i in
+      rewrite oppAddDistr (unsigned z) (unsigned y) in
+      rewrite addAssoc i (-unsigned z) (-unsigned y) in
+      case auxCompare (i - unsigned z) (unsigned y) of
+        Left (Left izylt)  => rewrite izylt in Refl
+        Right izyeq        => rewrite izyeq in Refl
+        Left (Right izygt) => rewrite izygt in Refl

@@ -504,7 +504,7 @@ oneNotZero : (n : Nat) -> Not (n=0) -> Not (repr 1 n = repr 0 n)
 oneNotZero  Z    nz = absurd $ nz Refl
 oneNotZero (S _) _  = absurd . MkBizMod2Inj
 
-unsignedReprWordsize : (n : Nat) -> unsigned (repr (toBizNat n) n) = toBizNat n
+unsignedReprWordsize : (n : Nat) -> unsigned (iwordsize n) = toBizNat n
 unsignedReprWordsize n = unsignedRepr (toBizNat n) n (toBizNatIsNonneg n) (wordsizeMaxUnsigned n)
 
 -- Properties of equality
