@@ -349,3 +349,32 @@ shrShr {n=S n} x y z yn zn =
                    leRefl (toBizNat (S n))
                  in
           Refl
+
+andShrShru : (x, y, z : BizMod2 n) -> (shr x z) `and` (shru y z) = shru (x `and` y) z
+andShrShru {n} x y z =
+  sameBitsEq ((shr x z) `and` (shru y z)) (shru (x `and` y) z) $ \i, zlei, iltn =>
+  rewrite bitsAnd (shr x z) (shru y z) i zlei iltn in
+  rewrite bitsShr x z i zlei iltn in
+  rewrite bitsShru y z i zlei iltn in
+  rewrite bitsShru (x `and` y) z i zlei iltn in
+  case ltLeTotal (i + unsigned z) (toBizNat n) of
+    Left izltn =>
+      rewrite ltbLtFro (i + unsigned z) (toBizNat n) izltn in
+      sym $ bitsAnd x y (i + unsigned z)
+        (leTrans 0 i (i + unsigned z)
+           zlei
+           (rewrite addComm i (unsigned z) in
+            rewrite addCompareMonoR 0 (unsigned z) i in
+            fst $ unsignedRange z))
+        izltn
+    Right nleiz =>
+      rewrite nltbLeFro (toBizNat n) (i + unsigned z) nleiz in
+      rewrite bitsAbove y (i + unsigned z) nleiz in
+      rewrite bitsAbove (x `and` y) (i + unsigned z) nleiz in
+      andFalse (testbit x (toBizNat n - 1))
+
+shrAndShruAnd : (x, y, z : BizMod2 n) -> shru (shl z y) y = z -> (shr x y) `and` z = (shru x y) `and` z
+shrAndShruAnd x y z prf =
+  rewrite sym prf in
+  rewrite andShru x (shl z y) y in
+  andShrShru x (shl z y) y
