@@ -269,6 +269,16 @@ leLtOrEq x y xley with (x `compare` y) proof xy
   | EQ = Right $ compareEqIffTo x y (sym xy)
   | GT = absurd $ xley Refl
 
+ltLeTotal : (p, q : Biz) -> Either (p `Lt` q) (q `Le` p)
+ltLeTotal p q with (p `compare` q) proof pq
+  | LT = Left Refl
+  | EQ = Right $ rewrite compareAntisym p q in
+                 rewrite sym pq in
+                 uninhabited
+  | GT = Right $ rewrite compareAntisym p q in
+                 rewrite sym pq in
+                 uninhabited
+
 -- lt_succ_r
 -- TODO split into `to` and `fro`
 
