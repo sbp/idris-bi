@@ -778,6 +778,12 @@ ltTrans p q r pltq qltr =
 -- TODO lt_strorder
 -- TODO lt_compat
 
+leLtOrEq : (x, y : Bip) -> x `Le` y -> Either (x `Lt` y) (x=y)
+leLtOrEq x y xley with (x `compare` y) proof xy
+  | LT = Left Refl
+  | EQ = Right $ compareEqIffTo x y (sym xy)
+  | GT = absurd $ xley Refl
+
 -- lt_total
 
 ltTotal : (p, q : Bip) -> Either (Either (p `Lt` q) (q `Lt` p)) (p = q)
@@ -1344,12 +1350,6 @@ min1R (O _) = Refl
 min1R (I _) = Refl
 
 -- distributivity with monotone functions
-
-leLtOrEq : (x, y : Bip) -> x `Le` y -> Either (x `Lt` y) (x=y)
-leLtOrEq x y xley with (x `compare` y) proof xy
-  | LT = Left Refl
-  | EQ = Right $ compareEqIffTo x y (sym xy)
-  | GT = absurd $ xley Refl
 
 maxMonotone : (f : Bip -> Bip) ->
               ((a, b : Bip) -> (a `Le` b) -> (f a `Le` f b)) ->

@@ -14,7 +14,7 @@ import Data.Biz.DivMod
 %default total
 %access public export
 
--- TODO move these to Biz and make modulus a synonym?
+-- TODO move these to Bip/Biz and make modulus a synonym?
 
 ||| 2^n
 
@@ -41,6 +41,22 @@ bizMod2 (BizP a) n = bipMod2Biz a n
 bizMod2 (BizM a) n = let r = bipMod2Biz a n in
                      if r==BizO then BizO
                              else bizMinus (BizP $ bipPow2 n) r
+
+export
+pow2Le : (n : Biz) -> n `Le` bizPow2 n
+pow2Le  BizO     = uninhabited
+pow2Le (BizP a)  =
+  peanoRect
+    (\x => x `Le` bipIter O U x)
+    uninhabited
+    (\p, prf =>
+      rewrite iterSucc O U p in
+      rewrite sym $ succPredDouble (bipIter O U p) in
+      rewrite compareSuccSucc p (bipDMO (bipIter O U p)) in
+      leTrans p (bipIter O U p) (bipDMO (bipIter O U p)) prf (leDMO (bipIter O U p))
+    )
+    a
+pow2Le (BizM _)  = uninhabited
 
 -- TODO add %static on `n` everywhere to minimize recalculation
 
@@ -214,13 +230,13 @@ unsigned : BizMod2 n -> Biz
 unsigned (MkBizMod2 intVal _) = intVal
 
 signed : BizMod2 n -> Biz
-signed {n} bm =
-  let x = unsigned bm
+signed {n} x =
+  let ux = unsigned x
       m = modulus n
   in
-  if x < bizDivTwo m
-    then x
-    else x-m
+  if ux < bizDivTwo m
+    then ux
+    else ux-m
 
 -- Conversely, [repr] takes a Biz and returns the corresponding machine integer.
 -- The argument is treated modulo [modulus n].

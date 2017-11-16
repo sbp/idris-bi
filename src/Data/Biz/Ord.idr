@@ -269,6 +269,12 @@ leLtOrEq x y xley with (x `compare` y) proof xy
   | EQ = Right $ compareEqIffTo x y (sym xy)
   | GT = absurd $ xley Refl
 
+geGtOrEq : (x, y : Biz) -> x `Ge` y -> Either (x `Gt` y) (x=y)
+geGtOrEq x y xgey with (x `compare` y) proof xy
+  | LT = absurd $ xgey Refl
+  | EQ = Right $ compareEqIffTo x y (sym xy)
+  | GT = Left Refl
+
 ltLeTotal : (p, q : Biz) -> Either (p `Lt` q) (q `Le` p)
 ltLeTotal p q with (p `compare` q) proof pq
   | LT = Left Refl

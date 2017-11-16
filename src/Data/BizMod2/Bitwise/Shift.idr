@@ -378,3 +378,72 @@ shrAndShruAnd x y z prf =
   rewrite sym prf in
   rewrite andShru x (shl z y) y in
   andShrShru x (shl z y) y
+
+-- TODO this actually holds for n=0 but we run into issues with rewrite
+-- TODO we could also reformulate the RHS condition as `halfModulus n <= unsigned x'
+shruLtZero : (x : BizMod2 n) -> Not (n=0) -> shru x (repr (toBizNat n - 1) n) = if x < repr 0 n then repr 1 n else repr 0 n
+shruLtZero {n} x nz =
+  sameBitsEq (shru x (repr (toBizNat n - 1) n)) (if x < 0 then 1 else 0) $ \i, zlei, iltn =>
+  rewrite bitsShru x (repr (toBizNat n - 1) n) i zlei iltn in
+  rewrite unsignedRepr (toBizNat n - 1) n
+            (rewrite sym $ compareSubR 1 (toBizNat n) in
+             leSuccLFro 0 (toBizNat n) $
+             leNeqLt (toBizNat n) 0 (toBizNatIsNonneg n) $
+             nz . toBizNatInj n 0)
+            (rewrite addCompareMonoR (toBizNat n) (modulus n) (-1) in
+             rewrite modulusPower n in
+             pow2Le (toBizNat n))
+    in
+  rewrite unsignedZero n in
+  rewrite ltbLtFro 0 (halfModulus n) $
+          leNeqLt (halfModulus n) 0 (div2Pos (modulus n) uninhabited) $
+          case n of
+            Z   => absurd $ nz Refl
+            S _ => uninhabited
+        in
+  case leLtOrEq 0 i zlei of
+    Right i0 =>
+      rewrite sym i0 in
+      rewrite signBitOfUnsigned x nz in
+      case ltLeTotal (unsigned x) (halfModulus n) of
+        Left uxltn2 =>
+          rewrite ltbLtFro (unsigned x) (halfModulus n) uxltn2 in
+          case geGtOrEq (unsigned x) 0 (leGe 0 (unsigned x) $ fst $ unsignedRange x) of
+            Left gt => rewrite gt in
+                       rewrite unsignedZero n in
+                       Refl
+            Right eq => rewrite eq in
+                        rewrite unsignedZero n in
+                        Refl
+        Right n2leux =>
+          rewrite nltbLeFro (halfModulus n) (unsigned x) n2leux in
+          rewrite sym $ compareSub (unsigned x) (modulus n) in
+          rewrite snd $ unsignedRange x in
+          rewrite unsignedOne n nz in
+          Refl
+    Left zlti =>
+      rewrite bitsAbove x (i + (toBizNat n - 1)) $
+            rewrite addComm (toBizNat n) (-1) in
+            rewrite addAssoc i (-1) (toBizNat n) in
+            rewrite addCompareMonoR 0 (i-1) (toBizNat n) in
+            rewrite sym $ compareSubR 1 i in
+            leSuccLFro 0 i zlti
+          in
+      case ltLeTotal (unsigned x) (halfModulus n) of
+        Left uxltn2 =>
+          rewrite ltbLtFro (unsigned x) (halfModulus n) uxltn2 in
+          case geGtOrEq (unsigned x) 0 (leGe 0 (unsigned x) $ fst $ unsignedRange x) of
+            Left gt => rewrite gt in
+                       rewrite unsignedZero n in
+                       sym $ testbit0L i
+            Right eq => rewrite eq in
+                        rewrite unsignedZero n in
+                        sym $ testbit0L i
+        Right n2leux =>
+          rewrite nltbLeFro (halfModulus n) (unsigned x) n2leux in
+          rewrite sym $ compareSub (unsigned x) (modulus n) in
+          rewrite snd $ unsignedRange x in
+          rewrite unsignedOne n nz in
+          rewrite testbit1L i in
+          sym $ neqbNeqFro i 0 $
+          \i0 => absurd $ replace i0 zlti
