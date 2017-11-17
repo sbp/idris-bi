@@ -647,3 +647,39 @@ bitsRor {n} x y i zlei iltn =
              rewrite addComm ((unsigned y `bizDiv` toBizNat n)*(toBizNat n)) i in
              rewrite sym $ addAssoc i ((unsigned y `bizDiv` toBizNat n)*(toBizNat n)) (unsigned y `bizMod` toBizNat n) in
              cong {f=bizPlus i} ydivmodn)
+
+-- `ltu y iwordsize n = True` doesn't seem necessary
+shlRolm : (x, y : BizMod2 n) -> shl x y = rolm x y (shl (repr (-1) n) y)
+shlRolm {n} x y =
+  sameBitsEq (shl x y) (rolm x y (shl (repr (-1) n) y)) $ \i, zlei, iltn =>
+  rewrite bitsAnd (x `rol` y) (shl (repr (-1) n) y) i zlei iltn in
+  rewrite bitsShl x y i zlei iltn in
+  rewrite bitsShl (repr (-1) n) y i zlei iltn in
+  rewrite bitsRol x y i zlei iltn in
+  case ltLeTotal i (unsigned y) of
+    Left ilty =>
+      rewrite ltbLtFro i (unsigned y) ilty in
+      sym $ andFalse (testbit x (i-unsigned y `bizMod` toBizNat n))
+    Right ylei =>
+      rewrite nltbLeFro (unsigned y) i ylei in
+      rewrite bitsMone n (i - unsigned y)
+                (rewrite sym $ compareSubR (unsigned y) i in
+                 ylei)
+                (leLtTrans (i - unsigned y) i (toBizNat n)
+                  (rewrite addComm i (-unsigned y) in
+                   rewrite addCompareMonoR (-unsigned y) 0 i in
+                   rewrite sym $ compareOpp 0 (unsigned y) in
+                   fst $ unsignedRange y)
+                  iltn)
+             in
+      rewrite andTrue (testbit x (i-unsigned y `bizMod` toBizNat n)) in
+      cong {f = testbit x} $
+      sym $ snd $ divModSmall (i-unsigned y) (toBizNat n)
+        (rewrite sym $ compareSubR (unsigned y) i in
+         ylei)
+        (leLtTrans (i - unsigned y) i (toBizNat n)
+         (rewrite addComm i (-unsigned y) in
+          rewrite addCompareMonoR (-unsigned y) 0 i in
+          rewrite sym $ compareOpp 0 (unsigned y) in
+          fst $ unsignedRange y)
+         iltn)
