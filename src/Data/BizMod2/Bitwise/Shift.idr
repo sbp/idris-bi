@@ -683,3 +683,56 @@ shlRolm {n} x y =
           rewrite sym $ compareOpp 0 (unsigned y) in
           fst $ unsignedRange y)
          iltn)
+
+-- TODO we actually can do with `y <= n` here
+shruRolm : (x, y : BizMod2 n) -> y `ltu` iwordsize n = True -> shru x y = rolm x (iwordsize n - y) (shru (repr (-1) n) y)
+shruRolm {n} x y yltun =
+  sameBitsEq (shru x y) (rolm x (iwordsize n - y) (shru (repr (-1) n) y)) $ \i, zlei, iltn =>
+  rewrite bitsAnd (x `rol` (iwordsize n - y)) (shru (repr (-1) n) y) i zlei iltn in
+  rewrite bitsShru x y i zlei iltn in
+  rewrite bitsShru (repr (-1) n) y i zlei iltn in
+  rewrite bitsRol x (iwordsize n - y) i zlei iltn in
+  let yltn = yltun
+          |> ltbLtTo (unsigned y) (unsigned $ iwordsize n)
+          |> replace {P=\z=>unsigned y `Lt` z} (unsignedReprWordsize n)
+     in
+  case ltLeTotal (i + unsigned y) (toBizNat n) of
+    Left iyltn =>
+      rewrite bitsMone n (i + unsigned y)
+                (leTrans 0 i (i + unsigned y)
+                  zlei
+                  (rewrite addComm i (unsigned y) in
+                   rewrite addCompareMonoR 0 (unsigned y) i in
+                   fst $ unsignedRange y))
+                iyltn
+              in
+      rewrite andTrue (testbit x ((i - (unsigned (iwordsize n - y))) `bizMod` (toBizNat n))) in
+      rewrite unsignedReprWordsize n in
+      rewrite unsignedRepr (toBizNat n - unsigned y) n
+                (rewrite sym $ compareSubR (unsigned y) (toBizNat n) in
+                 ltLeIncl (unsigned y) (toBizNat n) yltn)
+                (leTrans (toBizNat n - unsigned y) (toBizNat n) (maxUnsigned n)
+                  (rewrite addComm (toBizNat n) (-unsigned y) in
+                   rewrite addCompareMonoR (-unsigned y) 0 (toBizNat n) in
+                   rewrite sym $ compareOpp 0 (unsigned y) in
+                   fst $ unsignedRange y)
+                  (wordsizeMaxUnsigned n))
+             in
+      cong {f = testbit x} $
+      snd $ divModPos (i - (toBizNat n - unsigned y)) (toBizNat n) (-1) (i + unsigned y)
+        (leTrans 0 i (i + unsigned y)
+          zlei
+          (rewrite addComm i (unsigned y) in
+           rewrite addCompareMonoR 0 (unsigned y) i in
+           fst $ unsignedRange y))
+        iyltn
+        (rewrite sym $ oppEqMulM1L (toBizNat n) in
+         rewrite oppAddDistr (toBizNat n) (-unsigned y) in
+         rewrite oppInvolutive (unsigned y) in
+         rewrite addAssoc i (-toBizNat n) (unsigned y) in
+         rewrite addComm i (-toBizNat n) in
+         sym $ addAssoc (-toBizNat n) i (unsigned y))
+    Right nleiy =>
+      rewrite bitsAbove x (i + unsigned y) nleiy in
+      rewrite bitsAbove (repr (-1) n) (i + unsigned y) nleiy in
+      sym $ andFalse (testbit x ((i - (unsigned (iwordsize n - y))) `bizMod` (toBizNat n)))
