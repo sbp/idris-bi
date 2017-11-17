@@ -736,3 +736,43 @@ shruRolm {n} x y yltun =
       rewrite bitsAbove x (i + unsigned y) nleiy in
       rewrite bitsAbove (repr (-1) n) (i + unsigned y) nleiy in
       sym $ andFalse (testbit x ((i - (unsigned (iwordsize n - y))) `bizMod` (toBizNat n)))
+
+rolZero : (x : BizMod2 n) -> rol x 0 = x
+rolZero {n} x =
+  sameBitsEq (rol x 0) x $ \i, zlei, iltn =>
+  rewrite bitsRol x 0 i zlei iltn in
+  rewrite unsignedZero n in
+  rewrite add0R i in
+  cong {f = testbit x} $
+  snd $ divModSmall i (toBizNat n) zlei iltn
+
+bitwiseBinopRol : (f : BizMod2 n -> BizMod2 n -> BizMod2 n) -> (fb : Bool -> Bool -> Bool) -> (x, y, k : BizMod2 n)
+               -> ((a, b : BizMod2 n) -> (j : Biz) -> 0 `Le` j -> j `Lt` toBizNat n -> testbit (f a b) j = fb (testbit a j) (testbit b j))
+               -> f (rol x k) (rol y k) = rol (f x y) k
+bitwiseBinopRol {n} f fb x y k ftest =
+  case decEq n 0 of
+    Yes n0 =>
+      rewrite bizMod2P0N (f (rol x k) (rol y k)) n0 in
+      sym $ bizMod2P0N (rol (f x y) k) n0
+    No nz =>
+      sameBitsEq (f (rol x k) (rol y k)) (rol (f x y) k) $ \i, zlei, iltn =>
+      rewrite ftest (rol x k) (rol y k) i zlei iltn in
+      rewrite bitsRol (f x y) k i zlei iltn in
+      rewrite bitsRol x k i zlei iltn in
+      rewrite bitsRol y k i zlei iltn in
+      let ikmnrange = modPosBound (i - unsigned k) (toBizNat n) $
+                      leNeqLt (toBizNat n) 0 (toBizNatIsNonneg n) $
+                      nz . toBizNatInj n 0
+         in
+      sym $ ftest x y ((i - unsigned k) `bizMod` toBizNat n)
+        (fst ikmnrange)
+        (snd ikmnrange)
+
+andRol : (x, y, k : BizMod2 n) -> (rol x k) `and` (rol y k) = rol (x `and` y) k
+andRol x y k = bitwiseBinopRol and (\a, b => a && b) x y k bitsAnd
+
+orRol : (x, y, k : BizMod2 n) -> (rol x k) `or` (rol y k) = rol (x `or` y) k
+orRol x y k = bitwiseBinopRol or (\a, b => a || b) x y k bitsOr
+
+xorRol : (x, y, k : BizMod2 n) -> (rol x k) `xor` (rol y k) = rol (x `xor` y) k
+xorRol x y k = bitwiseBinopRol xor xor x y k bitsXor
