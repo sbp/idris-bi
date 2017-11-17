@@ -232,7 +232,7 @@ bizDivEuclidHelp2 q BizO _ = (bizOpp q, BizO)
 bizDivEuclidHelp2 q r    s = (bizOpp (bizSucc q), bizMinus r s)
 
 bizDivEuclid : (a, b : Biz) -> (Biz, Biz)
-bizDivEuclid  BizO     _         = (BizO, BizO)
+bizDivEuclid  BizO      _        = (BizO, BizO)
 bizDivEuclid  _         BizO     = (BizO, BizO)
 bizDivEuclid (BizP a') (BizP b') = bipzDivEuclid a' (BizP b')
 bizDivEuclid (BizM a') (BizP b') =

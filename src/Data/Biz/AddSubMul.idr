@@ -613,6 +613,11 @@ oppEqMulM1  BizO    = Refl
 oppEqMulM1 (BizP a) = cong $ sym $ mul1R a
 oppEqMulM1 (BizM a) = cong $ sym $ mul1R a
 
+oppEqMulM1L : (n : Biz) -> -n = (-1) * n
+oppEqMulM1L n =
+  rewrite mulComm (-1) n in
+  oppEqMulM1 n
+
 -- add_diag
 
 addDiag : (n : Biz) -> n + n = 2 * n

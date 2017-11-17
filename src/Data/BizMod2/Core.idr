@@ -318,8 +318,7 @@ signedRange {n} x nz with (unsigned x < halfModulus n) proof hx
               rewrite sym $ addAssoc ux (-(2*hm)) (2*hm) in
               rewrite addOppDiagL (2*hm) in
               rewrite add0R ux in
-              rewrite oppEqMulM1 hm in
-              rewrite mulComm hm (-1) in
+              rewrite oppEqMulM1L hm in
               rewrite sym $ mulAddDistrR (-1) 2 hm in
               rewrite mul1L hm in
               nltbLeTo hm ux (sym hx)

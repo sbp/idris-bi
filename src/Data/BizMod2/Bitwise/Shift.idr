@@ -491,3 +491,82 @@ shrLtZero {n} x nz =
          rewrite snd $ unsignedRange x in
          sym $ bitsMone n i zlei iltn
     )
+
+-- Properties of rotations
+
+bitsRol : (x, y : BizMod2 n) -> (i : Biz) -> 0 `Le` i -> i `Lt` toBizNat n
+      -> testbit (rol x y) i = testbit x ((i - unsigned y) `bizMod` (toBizNat n))
+bitsRol {n} x y i zlei iltn =
+  case decEq n 0 of
+    Yes n0 =>
+      rewrite n0 in
+      rewrite bizMod2P0N x n0 in
+      rewrite testbit0L i in
+      sym $ testbit0L ((i - unsigned y) `bizMod` 0)
+    No nz =>
+      rewrite testbitRepr n (bizOr (bizShiftL (unsigned x) (unsigned y `bizMod` toBizNat n))
+                                   (bizShiftR (unsigned x) ((toBizNat n) - (unsigned y `bizMod` toBizNat n)))) i zlei iltn in
+      rewrite lorSpec (bizShiftL (unsigned x) (unsigned y `bizMod` toBizNat n))
+                      (bizShiftR (unsigned x) ((toBizNat n) - (unsigned y `bizMod` toBizNat n))) i in
+      rewrite shiftrSpec (unsigned x) ((toBizNat n) - (unsigned y `bizMod` toBizNat n)) i zlei in
+      case ltLeTotal i (unsigned y `bizMod` toBizNat n) of
+        Left iltymn =>
+          rewrite shiftlSpecLow (unsigned x) (unsigned y `bizMod` toBizNat n) i iltymn in
+          cong {f = testbit x} $
+          snd $ divModPos (i - unsigned y) (toBizNat n) (-(unsigned y `bizDiv` toBizNat n)-1) (i + (toBizNat n - (unsigned y `bizMod` toBizNat n)))
+           (rewrite addAssoc i (toBizNat n) (-(unsigned y `bizMod` toBizNat n)) in
+            rewrite sym $ compareSubR (unsigned y `bizMod` toBizNat n) (i+(toBizNat n)) in
+            ltLeIncl (unsigned y `bizMod` toBizNat n) (i+(toBizNat n)) $
+            ltLeTrans (unsigned y `bizMod` toBizNat n) (toBizNat n) (i+(toBizNat n))
+              (snd $ modPosBound (unsigned y) (toBizNat n) $
+               leNeqLt (toBizNat n) 0 (toBizNatIsNonneg n) $
+               nz . toBizNatInj n 0)
+              (rewrite addCompareMonoR 0 i (toBizNat n) in
+               zlei))
+           (rewrite addComm (toBizNat n) (-(unsigned y `bizMod` toBizNat n)) in
+            rewrite addAssoc i (-(unsigned y `bizMod` toBizNat n)) (toBizNat n) in
+            rewrite addCompareMonoR (i-(unsigned y `bizMod` toBizNat n)) 0 (toBizNat n) in
+            rewrite sym $ compareSub i (unsigned y `bizMod` toBizNat n) in
+            iltymn)
+           (rewrite addAssoc i (toBizNat n) (-(unsigned y `bizMod` toBizNat n)) in
+            rewrite addAssoc ((-(unsigned y `bizDiv` toBizNat n)-1)*(toBizNat n)) (i + toBizNat n) (-(unsigned y `bizMod` toBizNat n)) in
+            rewrite addComm i (toBizNat n) in
+            rewrite addAssoc ((-(unsigned y `bizDiv` toBizNat n)-1)*(toBizNat n)) (toBizNat n) i in
+            rewrite mulAddDistrR (-(unsigned y `bizDiv` toBizNat n)) (-1) (toBizNat n) in
+            rewrite sym $ oppEqMulM1L (toBizNat n) in
+            rewrite sym $ addAssoc ((-(unsigned y `bizDiv` toBizNat n))*(toBizNat n)) (-toBizNat n) (toBizNat n) in
+            rewrite addOppDiagL (toBizNat n) in
+            rewrite add0R ((-(unsigned y `bizDiv` toBizNat n))*(toBizNat n)) in
+            rewrite addComm ((-(unsigned y `bizDiv` toBizNat n))*(toBizNat n)) i in
+            rewrite sym $ addAssoc i ((-(unsigned y `bizDiv` toBizNat n))*(toBizNat n)) (-(unsigned y `bizMod` toBizNat n)) in
+            rewrite mulOppL (unsigned y `bizDiv` toBizNat n) (toBizNat n) in
+            rewrite sym $ oppAddDistr ((unsigned y `bizDiv` toBizNat n)*(toBizNat n)) (unsigned y `bizMod` toBizNat n) in
+            cong {f=\z=> i - z} $ divEuclEq (unsigned y) (toBizNat n) (nz . toBizNatInj n 0))
+        Right ymnlei =>
+          rewrite shiftlSpecHigh (unsigned x) (unsigned y `bizMod` toBizNat n) i zlei ymnlei in
+          rewrite bitsAbove x (i + (toBizNat n - (unsigned y `bizMod` toBizNat n))) $
+                    rewrite addComm (toBizNat n) (-(unsigned y `bizMod` toBizNat n)) in
+                    rewrite addAssoc i (-(unsigned y `bizMod` toBizNat n)) (toBizNat n) in
+                    rewrite addCompareMonoR 0 (i-(unsigned y `bizMod` toBizNat n)) (toBizNat n) in
+                    rewrite sym $ compareSubR (unsigned y `bizMod` toBizNat n) i in
+                    ymnlei
+                  in
+          rewrite orFalse $ testbit x (i - (unsigned y `bizMod` toBizNat n)) in
+          cong {f = testbit x} $
+          snd $ divModPos (i - unsigned y) (toBizNat n) (-(unsigned y `bizDiv` toBizNat n)) (i - (unsigned y `bizMod` toBizNat n))
+            (rewrite sym $ compareSubR (unsigned y `bizMod` toBizNat n) i in
+             ymnlei)
+            (leLtTrans (i - (unsigned y `bizMod` toBizNat n)) i (toBizNat n)
+              (rewrite addComm i (-(unsigned y `bizMod` toBizNat n)) in
+               rewrite addCompareMonoR (-(unsigned y `bizMod` toBizNat n)) 0 i in
+               rewrite sym $ compareOpp 0 (unsigned y `bizMod` toBizNat n) in
+               fst $ modPosBound (unsigned y) (toBizNat n) $
+               leNeqLt (toBizNat n) 0 (toBizNatIsNonneg n) $
+               nz . toBizNatInj n 0)
+              iltn)
+            (rewrite mulOppL (unsigned y `bizDiv` toBizNat n) (toBizNat n) in
+             rewrite addAssoc (-((unsigned y `bizDiv` toBizNat n)*(toBizNat n))) i (-(unsigned y `bizMod` toBizNat n)) in
+             rewrite addComm (-((unsigned y `bizDiv` toBizNat n)*(toBizNat n))) i in
+             rewrite sym $ addAssoc i (-((unsigned y `bizDiv` toBizNat n)*(toBizNat n))) (-(unsigned y `bizMod` toBizNat n)) in
+             rewrite sym $ oppAddDistr ((unsigned y `bizDiv` toBizNat n)*(toBizNat n)) (unsigned y `bizMod` toBizNat n) in
+             cong {f=\z=> i - z} $ divEuclEq (unsigned y) (toBizNat n) (nz . toBizNatInj n 0))

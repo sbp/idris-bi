@@ -101,6 +101,11 @@ bizMod2P0 (MkBizMod2  BizO    (Refl, Refl)) = Refl
 bizMod2P0 (MkBizMod2 (BizP a) (_   , altu)) = absurd $ le1L a $ ltGt a U altu
 bizMod2P0 (MkBizMod2 (BizM a) (altu, _   )) = absurd $ le1L a $ ltGt a U altu
 
+export
+bizMod2P0N : (x : BizMod2 n) -> n = 0 -> x = MkBizMod2 0 (Refl, Refl)
+bizMod2P0N {n=Z}   x Refl = bizMod2P0 x
+bizMod2P0N {n=S _} _ nz   = absurd nz
+
 bipMod2BizRange : (n : Nat) -> (p : Bip) -> (0 `Le` (p `bipMod2Biz` n), (p `bipMod2Biz` n) `Lt` modulus n)
 bipMod2BizRange  Z     _    = (uninhabited, Refl)
 bipMod2BizRange (S _)  U    = (uninhabited, Refl)
