@@ -19,7 +19,7 @@ mutual
   peanoAux : (P : Bip -> Type) -> (a : P U) ->
              (f : (p : Bip) -> P p -> P (bipSucc p)) ->
              (p : Bip) -> P (O p)
-  peanoAux P a f = peanoRect (P . O) (f _ a) (\_ => f _ . f _)
+  peanoAux P a f p = peanoRect (P . O) (f _ a) (\_ => f _ . f _) p
 
 -- TODO rest of Peano?
 
