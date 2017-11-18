@@ -751,9 +751,8 @@ bitwiseBinopRol : (f : BizMod2 n -> BizMod2 n -> BizMod2 n) -> (fb : Bool -> Boo
                -> f (rol x k) (rol y k) = rol (f x y) k
 bitwiseBinopRol {n} f fb x y k ftest =
   case decEq n 0 of
-    Yes n0 =>
-      rewrite bizMod2P0N (f (rol x k) (rol y k)) n0 in
-      sym $ bizMod2P0N (rol (f x y) k) n0
+    Yes n0 => rewrite bizMod2P0N (f (rol x k) (rol y k)) n0 in
+              sym $ bizMod2P0N (rol (f x y) k) n0
     No nz =>
       sameBitsEq (f (rol x k) (rol y k)) (rol (f x y) k) $ \i, zlei, iltn =>
       rewrite ftest (rol x k) (rol y k) i zlei iltn in
@@ -781,9 +780,8 @@ rolRol : (x, a, b : BizMod2 n) -> bizDivides (toBizNat n) (modulus n)
       -> rol (rol x a) b = rol x ((a+b) `modu` (iwordsize n))
 rolRol {n} x a b ndiv2n =
   case decEq n 0 of
-    Yes n0 =>
-      rewrite n0 in
-      Refl
+    Yes n0 => rewrite n0 in
+              Refl
     No nz =>
       sameBitsEq (rol (rol x a) b) (rol x ((a+b) `modu` (iwordsize n))) $ \i, zlei, iltn =>
       rewrite bitsRol (rol x a) b i zlei iltn in
@@ -834,3 +832,58 @@ rolRol {n} x a b ndiv2n =
                                (unsigned (repr ((unsigned (repr (unsigned a + unsigned b) n)) `bizMod` (toBizNat n)) n))
                       (eqmUnsignedRepr ((unsigned (repr (unsigned a + unsigned b) n)) `bizMod` (toBizNat n)) n)
                       ndiv2n))))
+
+rolmZero : (x, m : BizMod2 n) -> rolm x 0 m = x `and` m
+rolmZero x _ =
+  rewrite rolZero x in
+  Refl
+
+rolmRolm : (x, a1, b1, a2, b2 : BizMod2 n) -> bizDivides (toBizNat n) (modulus n)
+        -> rolm (rolm x a1 b1) a2 b2 = rolm x (modu (a1+a2) (iwordsize n)) ((rol b1 a2) `and` b2)
+rolmRolm x a1 b1 a2 b2 ndiv2n =
+  rewrite sym $ andRol (rol x a1) b1 a2 in
+  rewrite andAssoc (rol (rol x a1) a2) (rol b1 a2) b2 in
+  rewrite rolRol x a1 a2 ndiv2n in
+  Refl
+
+orRolm : (x, a, b1, b2 : BizMod2 n) -> (rolm x a b1) `or` (rolm x a b2) = rolm x a (b1 `or` b2)
+orRolm x a b1 b2 = sym $ andOrDistrib (rol x a) b1 b2
+
+rorRol : (x, y : BizMod2 n) -> y `ltu` iwordsize n = True -> ror x y = rol x (iwordsize n - y)
+rorRol {n} x y yltun =
+  case decEq n 0 of
+    Yes n0 => rewrite n0 in
+              Refl
+    No nz =>
+      sameBitsEq (ror x y) (rol x (iwordsize n - y)) $ \i, zlei, iltn =>
+      rewrite bitsRor x y i zlei iltn in
+      rewrite bitsRol x (iwordsize n - y) i zlei iltn in
+      rewrite unsignedReprWordsize n in
+      let znz = nz . toBizNatInj n 0
+          zltn = leNeqLt (toBizNat n) 0 (toBizNatIsNonneg n) znz
+          yltn = yltun
+              |> ltbLtTo (unsigned y) (unsigned $ iwordsize n)
+              |> replace {P=\z=>unsigned y `Lt` z} (unsignedReprWordsize n)
+         in
+      rewrite unsignedRepr (toBizNat n - unsigned y) n
+                (rewrite sym $ compareSubR (unsigned y) (toBizNat n) in
+                 ltLeIncl (unsigned y) (toBizNat n) yltn)
+                (leTrans (toBizNat n - unsigned y) (toBizNat n) (maxUnsigned n)
+                   (rewrite addComm (toBizNat n) (-unsigned y) in
+                    rewrite addCompareMonoR (-unsigned y) 0 (toBizNat n) in
+                    rewrite sym $ compareOpp 0 (unsigned y) in
+                    fst $ unsignedRange y)
+                   (wordsizeMaxUnsigned n))
+             in
+      cong {f = testbit x} $
+      eqmodModEq (i + unsigned y) (i - (toBizNat n - unsigned y)) (toBizNat n) zltn $
+      (1 **
+         rewrite mul1L (toBizNat n) in
+         rewrite oppAddDistr (toBizNat n) (-unsigned y) in
+         rewrite oppInvolutive (unsigned y) in
+         rewrite addAssoc (toBizNat n) i ((-toBizNat n) + unsigned y) in
+         rewrite addComm (toBizNat n) i in
+         rewrite sym $ addAssoc i (toBizNat n) ((-toBizNat n) + unsigned y) in
+         rewrite addAssoc (toBizNat n) (-toBizNat n) (unsigned y) in
+         rewrite addOppDiagR (toBizNat n) in
+         Refl)
