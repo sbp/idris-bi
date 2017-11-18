@@ -776,3 +776,61 @@ orRol x y k = bitwiseBinopRol or (\a, b => a || b) x y k bitsOr
 
 xorRol : (x, y, k : BizMod2 n) -> (rol x k) `xor` (rol y k) = rol (x `xor` y) k
 xorRol x y k = bitwiseBinopRol xor xor x y k bitsXor
+
+rolRol : (x, a, b : BizMod2 n) -> bizDivides (toBizNat n) (modulus n)
+      -> rol (rol x a) b = rol x ((a+b) `modu` (iwordsize n))
+rolRol {n} x a b ndiv2n =
+  case decEq n 0 of
+    Yes n0 =>
+      rewrite n0 in
+      Refl
+    No nz =>
+      sameBitsEq (rol (rol x a) b) (rol x ((a+b) `modu` (iwordsize n))) $ \i, zlei, iltn =>
+      rewrite bitsRol (rol x a) b i zlei iltn in
+      rewrite bitsRol x ((a+b) `modu` (iwordsize n)) i zlei iltn in
+      let znz = nz . toBizNatInj n 0
+          zltn = leNeqLt (toBizNat n) 0 (toBizNatIsNonneg n) znz
+          ibmnRange = modPosBound (i - unsigned b) (toBizNat n) zltn
+         in
+      rewrite bitsRol x a ((i - unsigned b) `bizMod` (toBizNat n)) (fst ibmnRange) (snd ibmnRange) in
+      cong {f = testbit x} $
+      eqmodModEq (((i - unsigned b) `bizMod` (toBizNat n)) - unsigned a)
+                 (i - unsigned ((a+b) `modu` (iwordsize n)))
+                 (toBizNat n) zltn $
+      eqmodTrans (((i - unsigned b) `bizMod` (toBizNat n)) - unsigned a)
+                 (i - unsigned b - unsigned a)
+                 (i - unsigned ((a+b) `modu` (iwordsize n)))
+                 (toBizNat n)
+        (eqmodSub ((i - unsigned b) `bizMod` (toBizNat n)) (i - unsigned b)
+                  (unsigned a) (unsigned a)
+                  (toBizNat n)
+           (eqmodSym (i - unsigned b) ((i - unsigned b) `bizMod` (toBizNat n)) (toBizNat n) $
+            eqmodMod (i - unsigned b) (toBizNat n) znz)
+           (eqmodRefl (unsigned a) (toBizNat n)))
+        (rewrite sym $ addAssoc i (-unsigned b) (-unsigned a) in
+         rewrite sym $ oppAddDistr (unsigned b) (unsigned a) in
+         eqmodSub i i (unsigned b + unsigned a) (unsigned ((a+b) `modu` (iwordsize n))) (toBizNat n)
+           (eqmodRefl i (toBizNat n))
+           (eqmodTrans (unsigned b + unsigned a)
+                       ((unsigned a + unsigned b) `bizMod` (toBizNat n))
+                       (unsigned ((a+b) `modu` (iwordsize n)))
+                       (toBizNat n)
+              (rewrite addComm (unsigned b) (unsigned a) in
+               eqmodMod (unsigned a + unsigned b) (toBizNat n) znz)
+              (rewrite unsignedReprWordsize n in
+               eqmodTrans ((unsigned a + unsigned b) `bizMod` (toBizNat n))
+                          ((unsigned (repr (unsigned a + unsigned b) n)) `bizMod` (toBizNat n))
+                          (unsigned (repr ((unsigned (repr (unsigned a + unsigned b) n)) `bizMod` (toBizNat n)) n))
+                          (toBizNat n)
+                 (eqmodRefl2 ((unsigned a + unsigned b) `bizMod` (toBizNat n))
+                             ((unsigned (repr (unsigned a + unsigned b) n)) `bizMod` (toBizNat n))
+                             (toBizNat n) $
+                    eqmodModEq (unsigned a + unsigned b) (unsigned (repr (unsigned a + unsigned b) n)) (toBizNat n) zltn $
+                    eqmodDivides (modulus n) (toBizNat n) (unsigned a + unsigned b) (unsigned (repr (unsigned a + unsigned b) n))
+                      (eqmUnsignedRepr (unsigned a + unsigned b) n)
+                      ndiv2n)
+                 (eqmodDivides (modulus n) (toBizNat n)
+                               ((unsigned (repr (unsigned a + unsigned b) n)) `bizMod` (toBizNat n))
+                               (unsigned (repr ((unsigned (repr (unsigned a + unsigned b) n)) `bizMod` (toBizNat n)) n))
+                      (eqmUnsignedRepr ((unsigned (repr (unsigned a + unsigned b) n)) `bizMod` (toBizNat n)) n)
+                      ndiv2n))))
