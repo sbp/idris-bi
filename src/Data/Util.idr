@@ -11,6 +11,9 @@ infixl 9 |>
 (|>) : a -> (a -> b) -> b
 a |> f = f a
 
+cong2 : {f : x -> y -> z} -> a = b -> c = d -> f a c = f b d
+cong2 Refl Refl = Refl
+
 -------- Comparison properties ----
 
 ------ TODO add to Prelude.Interfaces

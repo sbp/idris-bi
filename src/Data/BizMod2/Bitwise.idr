@@ -21,17 +21,16 @@ import Data.BizMod2.AddSubMul
 
 -- Bit-level properties
 
--- TODO eqmod -> eqm
-eqmodSameBits : (n : Nat) -> (x, y : Biz)
+eqmSameBits : (n : Nat) -> (x, y : Biz)
              -> ((i : Biz) -> 0 `Le` i -> i `Lt` toBizNat n -> bizTestBit x i = bizTestBit y i)
-             -> eqmod x y (modulus n)
-eqmodSameBits  Z    x y _ =
+             -> eqm x y n
+eqmSameBits  Z    x y _ =
   (x-y ** rewrite mul1R (x-y) in
           rewrite sym $ addAssoc x (-y) y in
           rewrite addOppDiagL y in
           sym $ add0R x)
-eqmodSameBits (S k) x y f =
-  let (z**prf) = eqmodSameBits k (bizDivTwo x) (bizDivTwo y) $
+eqmSameBits (S k) x y f =
+  let (z**prf) = eqmSameBits k (bizDivTwo x) (bizDivTwo y) $
                  \i,i0,ik =>
                    rewrite sym $ zTestbitSucc x i i0 in
                    rewrite sym $ zTestbitSucc y i i0 in
@@ -54,10 +53,10 @@ eqmodSameBits (S k) x y f =
         rewrite sym $ mulAddDistrL 2 (z*modulus k) (bizDivTwo y) in
         cong {f = \a => 2*a + (ifThenElse (bizOdd y) (Delay (BizP U)) (Delay BizO))} prf)
 
-sameBitsEqmod : (n : Nat) -> (x, y, i : Biz) -> eqmod x y (modulus n) -> 0 `Le` i -> i `Lt` toBizNat n
+sameBitsEqm : (n : Nat) -> (x, y, i : Biz) -> eqm x y n -> 0 `Le` i -> i `Lt` toBizNat n
             -> bizTestBit x i = bizTestBit y i
-sameBitsEqmod  Z    _ _ i    _       zlei iltn = absurd $ zlei $ ltGt i 0 iltn
-sameBitsEqmod (S k) x y i (z**xy) zlei iltn    =
+sameBitsEqm  Z    _ _ i    _       zlei iltn = absurd $ zlei $ ltGt i 0 iltn
+sameBitsEqm (S k) x y i (z**xy) zlei iltn    =
   case decEq i 0 of
     Yes i0 =>
       rewrite i0 in
@@ -95,7 +94,7 @@ sameBitsEqmod (S k) x y i (z**xy) zlei iltn    =
     No in0 =>
       rewrite succPredZ i in
       let zleip = ltPredRTo 0 i $ leNeqLt i 0 zlei in0
-          ih = sameBitsEqmod k (bizDivTwo x) (bizDivTwo y) (i-1)
+          ih = sameBitsEqm k (bizDivTwo x) (bizDivTwo y) (i-1)
                  (z ** snd $ bizShiftinInj (bizOdd x) (bizOdd y) (bizDivTwo x) (z * (modulus k) + bizDivTwo y) aux)
                  zleip
                  (rewrite sym $ addCompareMonoR (i-1) (toBizNat k) 1 in
@@ -127,7 +126,7 @@ equalSameBits x y f with (x `compare` y) proof xy
     let zltyx = replace {P = \a => a = LT} (compareSubR x y) (sym xy)
         zleyx = ltLeIncl 0 (y-x) zltyx
         (n ** yxltm) = modulusInfinity (y-x) zleyx
-        yxeqm0 = eqmodSameBits n x y (\i,zlei,_ => f i zlei)
+        yxeqm0 = eqmSameBits n x y (\i,zlei,_ => f i zlei)
               |> eqmodSub y y x y (modulus n) (eqmodRefl y (modulus n))
               |> replace {P = \a => eqmod (y-x) a (modulus n)} (addOppDiagR y)
         yx0 = eqmodSmallEq (y-x) 0 (modulus n) yxeqm0 zleyx yxltm uninhabited Refl
@@ -138,7 +137,7 @@ equalSameBits x y f with (x `compare` y) proof xy
     let zltxy = replace {P = \a => a = LT} (compareSubR y x) (gtLt x y $ sym xy)
         zlexy = ltLeIncl 0 (x-y) zltxy
         (n ** xyltm) = modulusInfinity (x-y) zlexy
-        xyeqm0 = eqmodSameBits n y x (\i,zlei,_ => sym $ f i zlei)
+        xyeqm0 = eqmSameBits n y x (\i,zlei,_ => sym $ f i zlei)
               |> eqmodSub x x y x (modulus n) (eqmodRefl x (modulus n))
               |> replace {P = \a => eqmod (x-y) a (modulus n)} (addOppDiagR x)
         xy0 = eqmodSmallEq (x-y) 0 (modulus n) xyeqm0 zlexy xyltm uninhabited Refl
@@ -278,14 +277,14 @@ testbit x i = bizTestBit (unsigned x) i
 
 testbitRepr : (n : Nat) -> (x : Biz) -> (i : Biz) -> 0 `Le` i -> i `Lt` toBizNat n -> testbit (repr x n) i = bizTestBit x i
 testbitRepr n x i zlei iltn =
-  sameBitsEqmod n (unsigned (repr x n)) x i (eqmUnsignedRepr' x n) zlei iltn
+  sameBitsEqm n (unsigned (repr x n)) x i (eqmUnsignedRepr' x n) zlei iltn
 
 sameBitsEq : (x, y : BizMod2 n) -> ((i : Biz) -> 0 `Le` i -> i `Lt` toBizNat n -> testbit x i = testbit y i) -> x = y
 sameBitsEq {n} x y f =
   rewrite sym $ reprUnsigned x in
   rewrite sym $ reprUnsigned y in
   eqmSamerepr (unsigned x) (unsigned y) n $
-  eqmodSameBits n (unsigned x) (unsigned y) f
+  eqmSameBits n (unsigned x) (unsigned y) f
 
 bitsAbove : (x : BizMod2 n) -> (i : Biz) -> toBizNat n `Le` i -> testbit x i = False
 bitsAbove {n} x i nlei =
@@ -327,7 +326,7 @@ bitsSigned {n} x i nz zlei =
   case decEq (i `compare` toBizNat n) LT of
     Yes iltn =>
       rewrite ltbLtFro i (toBizNat n) iltn in
-      sameBitsEqmod n (signed x) (unsigned x) i (eqmSignedUnsigned x) zlei iltn
+      sameBitsEqm n (signed x) (unsigned x) i (eqmSignedUnsigned x) zlei iltn
     No igen =>
       let nlei = geLe i (toBizNat n) igen in
       rewrite nltbLeFro (toBizNat n) i nlei in
@@ -715,7 +714,7 @@ notNeg {n} x =
   aux2 : (i : Biz) -> 0 `Le` i -> i `Lt` toBizNat n -> Not (n=0)
       -> bizTestBit (-unsigned x - 1) i = bizTestBit ((unsigned $ repr (-unsigned x) n) - (unsigned $ repr 1 n)) i
   aux2 i zlei iltn nnz =
-    sameBitsEqmod n (-(unsigned x)-1) ((unsigned $ repr (-unsigned x) n) - (unsigned $ repr 1 n)) i
+    sameBitsEqm n (-(unsigned x)-1) ((unsigned $ repr (-unsigned x) n) - (unsigned $ repr 1 n)) i
       (eqmodAdd (-(unsigned x)) (unsigned $ repr (-unsigned x) n) (-1) (-(unsigned $ repr 1 n)) (modulus n)
          (eqmUnsignedRepr (-unsigned x) n)
          (rewrite unsignedRepr 1 n uninhabited $
