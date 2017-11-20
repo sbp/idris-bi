@@ -105,6 +105,4 @@ zOneBitsRangeJ (S k) x i j =
               snd ih2)
 
 zOneBitsRange : (n : Nat) -> (x, i : Biz) -> Elem i (zOneBits n x 0) -> (0 `Le` i, i `Lt` toBizNat n)
-zOneBitsRange n x i elem =
-  let tt = zOneBitsRangeJ n x 0 i elem in
-  ?asd
+zOneBitsRange n x i elem = zOneBitsRangeJ n x 0 i elem
