@@ -168,3 +168,44 @@ bizPow2Range (S k) x zlex xltn =
 zOneBitsZero : (n : Nat) -> (i : Biz) -> zOneBits n 0 i = []
 zOneBitsZero Z     _ = Refl
 zOneBitsZero (S k) i = zOneBitsZero k (i+1)
+
+zOneBitsBizPow2 : (n : Nat) -> (x, i : Biz) -> 0 `Le` x -> x `Lt` toBizNat n -> zOneBits n (bizPow2 x) i = [i + x]
+zOneBitsBizPow2  Z    x i zlex xltn = absurd $ zlex $ ltGt x 0 xltn
+zOneBitsBizPow2 (S k) x i zlex xltn =
+  case leLtOrEq 0 x zlex of
+    Right zx =>
+      rewrite sym zx in
+      rewrite zOneBitsZero k (i+1) in
+      rewrite add0R i in
+      Refl
+    Left zltx =>
+      let zlex1 = ltPredRTo 0 x zltx
+          (p2ev, p2d2) = bizShiftinInj (bizOdd (bizPow2 x)) False (bizDivTwo (bizPow2 x)) (bizPow2 (x-1)) $
+                         rewrite sym $ zDecomp (bizPow2 x) in
+                         rewrite sym $ bizPow2S (x-1) zlex1 in
+                         rewrite sym $ addAssoc x (-1) 1 in
+                         cong $ sym $ add0R x
+         in
+      rewrite p2ev in
+      rewrite p2d2 in
+      rewrite zOneBitsBizPow2 k (x-1) (i+1) zlex1 $
+              rewrite addComm x (-1) in
+              rewrite sym $ addCompareTransferL x 1 (toBizNat k) in
+              rewrite addComm 1 (toBizNat k) in
+              rewrite sym $ toBizNatInjSucc k in
+              xltn
+             in
+      rewrite addComm x (-1) in
+      rewrite addAssoc (i+1) (-1) x in
+      rewrite sym $ addAssoc i 1 (-1) in
+      rewrite add0R i in
+      Refl
+
+isPower2BizPow2 : (n : Nat) -> (x : Biz) -> 0 `Le` x -> x `Lt` toBizNat n -> isPower2 (repr (bizPow2 x) n) = Just (repr x n)
+isPower2BizPow2 n x zlex xltn =
+  rewrite unsignedRepr (bizPow2 x) n
+            (ltLeIncl 0 (bizPow2 x) (bizPow2Pos x zlex))
+            (bizPow2Range n x zlex xltn)
+         in
+  rewrite zOneBitsBizPow2 n x 0 zlex xltn in
+  Refl

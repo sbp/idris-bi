@@ -396,10 +396,13 @@ oneBits {n} x = (\x => repr x n) <$> (zOneBits n (unsigned x) 0)
 
 -- Recognition of powers of two.
 
+-- Helper for isPower2, to work around #4001
+isPower2Help : (is : List Biz) -> (n : Nat) -> Maybe (BizMod2 n)
+isPower2Help [i] n = Just (repr i n)
+isPower2Help _ _ = Nothing
+
 isPower2 : (x : BizMod2 n) -> Maybe (BizMod2 n)
-isPower2 {n} x = case zOneBits n (unsigned x) 0 of
-  [i] => Just (repr i n)
-  _   => Nothing
+isPower2 {n} x = isPower2Help (zOneBits n (unsigned x) 0) n
 
 -- Comparisons.
 

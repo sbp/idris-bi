@@ -154,16 +154,35 @@ powAddR a b c zleb zlec =
 
 -- Power of 2
 
+bizPow2Equiv : (x : Biz) -> bizPow2 x = bizPow 2 x
+bizPow2Equiv  BizO    = Refl
+bizPow2Equiv (BizP p) = iterSwapGen BizP O (bizMult 2) (\_ => Refl) U p
+bizPow2Equiv (BizM _) = Refl
+
 bipPow2Biz : (x : Nat) -> BizP (bipPow2 x) = bizPow2 (toBizNat x)
 bipPow2Biz  Z        = Refl
 bipPow2Biz (S  Z)    = Refl
 bipPow2Biz (S (S k)) = rewrite iterSucc O U (toBipNatSucc k) in
-  cong {f = BizP . O} $ bizPInj $ bipPow2Biz (S k)
+                       cong {f = BizP . O} $ bizPInj $ bipPow2Biz (S k)
 
 bizPow2Pos : (x : Biz) -> 0 `Le` x -> 0 `Lt` bizPow2 x
 bizPow2Pos  BizO    _    = Refl
 bizPow2Pos (BizP _) _    = Refl
 bizPow2Pos (BizM _) zlex = absurd $ zlex Refl
+
+bizPow2S : (x : Biz) -> 0 `Le` x -> bizPow2 (bizSucc x) = bizD (bizPow2 x)
+bizPow2S x zlex =
+  rewrite bizPow2Equiv (bizSucc x) in
+  rewrite bizPow2Equiv x in
+  rewrite powSuccR 2 x zlex in
+  sym $ doubleSpec (bizPow 2 x)
+
+bizPow2IsExp : (x, y : Biz) -> 0 `Le` x -> 0 `Le` y -> bizPow2 (x + y) = bizPow2 x * bizPow2 y
+bizPow2IsExp x y zlex zley =
+  rewrite bizPow2Equiv (x+y) in
+  rewrite bizPow2Equiv x in
+  rewrite bizPow2Equiv y in
+  powAddR 2 x y zlex zley
 
 pow2Le : (n : Biz) -> n `Le` bizPow2 n
 pow2Le  BizO     = uninhabited
@@ -179,18 +198,6 @@ pow2Le (BizP a)  =
     )
     a
 pow2Le (BizM _)  = uninhabited
-
-bizPow2Equiv : (x : Biz) -> bizPow2 x = bizPow 2 x
-bizPow2Equiv  BizO    = Refl
-bizPow2Equiv (BizP p) = iterSwapGen BizP O (bizMult 2) (\_ => Refl) U p
-bizPow2Equiv (BizM _) = Refl
-
-bizPow2IsExp : (x, y : Biz) -> 0 `Le` x -> 0 `Le` y -> bizPow2 (x + y) = bizPow2 x * bizPow2 y
-bizPow2IsExp x y zlex zley =
-  rewrite bizPow2Equiv (x+y) in
-  rewrite bizPow2Equiv x in
-  rewrite bizPow2Equiv y in
-  powAddR 2 x y zlex zley
 
 bizPow2Monotone : (x, y : Biz) -> 0 `Le` x -> x `Le` y -> bizPow2 x `Le` bizPow2 y
 bizPow2Monotone x y zlex xley =
