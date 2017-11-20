@@ -3,7 +3,9 @@ module Data.BizMod2.Bitwise.Pow2
 import Data.List
 import Data.Util
 
+import Data.Bip.Iter
 import Data.Bip.OrdSub
+--import Data.Bip.Nat
 
 import Data.Biz
 import Data.Biz.AddSubMul
@@ -13,6 +15,7 @@ import Data.Biz.Nat
 import Data.Biz.PowSqrt
 
 import Data.BizMod2
+import Data.BizMod2.Core
 
 %access export
 %default total
@@ -106,3 +109,62 @@ zOneBitsRangeJ (S k) x i j =
 
 zOneBitsRange : (n : Nat) -> (x, i : Biz) -> Elem i (zOneBits n x 0) -> (0 `Le` i, i `Lt` toBizNat n)
 zOneBitsRange n x i elem = zOneBitsRangeJ n x 0 i elem
+
+-- we can get `0 <= unsigned logx` from unsignedRange
+isPower2Rng : (x, logx : BizMod2 n) -> isPower2 x = Just logx -> unsigned logx `Lt` toBizNat n
+isPower2Rng {n} x logx prf with (zOneBits n (unsigned x) 0) proof zob
+  | [] = absurd prf
+  | (i :: []) =
+      rewrite sym $ justInjective prf in
+      let irng = zOneBitsRange n (unsigned x) i $
+                   rewrite sym zob in
+                   Here
+               in
+      rewrite unsignedRepr i n (fst irng) $
+              ltLeIncl i (maxUnsigned n) $
+              ltLeTrans i (toBizNat n) (maxUnsigned n) (snd irng) (wordsizeMaxUnsigned n)
+             in
+      snd irng
+  | (_ :: _ :: _) = absurd prf
+
+isPower2Range : (x, logx : BizMod2 n) -> isPower2 x = Just logx -> logx `ltu` iwordsize n = True
+isPower2Range {n} x logx prf =
+  ltbLtFro (unsigned logx) (unsigned $ iwordsize n) $
+  rewrite unsignedReprWordsize n in
+  isPower2Rng x logx prf
+
+isPower2Correct : (x, logx : BizMod2 n) -> isPower2 x = Just logx -> unsigned x = bizPow2 (unsigned logx)
+isPower2Correct {n} x logx prf with (zOneBits n (unsigned x) 0) proof zob
+  | [] = absurd prf
+  | (i :: []) =
+      rewrite zOneBitsPowerserie n (unsigned x) (fst $ unsignedRange x) (snd $ unsignedRange x) in
+      rewrite sym zob in
+      rewrite sym $ justInjective prf in
+      let irng = zOneBitsRange n (unsigned x) i $
+                   rewrite sym zob in
+                   Here
+               in
+      rewrite unsignedRepr i n (fst irng) $
+              ltLeIncl i (maxUnsigned n) $
+              ltLeTrans i (toBizNat n) (maxUnsigned n) (snd irng) (wordsizeMaxUnsigned n)
+             in
+      add0R (bizPow2 i)
+  | (_ :: _ :: _) = absurd prf
+
+-- TODO move to Biz.PowSqrt?
+-- `0 <= bizPow2 x` is just `ltLeIncl bizPow2Pos`
+bizPow2Range : (n : Nat) -> (x : Biz) -> 0 `Le` x -> x `Lt` toBizNat n -> bizPow2 x `Le` maxUnsigned n
+bizPow2Range  Z    x zlex xltn = absurd $ zlex $ ltGt x 0 xltn
+bizPow2Range (S k) x zlex xltn =
+  let rew = cong {f = bizDMO} $ bipPow2Biz k in
+  rewrite rew in
+  rewrite predDoubleSpec (bizPow2 (toBizNat k)) in
+  rewrite sym $ bizPow2IsExp 1 (toBizNat k) uninhabited (toBizNatIsNonneg k) in
+  rewrite addComm 1 (toBizNat k) in
+  rewrite sym $ toBizNatInjSucc k in
+  ltPredRTo (bizPow2 x) (bizPow2 $ toBizNat (S k)) $
+  bizPow2MonotoneStrict x (toBizNat (S k)) zlex xltn
+
+zOneBitsZero : (n : Nat) -> (i : Biz) -> zOneBits n 0 i = []
+zOneBitsZero Z     _ = Refl
+zOneBitsZero (S k) i = zOneBitsZero k (i+1)

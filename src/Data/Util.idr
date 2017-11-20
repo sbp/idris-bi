@@ -14,6 +14,12 @@ a |> f = f a
 cong2 : {f : x -> y -> z} -> a = b -> c = d -> f a c = f b d
 cong2 Refl Refl = Refl
 
+Uninhabited (Nothing = Just _) where
+  uninhabited Refl impossible
+
+Uninhabited (Just _ = Nothing) where
+  uninhabited Refl impossible
+
 -------- Comparison properties ----
 
 ------ TODO add to Prelude.Interfaces
