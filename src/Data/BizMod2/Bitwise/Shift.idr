@@ -10,6 +10,7 @@ import Data.Biz.AddSubMul
 import Data.Biz.Ord
 import Data.Biz.DivMod
 import Data.Biz.Bitwise
+import Data.Biz.PowSqrt
 import Data.Biz.Nat
 
 import Data.BizMod2

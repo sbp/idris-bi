@@ -137,6 +137,48 @@ absPow (BizM a) (BizP b) =
                   absPowPos a b
 absPow  _       (BizM _) = Refl
 
+powAddR : (a, b, c : Biz) -> 0 `Le` b -> 0 `Le` c -> bizPow a (b+c) = (bizPow a b) * (bizPow a c)
+powAddR a b c zleb zlec =
+  natlikeInd
+    (\x => bizPow a (x+c) = (bizPow a x) * (bizPow a c))
+    (sym $ mul1L (bizPow a c))
+    (\x,zlex,prf =>
+      rewrite sym $ addAssoc x 1 c in
+      rewrite addComm 1 c in
+      rewrite addAssoc x c 1 in
+      rewrite powSuccR a (x+c) (addLeMono 0 x 0 c zlex zlec) in
+      rewrite powSuccR a x zlex in
+      rewrite sym $ mulAssoc a (bizPow a x) (bizPow a c) in
+      cong {f=bizMult a} prf)
+    b zleb
+
+pow2Le : (n : Biz) -> n `Le` bizPow2 n
+pow2Le  BizO     = uninhabited
+pow2Le (BizP a)  =
+  peanoRect
+    (\x => x `Le` bipIter O U x)
+    uninhabited
+    (\p, prf =>
+      rewrite iterSucc O U p in
+      rewrite sym $ succPredDouble (bipIter O U p) in
+      rewrite compareSuccSucc p (bipDMO (bipIter O U p)) in
+      leTrans p (bipIter O U p) (bipDMO (bipIter O U p)) prf (leDMO (bipIter O U p))
+    )
+    a
+pow2Le (BizM _)  = uninhabited
+
+bizPow2Equiv : (x : Biz) -> bizPow2 x = bizPow 2 x
+bizPow2Equiv  BizO    = Refl
+bizPow2Equiv (BizP p) = iterSwapGen BizP O (bizMult 2) (\_ => Refl) U p
+bizPow2Equiv (BizM _) = Refl
+
+bizPow2IsExp : (x, y : Biz) -> 0 `Le` x -> 0 `Le` y -> bizPow2 (x + y) = bizPow2 x * bizPow2 y
+bizPow2IsExp x y zlex zley =
+  rewrite bizPow2Equiv (x+y) in
+  rewrite bizPow2Equiv x in
+  rewrite bizPow2Equiv y in
+  powAddR 2 x y zlex zley
+
 -- Specification of square
 
 -- square_spec

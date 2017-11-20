@@ -188,6 +188,11 @@ bipIter f a (I b') = f (bipIter f (bipIter f a b') b')
 bipPow : (a, b: Bip) -> Bip
 bipPow a = bipIter (bipMult a) U
 
+||| 2^n
+bipPow2 : Nat -> Bip
+bipPow2  Z    = U
+bipPow2 (S k) = O (bipPow2 k)
+
 ||| Square
 bipSquare : (a: Bip) -> Bip
 bipSquare  U     = U
@@ -506,7 +511,7 @@ Num Bip where
   (*) = bipMult
   fromInteger = fromIntegerBip
 
--- negate and abs don't make much sense here, but it's syntactically convenient
+-- negate doesn't make much sense here, but it's syntactically convenient
 Neg Bip where
   negate = const U
   (-) = bipMinus

@@ -16,17 +16,6 @@ import Data.Biz.DivMod
 
 -- TODO move these to Bip/Biz and make modulus a synonym?
 
-||| 2^n
-
-bipPow2 : Nat -> Bip
-bipPow2  Z    = U
-bipPow2 (S k) = O (bipPow2 k)
-
-bizPow2 : (x : Biz) -> Biz
-bizPow2  BizO = BizP U
-bizPow2 (BizP y) = BizP $ bipIter O 1 y
-bizPow2 (BizM _) = BizO
-
 ||| Modulo 2^n
 
 bipMod2Biz : (p : Bip) -> (n : Nat) -> Biz
@@ -41,22 +30,6 @@ bizMod2 (BizP a) n = bipMod2Biz a n
 bizMod2 (BizM a) n = let r = bipMod2Biz a n in
                      if r==BizO then BizO
                              else bizMinus (BizP $ bipPow2 n) r
-
-export
-pow2Le : (n : Biz) -> n `Le` bizPow2 n
-pow2Le  BizO     = uninhabited
-pow2Le (BizP a)  =
-  peanoRect
-    (\x => x `Le` bipIter O U x)
-    uninhabited
-    (\p, prf =>
-      rewrite iterSucc O U p in
-      rewrite sym $ succPredDouble (bipIter O U p) in
-      rewrite compareSuccSucc p (bipDMO (bipIter O U p)) in
-      leTrans p (bipIter O U p) (bipDMO (bipIter O U p)) prf (leDMO (bipIter O U p))
-    )
-    a
-pow2Le (BizM _)  = uninhabited
 
 -- TODO add %static on `n` everywhere to minimize recalculation
 
@@ -295,7 +268,7 @@ Num (BizMod2 n) where
 
 Neg (BizMod2 n) where
   negate x = repr (-unsigned x) n
-  abs x    = repr (abs (signed x)) n  -- TODO is this correct?
+  abs x    = repr (abs (signed x)) n  -- TODO `Abs` is separated since idris-dev/4196
   x - y    = repr (unsigned x - unsigned y) n
 
 -- TODO which of the following to use for `Integral`?
@@ -328,36 +301,36 @@ not x = x `xor` (-1)
 -- Shifts and rotates
 
 shl : (x, y : BizMod2 n) -> BizMod2 n
-shl {n} x y = repr ((unsigned x) `bizShiftL` (unsigned y)) n
+shl {n} x y = repr (bizShiftL (unsigned x) (unsigned y)) n
 
 -- aka logical right shift
 shru : (x, y : BizMod2 n) -> BizMod2 n
-shru {n} x y = repr ((unsigned x) `bizShiftR` (unsigned y)) n
+shru {n} x y = repr (bizShiftR (unsigned x) (unsigned y)) n
 
 -- aka arithmetic right shift
 shr : (x, y : BizMod2 n) -> BizMod2 n
-shr {n} x y = repr ((signed x) `bizShiftR` (unsigned y)) n
+shr {n} x y = repr (bizShiftR (signed x) (unsigned y)) n
 
 rol : (x, y : BizMod2 n) -> BizMod2 n
 rol {n} x y =
   let
     zws = toBizNat n
     m = (unsigned y) `bizMod` zws
-    x' = unsigned x
+    ux = unsigned x
   in
-  repr ((x' `bizShiftL` m) `bizOr` (x' `bizShiftR` (zws - m))) n
+  repr ((bizShiftL ux m) `bizOr` (bizShiftR ux (zws - m))) n
 
 ror : (x, y : BizMod2 n) -> BizMod2 n
 ror {n} x y =
   let
     zws = toBizNat n
     m = (unsigned y) `bizMod` zws
-    x' = unsigned x
+    ux = unsigned x
   in
-  repr ((x' `bizShiftR` m) `bizOr` (x' `bizShiftL` (zws - m))) n
+  repr ((bizShiftR ux m) `bizOr` (bizShiftL ux (zws - m))) n
 
 rolm : (x, a, m : BizMod2 n) -> BizMod2 n
-rolm x a m = (x `rol` a) `and` m
+rolm x a m = (rol x a) `and` m
 
 -- Viewed as signed divisions by powers of two, [shrx] rounds towards zero,
 -- while [shr] rounds towards minus infinity.

@@ -110,6 +110,13 @@ bizPow a (BizP b') = bizPowBip a b'
 bizPow _  BizO     = BizP U
 bizPow _ (BizM _)  = BizO
 
+||| 2^n
+
+bizPow2 : (x : Biz) -> Biz
+bizPow2  BizO = BizP U
+bizPow2 (BizP y) = BizP $ bipIter O 1 y
+bizPow2 (BizM _) = BizO
+
 ||| Square
 bizSquare : (a : Biz) -> Biz
 bizSquare  BizO     = BizO
