@@ -1,11 +1,11 @@
 module Data.BizMod2.Bitwise.Pow2
 
 import Data.List
+
 import Data.Util
 
 import Data.Bip.Iter
 import Data.Bip.OrdSub
---import Data.Bip.Nat
 
 import Data.Biz
 import Data.Biz.AddSubMul
@@ -16,6 +16,8 @@ import Data.Biz.PowSqrt
 
 import Data.BizMod2
 import Data.BizMod2.Core
+import Data.BizMod2.AddSubMul
+import Data.BizMod2.Bitwise
 
 %access export
 %default total
@@ -208,4 +210,47 @@ isPower2BizPow2 n x zlex xltn =
             (bizPow2Range n x zlex xltn)
          in
   rewrite zOneBitsBizPow2 n x 0 zlex xltn in
+  Refl
+
+-- Relation between bitwise operations and multiplications / divisions by powers of 2
+
+-- Left shifts and multiplications by powers of 2.
+
+zShiftlMulBizPow2 : (x, n : Biz) -> 0 `Le` n -> bizShiftL x n = x * bizPow2 n
+zShiftlMulBizPow2 x  BizO    _    = sym $ mul1R x
+zShiftlMulBizPow2 x (BizP n) zlen =
+  peanoRect
+    (\z => bipIter (2*) x z = x*(BizP (bipIter O U z)))
+    (mulComm 2 x)
+    (\z, prf =>
+     rewrite iterSucc (2*) x z in
+     rewrite iterSucc O U z in
+     rewrite mulAssoc x 2 (BizP (bipIter O U z)) in
+     rewrite mulComm x 2 in
+     rewrite sym $ mulAssoc 2 x (BizP (bipIter O U z)) in
+     cong {f = (2*)} prf
+    )
+    n
+zShiftlMulBizPow2 _ (BizM _) zlen = absurd $ zlen Refl
+
+shlMulBizPow2 : (x, y : BizMod2 n) -> shl x y = x * (repr (bizPow2 (unsigned y)) n)
+shlMulBizPow2 {n} x y =
+  eqmSamerepr (bizShiftL (unsigned x) (unsigned y)) ((unsigned x)*(unsigned (repr (bizPow2 (unsigned y)) n))) n $
+  let (zleuy, uyltn) = unsignedRange y in
+  rewrite zShiftlMulBizPow2 (unsigned x) (unsigned y) zleuy in
+  eqmodMult (unsigned x) (unsigned x) (bizPow2 (unsigned y)) (unsigned (repr (bizPow2 (unsigned y)) n)) (modulus n)
+    (eqmodRefl (unsigned x) (modulus n))
+    (eqmUnsignedRepr (bizPow2 (unsigned y)) n)
+
+shlMul : (x, y : BizMod2 n) -> shl x y = x*(shl 1 y)
+shlMul {n} x y =
+  rewrite shlMulBizPow2 (repr 1 n) y in
+  rewrite mul1L (repr (bizPow2 (unsigned y)) n) in
+  shlMulBizPow2 x y
+
+mulPow2 : (x, y, logy : BizMod2 n) -> isPower2 y = Just logy -> x*y = shl x logy
+mulPow2 x y logy prf =
+  rewrite shlMulBizPow2 x logy in
+  rewrite sym $ isPower2Correct y logy prf in
+  rewrite reprUnsigned y in
   Refl

@@ -280,6 +280,11 @@ mul1R {n = Z}   x = sym $ bizMod2P0 x
 mul1R {n = S _} x = rewrite mul1R (unsigned x) in
                     reprUnsigned x
 
+mul1L : (x : BizMod2 n) -> 1 * x = x
+mul1L x =
+  rewrite mulComm 1 x in
+  mul1R x
+
 mulM1R : (x : BizMod2 n) -> x * (-1) = -x
 mulM1R {n} x =
   rewrite unsignedMone n in
