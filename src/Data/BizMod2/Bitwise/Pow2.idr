@@ -12,6 +12,7 @@ import Data.Biz.AddSubMul
 import Data.Biz.Ord
 import Data.Biz.Bitwise
 import Data.Biz.Nat
+import Data.Biz.DivMod
 import Data.Biz.PowSqrt
 
 import Data.BizMod2
@@ -297,3 +298,21 @@ shiftedOrIsAdd {n} x y m zlem mltn uylt2m =
         rewrite urmn in
         Refl))
     (eqmodRefl (unsigned y) (modulus n))
+
+-- Unsigned right shifts and unsigned divisions by powers of 2.
+
+zShiftrDivBizPow2 : (x, y : Biz) -> 0 `Le` y -> bizShiftR x y = x `bizDiv` (bizPow2 y)
+zShiftrDivBizPow2 x  BizO    _    = sym $ fst $ divMod1 x
+zShiftrDivBizPow2 x (BizP p) _    =
+  peanoRect
+    (\z => bipIter bizDivTwo x z = x `bizDiv` (BizP (bipIter O U z)))
+    (div2Div x)
+    (\z, prf =>
+      rewrite iterSucc bizDivTwo x z in
+      rewrite iterSucc O U z in
+      rewrite prf in
+      rewrite mulComm 2 (BizP (bipIter O U z)) in
+      rewrite sym $ divDivPos x (BizP (bipIter O U z)) 2 Refl Refl in
+      div2Div (x `bizDiv` (BizP (bipIter O U z))))
+    p
+zShiftrDivBizPow2 _ (BizM _) zley = absurd $ zley Refl

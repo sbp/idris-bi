@@ -18,7 +18,7 @@ import Data.Biz.Ord
 %default total
 %access export
 
--- these seem to only be used here
+-- these seem to only be used here, if we move them to divMod there's a cyclic dependency
 
 div2D : (x : Biz) -> bizDivTwo (bizD x) = x
 div2D  BizO    = Refl

@@ -338,7 +338,7 @@ modNegBound (BizM a) (BizM b) _    =
 
 -- Correctness proofs for Floor division
 
--- TODO move to Nat.idr
+-- TODO move to Nat.idr (cyclic dependency)
 
 toBizBinInjAdd : (n, m : Bin) -> toBizBin (n+m) = toBizBin n + toBizBin m
 toBizBinInjAdd  BinO     m       = rewrite addZeroL m in Refl
@@ -733,4 +733,48 @@ divLe x y zlty zlex =
                     rewrite addCompareMonoL (x*y) 0 (x `bizMod` y) in
                     fst $ modPosBound x y zlty)
     Right zx => rewrite sym zx in
-                uninhabited  
+                uninhabited
+
+-- TODO Not(b=0) + Not (c=0) ?
+divDivPos : (a, b, c : Biz) -> 0 `Lt` b -> 0 `Lt` c -> (a `bizDiv` b) `bizDiv` c = a `bizDiv` (b*c)
+divDivPos a b c zltb zltc =
+  let (zleabmc, abmcltc) = modPosBound (a `bizDiv` b) c zltc
+      (zleamb, ambltb) = modPosBound a b zltb
+     in
+  fst $ divModPos a (b*c) ((a `bizDiv` b) `bizDiv` c) (((a `bizDiv` b) `bizMod` c)*b + (a `bizMod` b))
+    (addLeMono 0 (((a `bizDiv` b) `bizMod` c)*b) 0 (a `bizMod` b)
+      (rewrite mulCompareMonoR b 0 ((a `bizDiv` b) `bizMod` c) zltb in
+       zleabmc)
+      zleamb)
+    (ltLeTrans (((a `bizDiv` b) `bizMod` c)*b + (a `bizMod` b)) (((a `bizDiv` b) `bizMod` c)*b + b) (b*c)
+      (rewrite addCompareMonoL (((a `bizDiv` b) `bizMod` c)*b) (a `bizMod` b) b in
+       ambltb)
+      (rewrite sym $ mulAddDistrR1 ((a `bizDiv` b) `bizMod` c) b in
+       rewrite mulComm (((a `bizDiv` b) `bizMod` c) + 1) b in
+       rewrite mulCompareMonoL b (((a `bizDiv` b) `bizMod` c) + 1) c zltb in
+       leSuccLFro ((a `bizDiv` b) `bizMod` c) c abmcltc))
+    (rewrite addAssoc (((a `bizDiv` b) `bizDiv` c)*(b*c)) (((a `bizDiv` b) `bizMod` c)*b) (a `bizMod` b) in
+     rewrite mulComm b c in
+     rewrite mulAssoc ((a `bizDiv` b) `bizDiv` c) c b in
+     rewrite sym $ mulAddDistrR (((a `bizDiv` b) `bizDiv` c)*c) ((a `bizDiv` b) `bizMod` c) b in
+     rewrite sym $ divEuclEq (a `bizDiv` b) c (ltNotEq c 0 zltc) in
+     divEuclEq a b (ltNotEq b 0 zltb))
+
+div2Div : (x : Biz) -> bizDivTwo x = x `bizDiv` 2
+div2Div x =
+  case evenOrOdd x of
+    Left (p ** eprf) =>
+      rewrite eprf in
+      rewrite sym $ doubleSpec p in
+      rewrite div2D p in
+      fst $ divModPos (bizD p) 2 p 0 uninhabited Refl $
+      rewrite add0R (p*2) in
+      rewrite mulComm p 2 in
+      doubleSpec p
+    Right (p ** oprf) =>
+      rewrite oprf in
+      rewrite sym $ succDoubleSpec p in
+      rewrite div2DPO p in
+      fst $ divModPos (bizDPO p) 2 p 1 uninhabited Refl $
+      rewrite mulComm p 2 in
+      succDoubleSpec p
