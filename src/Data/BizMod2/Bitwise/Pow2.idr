@@ -18,6 +18,7 @@ import Data.BizMod2
 import Data.BizMod2.Core
 import Data.BizMod2.AddSubMul
 import Data.BizMod2.Bitwise
+import Data.BizMod2.Bitwise.Shift
 
 %access export
 %default total
@@ -254,3 +255,45 @@ mulPow2 x y logy prf =
   rewrite sym $ isPower2Correct y logy prf in
   rewrite reprUnsigned y in
   Refl
+
+shiftedOrIsAdd : (x, y : BizMod2 n) -> (m : Biz) -> 0 `Le` m -> m `Lt` toBizNat n -> unsigned y `Lt` bizPow2 m
+              -> (shl x (repr m n)) `or` y = repr ((unsigned x) * (bizPow2 m) + unsigned y) n
+shiftedOrIsAdd {n} x y m zlem mltn uylt2m =
+  let urmn = unsignedRepr m n zlem $
+             ltLeIncl m (maxUnsigned n) $
+             ltLeTrans m (toBizNat n) (maxUnsigned n) mltn (wordsizeMaxUnsigned n)
+     in
+  rewrite sym $ addIsOr (shl x (repr m n)) y $
+          sameBitsEq ((shl x (repr m n)) `and` y) (repr 0 n) $ \i, zlei, iltn =>
+          rewrite bitsAnd (shl x (repr m n)) y i zlei iltn in
+          rewrite bitsShl x (repr m n) i zlei iltn in
+          rewrite urmn in
+          trans {b=False}
+            (case ltLeTotal i m of
+               Left iltm =>
+                 rewrite ltbLtFro i m iltm in
+                 Refl
+               Right mlei =>
+                 rewrite nltbLeFro m i mlei in
+                 rewrite zTestbitAbove (toNatBiz m) (unsigned y) i (fst $ unsignedRange y)
+                           (rewrite bipPow2Biz (toNatBiz m) in
+                            rewrite toNatBizId m zlem in
+                            uylt2m)
+                           (rewrite toNatBizId m zlem in
+                            mlei)
+                        in
+                 andFalse (testbit x (i-m))
+               )
+            (sym $ bitsZero {n} i)
+         in
+  eqmSamerepr ((unsigned (shl x (repr m n))) + unsigned y) ((unsigned x)*(bizPow2 m) + unsigned y) n $
+  eqmodAdd (unsigned (shl x (repr m n))) ((unsigned x)*(bizPow2 m)) (unsigned y) (unsigned y) (modulus n)
+    (rewrite shlMulBizPow2 x (repr m n) in
+     eqmUnsignedReprL ((unsigned x)*(unsigned (repr (bizPow2 (unsigned (repr m n))) n))) ((unsigned x)*(bizPow2 m)) n $
+     eqmodMult (unsigned x) (unsigned x) (unsigned (repr (bizPow2 (unsigned (repr m n))) n)) (bizPow2 m) (modulus n)
+       (eqmodRefl (unsigned x) (modulus n))
+       (eqmUnsignedReprL (bizPow2 (unsigned (repr m n))) (bizPow2 m) n $
+        eqmodRefl2 (bizPow2 (unsigned (repr m n))) (bizPow2 m) (modulus n) $
+        rewrite urmn in
+        Refl))
+    (eqmodRefl (unsigned y) (modulus n))
