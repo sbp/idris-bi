@@ -301,6 +301,7 @@ shiftedOrIsAdd {n} x y m zlem mltn uylt2m =
 
 -- Unsigned right shifts and unsigned divisions by powers of 2.
 
+-- TODO move to Biz.DivMod?
 zShiftrDivBizPow2 : (x, y : Biz) -> 0 `Le` y -> bizShiftR x y = x `bizDiv` (bizPow2 y)
 zShiftrDivBizPow2 x  BizO    _    = sym $ fst $ divMod1 x
 zShiftrDivBizPow2 x (BizP p) _    =
@@ -316,3 +317,25 @@ zShiftrDivBizPow2 x (BizP p) _    =
       div2Div (x `bizDiv` (BizP (bipIter O U z))))
     p
 zShiftrDivBizPow2 _ (BizM _) zley = absurd $ zley Refl
+
+shruDivBizPow2 : (x, y : BizMod2 n) -> shru x y = repr ((unsigned x) `bizDiv` (bizPow2 (unsigned y))) n
+shruDivBizPow2 x y = rewrite zShiftrDivBizPow2 (unsigned x) (unsigned y) (fst $ unsignedRange y) in
+                     Refl
+
+divuPow2 : (x, y, logy : BizMod2 n) -> isPower2 y = Just logy -> x `divu` y = shru x logy
+divuPow2 x y logy prf = rewrite isPower2Correct y logy prf in
+                        sym $ shruDivBizPow2 x logy
+
+-- Signed right shifts and signed divisions by powers of 2.
+
+shrDivBizPow2 : (x, y : BizMod2 n) -> shr x y = repr ((signed x) `bizDiv` (bizPow2 (unsigned y))) n
+shrDivBizPow2 x y = rewrite zShiftrDivBizPow2 (signed x) (unsigned y) (fst $ unsignedRange y) in
+                    Refl
+
+divsBizPow2 : (x, y, logy : BizMod2 n) -> isPower2 y = Just logy -> x `divs` y = shrx x logy
+divsBizPow2 {n} x y logy prf =
+  rewrite shlMulBizPow2 (repr 1 n) logy in
+  rewrite mul1L (repr (bizPow2 (unsigned logy)) n) in
+  rewrite sym $ isPower2Correct y logy prf in
+  rewrite reprUnsigned y in
+  Refl
