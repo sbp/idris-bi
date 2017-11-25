@@ -339,3 +339,112 @@ divsBizPow2 {n} x y logy prf =
   rewrite sym $ isPower2Correct y logy prf in
   rewrite reprUnsigned y in
   Refl
+
+-- Unsigned modulus over [2^n] is masking with [2^n-1].
+
+zTestbitModBizPow2 : (n, x, i : Biz) -> 0 `Le` n -> 0 `Le` i -> bizTestBit (x `bizMod` (bizPow2 n)) i = if i < n then bizTestBit x i else False
+zTestbitModBizPow2 n x i zlen zlei =
+  natlikeInd
+    (\m => (y, j : Biz) -> 0 `Le` j -> bizTestBit (y `bizMod` (bizPow2 m)) j = if j < m then bizTestBit y j else False)
+    (\y, j, zlej =>
+     rewrite snd $ divMod1 y in
+     rewrite testbit0L j in
+     rewrite nltbLeFro 0 j zlej in
+     Refl)
+    (\m, zlem, prf, y, j, zlej =>
+     rewrite bizPow2S m zlem in
+     rewrite doubleSpec (bizPow2 m) in
+     rewrite aux y m zlem in
+     rewrite zTestbitShiftin (bizOdd y) ((bizDivTwo y) `bizMod` (bizPow2 m)) j zlej in
+     case leLtOrEq 0 j zlej of
+       Right j0 =>
+         rewrite sym j0 in
+         rewrite ltbLtFro 0 (bizSucc m) $
+                 ltSuccRFro 0 m zlem
+                in
+         Refl
+       Left zltj =>
+         rewrite neqbNeqFro j 0 $ ltNotEq j 0 zltj in
+         rewrite prf (bizDivTwo y) (j-1) (ltPredRTo 0 j zltj) in
+         really_believe_me zltj
+-- TODO bug: if we uncomment either of the branches it checks fine, but checking the whole thing seems to hang
+       -- case ltLeTotal (j-1) m of
+       --   Left j1ltm =>
+       --     rewrite ltbLtFro (j-1) m j1ltm in
+       --     rewrite ltbLtFro j (m+1) $
+       --             rewrite addComm m 1 in
+       --             rewrite addCompareTransferL j 1 m in
+       --             rewrite addComm (-1) j in
+       --             j1ltm
+       --            in
+       --     rewrite sym $ zTestbitSucc y (j-1) (ltPredRTo 0 j zltj) in
+       --     rewrite sym $ addAssoc j (-1) 1 in
+       --     rewrite add0R j in
+       --     Refl
+       --   Right mlej1 =>
+       --     rewrite nltbLeFro m (j-1) mlej1 in
+       --     rewrite nltbLeFro (m+1) j $
+       --             rewrite sym $ addCompareMonoR (m+1) j (-1) in
+       --             rewrite sym $ addAssoc m 1 (-1) in
+       --             rewrite add0R m in
+       --             mlej1
+       --           in
+       --     Refl
+    )
+    n zlen
+    x i zlei
+  where
+  auxIf : (b : Bool) -> let ifb = if b then BizP U else BizO in (0 `Le` ifb, ifb `Le` 1)
+  auxIf True = (uninhabited, uninhabited)
+  auxIf False = (uninhabited, uninhabited)
+  aux : (p, q : Biz) -> 0 `Le` q -> p `bizMod` (2*(bizPow2 q)) = bizShiftin (bizOdd p) ((bizDivTwo p) `bizMod` (bizPow2 q))
+  aux p q zleq =
+    let rew = cong {f=\z=>z `bizMod` (2*(bizPow2 q))} $ zDecomp p in
+    rewrite rew in
+    rewrite bizShiftinSpec (bizOdd p) (bizDivTwo p) in
+    rewrite bizShiftinSpec (bizOdd p) ((bizDivTwo p) `bizMod` (bizPow2 q)) in
+    let (zlep2m2q, p2m2qlt2q) = modPosBound (bizDivTwo p) (bizPow2 q) (bizPow2Pos q zleq)
+        (zleif, ifle1) = auxIf (bizOdd p)
+       in
+    sym $ snd $ divModPos (2*(bizDivTwo p)+(if bizOdd p then 1 else 0)) (2*(bizPow2 q))
+                          ((bizDivTwo p) `bizDiv` (bizPow2 q)) (2*((bizDivTwo p) `bizMod` (bizPow2 q))+(if bizOdd p then 1 else 0))
+      (leTrans 0 (2*((bizDivTwo p) `bizMod` (bizPow2 q))) (2*((bizDivTwo p) `bizMod` (bizPow2 q))+(if bizOdd p then 1 else 0))
+         (rewrite mulComm 2 ((bizDivTwo p) `bizMod` (bizPow2 q)) in
+          rewrite mulCompareMonoR 2 0 ((bizDivTwo p) `bizMod` (bizPow2 q)) Refl in
+          zlep2m2q)
+         (rewrite addComm (2*((bizDivTwo p) `bizMod` (bizPow2 q))) (ifThenElse (bizOdd p) (Delay 1) (Delay 0)) in
+          rewrite addCompareMonoR 0 (ifThenElse (bizOdd p) (Delay 1) (Delay 0)) (2*((bizDivTwo p) `bizMod` (bizPow2 q))) in
+          zleif))
+      (ltLeTrans (2*((bizDivTwo p) `bizMod` (bizPow2 q))+(if bizOdd p then 1 else 0)) (2*(((bizDivTwo p) `bizMod` (bizPow2 q))+1)) (2*(bizPow2 q))
+         (rewrite mulAddDistrL 2 ((bizDivTwo p) `bizMod` (bizPow2 q)) 1 in
+          rewrite addCompareMonoL (2*((bizDivTwo p) `bizMod` (bizPow2 q))) (ifThenElse (bizOdd p) (Delay 1) (Delay 0)) 2 in
+          ltSuccRFro (if bizOdd p then 1 else 0) 1 ifle1)
+         (rewrite mulCompareMonoL 2 (((bizDivTwo p) `bizMod` (bizPow2 q))+1) (bizPow2 q) Refl in
+          leSuccLFro ((bizDivTwo p) `bizMod` (bizPow2 q)) (bizPow2 q) p2m2qlt2q))
+      (rewrite mulAssoc ((bizDivTwo p) `bizDiv` (bizPow2 q)) 2 (bizPow2 q) in
+       rewrite mulComm ((bizDivTwo p) `bizDiv` (bizPow2 q)) 2 in
+       rewrite sym $ mulAssoc 2 ((bizDivTwo p) `bizDiv` (bizPow2 q)) (bizPow2 q) in
+       rewrite addAssoc (2*(((bizDivTwo p) `bizDiv` (bizPow2 q))*(bizPow2 q))) (2*((bizDivTwo p) `bizMod` (bizPow2 q))) (ifThenElse (bizOdd p) (Delay 1) (Delay 0)) in
+       rewrite sym $ mulAddDistrL 2 (((bizDivTwo p) `bizDiv` (bizPow2 q))*(bizPow2 q)) ((bizDivTwo p) `bizMod` (bizPow2 q)) in
+       cong {f=\r=>2*r+(ifThenElse (bizOdd p) (Delay 1) (Delay 0))} $
+       divEuclEq (bizDivTwo p) (bizPow2 q) (ltNotEq (bizPow2 q) 0 $ bizPow2Pos q zleq))
+
+zTestbitBizPow2M1 : (n, i : Biz) -> 0 `Le` n -> 0 `Le` i -> bizTestBit (bizPow2 n - 1) i = if i < n then True else False
+zTestbitBizPow2M1 n i zlen zlei =
+  rewrite aux in
+  rewrite zTestbitModBizPow2 n (-1) i zlen zlei in
+  rewrite testbitM1L i zlei in
+  Refl
+  where
+  aux : bizPow2 n - 1 = (-1) `bizMod` (bizPow2 n)
+  aux =
+    Basics.snd $ divModPos (-1) (bizPow2 n) (-1) (bizPow2 n - 1)
+      (ltPredRTo 0 (bizPow2 n) $
+       bizPow2Pos n zlen)
+      (rewrite addComm (bizPow2 n) (-1) in
+       rewrite addCompareMonoR (-1) 0 (bizPow2 n) in
+       Refl)
+      (rewrite sym $ oppEqMulM1L (bizPow2 n) in
+       rewrite addAssoc (-bizPow2 n) (bizPow2 n) (-1) in
+       rewrite addOppDiagL (bizPow2 n) in
+       Refl)
