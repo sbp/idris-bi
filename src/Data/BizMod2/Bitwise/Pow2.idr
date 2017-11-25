@@ -448,3 +448,26 @@ zTestbitBizPow2M1 n i zlen zlei =
        rewrite addAssoc (-bizPow2 n) (bizPow2 n) (-1) in
        rewrite addOppDiagL (bizPow2 n) in
        Refl)
+
+moduAnd : (x, y, logy : BizMod2 n) -> isPower2 y = Just logy -> x `modu` y = x `and` (y-1)
+moduAnd {n} x y logy prf =
+  case decEq n 0 of
+    Yes nz =>
+      rewrite nz in
+      Refl
+    No nnz =>
+      sameBitsEq (x `modu` y) (x `and` (y-1)) $ \i, zlei, iltn =>
+      rewrite bitsAnd x (y-1) i zlei iltn in
+      rewrite testbitRepr n ((unsigned x) `bizMod` (unsigned y)) i zlei iltn in
+      rewrite unsignedOne n nnz in
+      rewrite testbitRepr n (unsigned y - 1) i zlei iltn in
+      rewrite isPower2Correct y logy prf in
+      rewrite zTestbitModBizPow2 (unsigned logy) (unsigned x) i (fst $ unsignedRange logy) zlei in
+      rewrite zTestbitBizPow2M1 (unsigned logy) i (fst $ unsignedRange logy) zlei in
+      case ltLeTotal i (unsigned logy) of
+        Left iltuly =>
+          rewrite ltbLtFro i (unsigned logy) iltuly in
+          sym $ andTrue (bizTestBit (unsigned x) i)
+        Right ulylei =>
+          rewrite nltbLeFro (unsigned logy) i ulylei in
+          sym $ andFalse (bizTestBit (unsigned x) i)
