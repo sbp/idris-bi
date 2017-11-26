@@ -471,3 +471,12 @@ moduAnd {n} x y logy prf =
         Right ulylei =>
           rewrite nltbLeFro (unsigned logy) i ulylei in
           sym $ andFalse (bizTestBit (unsigned x) i)
+
+-- Properties of [shrx] (signed division by a power of 2)
+
+shrxZero : (x : BizMod2 n) -> 1 `Lt` toBizNat n -> shrx x 0 = x
+shrxZero {n} x ultn =
+  rewrite shlZero (repr 1 n) in
+  rewrite signedOne n ultn in
+  rewrite quot1R (signed x) in
+  reprSigned x
