@@ -89,7 +89,7 @@ modu1 {n} x with (decEq n 0)
 divsM1 : (x : BizMod2 n) -> x `divs` (-1) = -x
 divsM1 {n} x =
   rewrite signedMone n in
-  rewrite quotOppR (signed x) 1 uninhabited in
+  rewrite quotOppR (signed x) 1 in
   rewrite quot1R (signed x) in
   eqmSamerepr (-signed x) (-unsigned x) n $
   eqmodNeg (signed x) (unsigned x) (modulus n) $
