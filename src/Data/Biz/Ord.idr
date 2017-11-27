@@ -425,6 +425,13 @@ addCompareMonoR n m p =
   rewrite addComm m p in
   addCompareMonoL p n m
 
+-- TODO look for places to use
+ltPred : (x : Biz) -> bizPred x `Lt` x
+ltPred x =
+  rewrite addComm x (-1) in
+  rewrite addCompareMonoR (-1) 0 x in
+  Refl
+
 ltTrans : (p, q, r : Biz) -> p `Lt` q -> q `Lt` r -> p `Lt` r
 ltTrans p q r =
   biInduction
