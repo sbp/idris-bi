@@ -84,6 +84,11 @@ opSwitch _ GT = Refl
 
 ------- Nat properties -------
 
+-- TODO Remove in the next release
+
+Uninhabited (S n = Z) where
+  uninhabited Refl impossible
+
 -- TODO contribute to Prelude.Nat
 
 ltPlusNZ : (a,b : Nat) -> a `compare` (a+(S b)) = LT
