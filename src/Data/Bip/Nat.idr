@@ -1,87 +1,14 @@
 module Data.Bip.Nat
 
+import Data.Util
+
 import Data.Bip
 import Data.Bip.AddMul
-import Data.Bip.IterPow
+import Data.Bip.Iter
 import Data.Bip.OrdSub
 
-%access public export
+%access export
 %default total
-
------------------------ Nat utility proofs and functions -----------------------
--- TODO add to Prelude?
-
-ltPlusNZ : (a,b : Nat) -> a `compare` (a+(S b)) = LT
-ltPlusNZ  Z    _ = Refl
-ltPlusNZ (S k) b = ltPlusNZ k b
-
-compareRefl : (a : Nat) -> a `compare` a = EQ
-compareRefl  Z    = Refl
-compareRefl (S k) = compareRefl k
-
-compareEq : (a, b : Nat) -> a `compare` b = EQ -> a = b
-compareEq  Z     Z    = const Refl
-compareEq  Z    (S _) = absurd
-compareEq (S _)  Z    = absurd
-compareEq (S k) (S j) = cong . compareEq k j
-
-ltGt : (a,b : Nat) -> a `compare` b = LT -> b `compare` a = GT
-ltGt  Z     Z    = absurd
-ltGt  Z    (S _) = const Refl
-ltGt (S _)  Z    = absurd
-ltGt (S k) (S j) = ltGt k j
-
-gtLt : (a,b : Nat) -> a `compare` b = GT -> b `compare` a = LT
-gtLt  Z     Z    = absurd
-gtLt  Z    (S _) = absurd
-gtLt (S _)  Z    = const Refl
-gtLt (S k) (S j) = gtLt k j
-
-plusMinus : (a, b : Nat) -> b `compare` a = LT -> (a `minus` b)+b = a
-plusMinus  Z     Z    blta = absurd blta
-plusMinus  Z    (S _) blta = absurd blta
-plusMinus (S k)  Z    blta = rewrite plusZeroRightNeutral k in Refl
-plusMinus (S k) (S j) blta = rewrite sym $ plusSuccRightSucc (k `minus` j) j in
-                             cong $ plusMinus k j blta
-
-minusNeg : (p, q : Nat) -> p `compare` q = LT -> p `minus` q = Z
-minusNeg  Z     Z    = absurd
-minusNeg  Z    (S _) = const Refl
-minusNeg (S _)  Z    = absurd
-minusNeg (S k) (S j) = minusNeg k j
-
-minusPos : (p, q : Nat) -> q `compare` p = LT -> 1 `LTE` (p `minus` q)
-minusPos  Z     Z    = absurd
-minusPos  Z    (S _) = absurd
-minusPos (S _)  Z    = const $ LTESucc LTEZero
-minusPos (S k) (S j) = minusPos k j
-
-maxLTE : (p, q : Nat) -> p `LTE` q -> maximum p q = q
-maxLTE  Z     Z    = const Refl
-maxLTE  Z    (S _) = const Refl
-maxLTE (S _)  Z    = absurd
-maxLTE (S k) (S j) = cong . maxLTE k j . fromLteSucc
-
-sub1R : (p : Nat) -> p `minus` 1 = pred p
-sub1R  Z    = Refl
-sub1R (S k) = minusZeroRight k
-
-maxLt : (p, q : Nat) -> q `compare` p = LT -> maximum p q = p
-maxLt  Z     Z    = absurd
-maxLt  Z    (S _) = absurd
-maxLt (S _)  Z    = const Refl
-maxLt (S k) (S j) = cong . maxLt k j
-
-minLt : (p, q : Nat) -> p `compare` q = LT -> minimum p q = p
-minLt  Z     Z    = absurd
-minLt  Z    (S _) = const Refl
-minLt (S _)  Z    = absurd
-minLt (S k) (S j) = cong . minLt k j
-
-natIter : (f : a -> a) -> (x : a) -> (n : Nat) -> a
-natIter _ x  Z    = x
-natIter f x (S k) = f (natIter f x k)
---------------------------------------------------------------------------------
 
 -- Properties of the injection from binary positive numbers to Peano natural
 -- numbers

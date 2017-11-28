@@ -4,7 +4,7 @@ import Data.Bip
 import Data.Bip.AddMul
 import Data.Bip.OrdSub
 
-%access public export
+%access export
 %default total
 
 -- "Compatibility facts", how useful are these in practice?

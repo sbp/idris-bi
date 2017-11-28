@@ -1,9 +1,9 @@
-module Data.Bip.IterPow
+module Data.Bip.Iter
 
 import Data.Bip
 import Data.Bip.AddMul
 
-%access public export
+%access export
 %default total
 
 -- peano_rect
@@ -19,7 +19,7 @@ mutual
   peanoAux : (P : Bip -> Type) -> (a : P U) ->
              (f : (p : Bip) -> P p -> P (bipSucc p)) ->
              (p : Bip) -> P (O p)
-  peanoAux P a f = peanoRect (P . O) (f _ a) (\_ => f _ . f _)
+  peanoAux P a f p = peanoRect (P . O) (f _ a) (\_ => f _ . f _) p
 
 -- TODO rest of Peano?
 
@@ -91,17 +91,5 @@ iterInvariant f Inv (I b) g x ix =
   let ih = iterInvariant f Inv b g x ix
       ih2 = iterInvariant f Inv b g (bipIter f x b) ih in
     g (bipIter f (bipIter f x b) b) ih2
-
--- pow_1_r
-
-pow1R : (p : Bip) -> bipPow p U = p
-pow1R  U    = Refl
-pow1R (O a) = rewrite mul1R a in Refl
-pow1R (I a) = rewrite mul1R a in Refl
-
--- pow_succ_r
-
-powSuccR : (p, q : Bip) -> bipPow p (bipSucc q) = p * (bipPow p q)
-powSuccR p q = iterSucc (bipMult p) U q
 
 -- TODO reformulate iter_op_succ so that it describes toNatBip/bipMultNat

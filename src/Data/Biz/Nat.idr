@@ -1,19 +1,27 @@
 module Data.Biz.Nat
 
+import Data.Util
+
 import Data.Bip
 import Data.Bip.AddMul
 import Data.Bip.OrdSub
 import Data.Bip.Nat
 
 import Data.Bin
-import Data.Bin.Proofs
+import Data.Bin.AddSubMul
+import Data.Bin.Ord
+import Data.Bin.PowSqrt
+import Data.Bin.DivMod
 import Data.Bin.Nat
 
 import Data.Biz
-import Data.Biz.Proofs
+import Data.Biz.AddSubMul
+import Data.Biz.Ord
+import Data.Biz.PowSqrt
+import Data.Biz.DivMod
 
 %default total
-%access public export
+%access export
 
 -- Chains of conversions
 

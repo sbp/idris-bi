@@ -110,6 +110,13 @@ bizPow a (BizP b') = bizPowBip a b'
 bizPow _  BizO     = BizP U
 bizPow _ (BizM _)  = BizO
 
+||| 2^n
+
+bizPow2 : (x : Biz) -> Biz
+bizPow2  BizO = BizP U
+bizPow2 (BizP y) = BizP $ bipIter O 1 y
+bizPow2 (BizM _) = BizO
+
 ||| Square
 bizSquare : (a : Biz) -> Biz
 bizSquare  BizO     = BizO
@@ -232,7 +239,7 @@ bizDivEuclidHelp2 q BizO _ = (bizOpp q, BizO)
 bizDivEuclidHelp2 q r    s = (bizOpp (bizSucc q), bizMinus r s)
 
 bizDivEuclid : (a, b : Biz) -> (Biz, Biz)
-bizDivEuclid  BizO     _         = (BizO, BizO)
+bizDivEuclid  BizO      _        = (BizO, BizO)
 bizDivEuclid  _         BizO     = (BizO, BizO)
 bizDivEuclid (BizP a') (BizP b') = bipzDivEuclid a' (BizP b')
 bizDivEuclid (BizM a') (BizP b') =
@@ -389,6 +396,16 @@ bizShiftL a (BizM b') = bipIter bizDivTwo a b'
 bizShiftR : (a, b : Biz) -> Biz
 bizShiftR a b = bizShiftL a (bizOpp b)
 
+bizShiftin : (b : Bool) -> (x : Biz) -> Biz
+bizShiftin True  x = bizDPO x
+bizShiftin False x = bizD x
+
+bizZeroExt : (n, x : Biz) -> Biz
+bizZeroExt n = bizIter (\rec, x => bizShiftin (bizOdd x) (rec (bizDivTwo x))) n (\_ => BizO)
+
+bizSignExt : (n, x : Biz) -> Biz
+bizSignExt n = bizIter (\rec, x => bizShiftin (bizOdd x) (rec (bizDivTwo x))) (bizPred n) (\x => if bizOdd x then BizM U else BizO)
+
 ||| Logical OR
 bizOr : (a, b : Biz) -> Biz
 bizOr  BizO      b        = b
@@ -442,16 +459,21 @@ fromIntegerBiz n =
     then BizP (fromIntegerBip n)
     else BizM (fromIntegerBip (-n))
 
+-- TODO something faster
+toIntegerBiz : Biz -> Integer
+toIntegerBiz  BizO    = 0
+toIntegerBiz (BizP a) = cast {to=Integer} $ toNatBip a
+toIntegerBiz (BizM a) = -(cast {to=Integer} $ toNatBip a)
 Eq Biz where
-   BizO     ==  BizO    = True
-   BizO     == (BizP _) = False
-   BizO     == (BizM _) = False
-   (BizP _) ==  BizO    = False
-   (BizM _) ==  BizO    = False
-   (BizM _) == (BizP _) = False
-   (BizP _) == (BizM _) = False
-   (BizP a) == (BizP b) = a == b
-   (BizM a) == (BizM b) = a == b
+  BizO     ==  BizO    = True
+  BizO     == (BizP _) = False
+  BizO     == (BizM _) = False
+  (BizP _) ==  BizO    = False
+  (BizM _) ==  BizO    = False
+  (BizM _) == (BizP _) = False
+  (BizP _) == (BizM _) = False
+  (BizP a) == (BizP b) = a == b
+  (BizM a) == (BizM b) = a == b
 
 Cast Nat Biz where
   cast = toBizNat
@@ -459,11 +481,12 @@ Cast Nat Biz where
 Cast Biz Nat where
   cast = toNatBiz
 
+-- TODO something better
 Cast Biz Int where
-  cast = (cast {to=Int}) . toNatBiz
+  cast = (cast {to=Int}) . (cast {to=String}) . toIntegerBiz
 
 Cast Biz Integer where
-  cast = (cast {to=Integer}) . toNatBiz
+  cast = toIntegerBiz
 
 Cast Biz Bip where
   cast = toBipBiz
