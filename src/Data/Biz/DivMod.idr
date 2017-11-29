@@ -724,6 +724,39 @@ div2Div x =
       rewrite mulComm p 2 in
       succDoubleSpec p
 
+divShift : (x, y : Biz) -> 0 `Lt` y -> (x + (y - 1)) `bizDiv` y = (x `bizDiv` y) + if (x `bizMod` y) == 0 then 0 else 1
+divShift x y zlty =
+  let dmeq = divEuclEq x y (ltNotEq y 0 zlty) in
+  case decEq (x `bizMod` y) 0 of
+    Yes xmy0 =>
+      rewrite eqbEqFro (x `bizMod` y) 0 xmy0 in
+      rewrite add0R (x `bizDiv` y) in
+      sym $ fst $ divModPos (x + (y - 1)) y (x `bizDiv` y) (y-1)
+        (ltPredRTo 0 y zlty)
+        (ltPred y)
+        (cong {f=\z=>z+(y-1)} $
+         trans {b = (x `bizDiv` y)*y + (x `bizMod` y)} dmeq $
+           rewrite xmy0 in
+           add0R ((x `bizDiv` y)*y))
+    No xmynz =>
+      rewrite neqbNeqFro (x `bizMod` y) 0 xmynz in
+      let (xmyl, xmyh) = modPosBound x y zlty in
+      sym $ fst $ divModPos (x + (y - 1)) y ((x `bizDiv` y)+1) ((x `bizMod` y)-1)
+        (ltPredRTo 0 (x `bizMod` y) $
+         case leLtOrEq 0 (x `bizMod` y) xmyl of
+            Right xmy0 => absurd $ xmynz $ sym xmy0
+            Left zltxmy => zltxmy)
+        (ltPredLTo (x `bizMod` y) y $
+         ltLeIncl (x `bizMod` y) y xmyh)
+        (rewrite addAssoc (((x `bizDiv` y)+1)*y) (x `bizMod` y) (-1) in
+         rewrite mulAddDistrR (x `bizDiv` y) 1 y in
+         rewrite mul1L y in
+         rewrite sym $ addAssoc ((x `bizDiv` y)*y) y (x `bizMod` y) in
+         rewrite addComm y (x `bizMod` y) in
+         rewrite addAssoc ((x `bizDiv` y)*y) (x `bizMod` y) y in
+         rewrite sym dmeq in
+         addAssoc x y (-1))
+
 -- Basic properties of divisibility
 
 public export
