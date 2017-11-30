@@ -846,3 +846,20 @@ zAddIsOr x y i zlei f =
     aux True  False _   = Refl
     aux False True  _   = Refl
     aux False False _   = Refl
+
+zShiftlMulBizPow2 : (x, n : Biz) -> 0 `Le` n -> bizShiftL x n = x * bizPow2 n
+zShiftlMulBizPow2 x  BizO    _    = sym $ mul1R x
+zShiftlMulBizPow2 x (BizP p) zlen =
+  Bip.Iter.peanoRect
+    (\z => bipIter (2*) x z = x*(BizP (bipIter O U z)))
+    (mulComm 2 x)
+    (\z, prf =>
+     rewrite iterSucc (2*) x z in
+     rewrite iterSucc O U z in
+     rewrite mulAssoc x 2 (BizP (bipIter O U z)) in
+     rewrite mulComm x 2 in
+     rewrite sym $ mulAssoc 2 x (BizP (bipIter O U z)) in
+     cong {f = (2*)} prf
+    )
+    p
+zShiftlMulBizPow2 _ (BizM _) zlen = absurd $ zlen Refl

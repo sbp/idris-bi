@@ -170,11 +170,11 @@ bizPow2Range (S k) x zlex xltn =
   bizPow2MonotoneStrict x (toBizNat (S k)) zlex xltn
 
 zOneBitsZero : (n : Nat) -> (i : Biz) -> zOneBits n 0 i = []
-zOneBitsZero Z     _ = Refl
+zOneBitsZero  Z    _ = Refl
 zOneBitsZero (S k) i = zOneBitsZero k (i+1)
 
 zOneBitsBizPow2 : (n : Nat) -> (x, i : Biz) -> 0 `Le` x -> x `Lt` toBizNat n -> zOneBits n (bizPow2 x) i = [i + x]
-zOneBitsBizPow2  Z    x i zlex xltn = absurd $ zlex $ ltGt x 0 xltn
+zOneBitsBizPow2  Z    x _ zlex xltn = absurd $ zlex $ ltGt x 0 xltn
 zOneBitsBizPow2 (S k) x i zlex xltn =
   case leLtOrEq 0 x zlex of
     Right zx =>
@@ -217,23 +217,6 @@ isPower2BizPow2 n x zlex xltn =
 -- Relation between bitwise operations and multiplications / divisions by powers of 2
 
 -- Left shifts and multiplications by powers of 2.
-
-zShiftlMulBizPow2 : (x, n : Biz) -> 0 `Le` n -> bizShiftL x n = x * bizPow2 n
-zShiftlMulBizPow2 x  BizO    _    = sym $ mul1R x
-zShiftlMulBizPow2 x (BizP n) zlen =
-  peanoRect
-    (\z => bipIter (2*) x z = x*(BizP (bipIter O U z)))
-    (mulComm 2 x)
-    (\z, prf =>
-     rewrite iterSucc (2*) x z in
-     rewrite iterSucc O U z in
-     rewrite mulAssoc x 2 (BizP (bipIter O U z)) in
-     rewrite mulComm x 2 in
-     rewrite sym $ mulAssoc 2 x (BizP (bipIter O U z)) in
-     cong {f = (2*)} prf
-    )
-    n
-zShiftlMulBizPow2 _ (BizM _) zlen = absurd $ zlen Refl
 
 shlMulBizPow2 : (x, y : BizMod2 n) -> shl x y = x * (repr (bizPow2 (unsigned y)) n)
 shlMulBizPow2 {n} x y =
@@ -502,7 +485,7 @@ nltbLeFro x y sxlesy with (y `compare` x) proof yx
 ltuInvPredNZ : (y : BizMod2 n) -> y `ltu` (repr (toBizNat n - 1) n) = True -> Not (n=0) -> unsigned y `Lt` toBizNat n - 1
 ltuInvPredNZ {n} y yltun nz =
   rewrite sym $ unsignedRepr (toBizNat n - 1) n
-                (case leLtOrEq 0 (toBizNat n) $ toBizNatIsNonneg n of
+                (case leLtOrEq 0 (toBizNat n) $ toBizNatIsNonneg n of   -- TODO use leNeqLt
                    Right n0 => absurd $ nz $ toBizNatInj n 0 $ sym n0
                    Left zltn => ltPredRTo 0 (toBizNat n) zltn)
                 (leTrans (toBizNat n - 1) (toBizNat n) (maxUnsigned n)

@@ -425,7 +425,13 @@ addCompareMonoR n m p =
   rewrite addComm m p in
   addCompareMonoL p n m
 
--- TODO look for places to use
+-- TODO look for places to use these
+ltSucc : (x : Biz) -> x `Lt` bizSucc x
+ltSucc x =
+  rewrite addComm x 1 in
+  rewrite addCompareMonoR 0 1 x in
+  Refl
+
 ltPred : (x : Biz) -> bizPred x `Lt` x
 ltPred x =
   rewrite addComm x (-1) in
@@ -649,7 +655,7 @@ leNeqLt x y ylex nxy =
     Left yltx => yltx
     Right xy => absurd $ nxy $ sym xy
 
--- TODO can't put in Iter because of cycle (we use biInduction for ltTrans)
+-- TODO can't put the following in Iter because of cycle (we use biInduction for ltTrans)
 natlikeInd : (P : Biz -> Type) -> (f0 : P BizO)
           -> ((y : Biz) -> 0 `Le` y -> P y -> P (bizSucc y))
           -> (x : Biz) -> 0 `Le` x -> P x
@@ -658,3 +664,23 @@ natlikeInd P f0 f (BizP a) zlex =
   peanoRect (P . BizP) (f 0 uninhabited f0) (\p => rewrite sym $ add1R p in
                                                    f (BizP p) uninhabited) a
 natlikeInd _ _  _ (BizM _) zlex = absurd $ zlex Refl
+
+iterBaseZ : (f : a -> a) -> (n : Biz) -> (x : a) -> n `Le` 0 -> bizIter f n x = x
+iterBaseZ _  BizO    _ _    = Refl
+iterBaseZ _ (BizP _) _ nle0 = absurd $ nle0 Refl
+iterBaseZ _ (BizM _) _ _    = Refl
+
+iterSuccZ : (f : a -> a) -> (n : Biz) -> (x : a) -> 0 `Le` n -> bizIter f (bizSucc n) x = f (bizIter f n x)
+iterSuccZ f  BizO    x zlen = Refl
+iterSuccZ f (BizP p) x zlen = rewrite add1R p in
+                             iterSucc f x p
+iterSuccZ f (BizM _) x zlen = absurd $ zlen Refl
+
+natlikeIndM : (P : Biz -> Type) -> (f0 : P BizO)
+         -> ((y : Biz) -> y `Le` 0 -> P y)
+         -> ((y : Biz) -> 0 `Le` y -> P y -> P (bizSucc y))
+         -> (x : Biz) -> P x
+natlikeIndM P f0 fM fP x =
+  case ltLeTotal x 0 of
+    Left xlt0 => fM x (ltLeIncl x 0 xlt0)
+    Right zlex => natlikeInd P f0 fP x zlex

@@ -38,5 +38,6 @@ modules = Data.Bi
         , Data.BizMod2.Bitwise
         , Data.BizMod2.Bitwise.Shift
         , Data.BizMod2.Bitwise.Pow2
+        , Data.BizMod2.Bitwise.ZSExt
 
 opts = "-p pruviloj"
