@@ -863,3 +863,135 @@ zShiftlMulBizPow2 x (BizP p) zlen =
     )
     p
 zShiftlMulBizPow2 _ (BizM _) zlen = absurd $ zlen Refl
+
+zZeroExtSpec : (n, x, i : Biz) -> 0 `Le` i -> bizTestBit (bizZeroExt n x) i = if i < n then bizTestBit x i else False
+zZeroExtSpec n x i zlei =
+  natlikeIndM
+    (\m => (y, j : Biz) -> 0 `Le` j -> bizTestBit (bizZeroExt m y) j = if j < m then bizTestBit y j else False)
+    (\y, j, zlej =>
+     rewrite nltbLeFro 0 j zlej in
+     testbit0L j)
+    (\m, mle0, y, j, zlej =>
+      rewrite iterBaseZ (\rec, x => bizShiftin (bizOdd x) (rec (bizDivTwo x))) m (\_ => BizO) mle0 in
+      rewrite nltbLeFro m j (leTrans m 0 j mle0 zlej) in
+      testbit0L j)
+    (\m, zlem, prf, y, j, zlej =>
+      rewrite iterSuccZ (\rec, x => bizShiftin (bizOdd x) (rec (bizDivTwo x))) m (\_ => BizO) zlem in
+      rewrite zTestbitShiftin (bizOdd y) (bizIter (\rec, x => bizShiftin (bizOdd x) (rec (bizDivTwo x))) m (\_ => BizO) (bizDivTwo y)) j zlej in
+      rewrite zTestbitEq y j zlej in
+      case decEq j 0 of
+        Yes j0 =>
+          rewrite eqbEqFro j 0 j0 in
+          rewrite j0 in
+          rewrite ltbLtFro 0 (m+1) (leLtTrans 0 m (m+1) zlem (ltSucc m)) in
+          Refl
+        No jnz =>
+          rewrite neqbNeqFro j 0 jnz in
+          rewrite prf (bizDivTwo y) (j-1) (ltPredRTo 0 j $ leNeqLt j 0 zlej jnz) in
+-- TODO bug : as in zTestbitModBizPow2, uncommenting both branches freezes the checker
+          really_believe_me j
+       --  case ltLeTotal j (m+1) of
+       --    Left jltm1 =>
+       --      rewrite ltbLtFro j (m+1) jltm1 in
+       --      rewrite ltbLtFro (j-1) m $
+       --              rewrite addComm j (-1) in
+       --              rewrite sym $ addCompareTransferL j 1 m in
+       --              rewrite addComm 1 m in
+       --              jltm1
+       --             in
+       --      Refl
+       --    Right m1lej =>
+       --      rewrite nltbLeFro (m+1) j m1lej in
+       --      rewrite nltbLeFro m (j-1) $
+       --              rewrite addComm j (-1) in
+       --              rewrite addCompareTransferL m (-1) j in
+       --              rewrite addComm 1 m in
+       --              m1lej
+       --             in
+       --      Refl
+            )
+    n x i zlei
+
+zSignExtSpec : (n, x, i : Biz) -> 0 `Le` i -> 0 `Lt` n -> bizTestBit (bizSignExt n x) i = bizTestBit x (if i < n then i else n - 1)
+zSignExtSpec n x i zlei zltn =
+  let aux = natlikeInd
+             (\m => (y, j : Biz) -> 0 `Le` j -> bizTestBit (bizSignExt (m+1) y) j = bizTestBit y (if j < m+1 then j else m))
+             (\y,j,zlej =>
+                case ltLeTotal j 1 of
+                  Left jlt1 =>
+                    rewrite ltbLtFro j 1 jlt1 in
+                    rewrite leAntisym j 0 (ltPredRTo j 1 jlt1) zlej in
+                    case trueOrFalse (bizOdd y) of
+                      Left ey => rewrite ey in
+                                 Refl
+                      Right oy => rewrite oy in
+                                  Refl
+                  Right olej =>
+                    rewrite nltbLeFro 1 j olej in
+                    case trueOrFalse (bizOdd y) of
+                      Left ey => rewrite ey in
+                                 testbit0L j
+                      Right oy => rewrite oy in
+                                  testbitM1L j zlej
+             )
+             (\m,zlem,prf,y,j,zlej =>
+                rewrite addComm (m+1+1) (-1) in
+                rewrite addAssoc (-1) (m+1) 1 in
+                rewrite addComm (-1) (m+1) in
+                rewrite iterSuccZ (\rec, x => bizShiftin (bizOdd x) (rec (bizDivTwo x))) (m+1-1) (\x => ifThenElse (bizOdd x) (Delay (-1)) (Delay 0)) $
+                        rewrite sym $ addAssoc m 1 (-1) in
+                        rewrite add0R m in
+                        zlem
+                       in
+                rewrite zTestbitShiftin (bizOdd y) (bizIter (\rec, x => bizShiftin (bizOdd x) (rec (bizDivTwo x))) (m+1-1) (\x => ifThenElse (bizOdd x) (Delay (-1)) (Delay 0)) (bizDivTwo y)) j zlej in
+                case decEq j 0 of
+                  Yes j0 =>
+                    rewrite eqbEqFro j 0 j0 in
+                    rewrite j0 in
+                    rewrite ltbLtFro 0 (m+1+1) $
+                            leLtTrans 0 m (m+1+1) zlem $
+                            rewrite sym $ addAssoc m 1 1 in
+                            rewrite addComm m 2 in
+                            rewrite addCompareMonoR 0 2 m in
+                            Refl
+                           in
+                    Refl
+                  No jnz =>
+                    rewrite neqbNeqFro j 0 jnz in
+                    rewrite prf (bizDivTwo y) (j-1) (ltPredRTo 0 j $ leNeqLt j 0 zlej jnz) in
+-- TODO bug : nested cases again
+                    really_believe_me j
+                   -- case ltLeTotal (j-1) (m+1) of
+                   --   Left j1ltm1 =>
+                   --      rewrite ltbLtFro (j-1) (m+1) j1ltm1 in
+                   --      rewrite ltbLtFro j (m+1+1) $
+                   --              rewrite addComm (m+1) 1 in
+                   --              rewrite addCompareTransferL j 1 (m+1) in
+                   --              rewrite addComm (-1) j in
+                   --              j1ltm1
+                   --             in
+                   --      rewrite sym $ zTestbitSucc y (j-1) $
+                   --              ltPredRTo 0 j $
+                   --              leNeqLt j 0 zlej jnz
+                   --             in
+                   --      rewrite sym $ addAssoc j (-1) 1 in
+                   --      rewrite add0R j in
+                   --      Refl
+                   --   Right m1lej1 =>
+                   --     rewrite nltbLeFro (m+1) (j-1) m1lej1 in
+                   --     rewrite nltbLeFro (m+1+1) j $
+                   --             rewrite addComm (m+1) 1 in
+                   --             rewrite sym $ addCompareTransferL (m+1) (-1) j in
+                   --             rewrite addComm (-1) j in
+                   --             m1lej1
+                   --            in
+                   --     sym $ zTestbitSucc y m zlem
+             )
+             (n-1) (ltPredRTo 0 n zltn) x i zlei
+     in
+  rewrite sym $ add0R n in
+  rewrite addAssoc n (-1) 1 in
+  rewrite aux in
+  rewrite sym $ addAssoc n (-1) 1 in
+  rewrite add0R n in
+  Refl

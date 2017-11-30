@@ -814,11 +814,7 @@ subBorrowAddCarry : (x, y : BizMod2 n) -> Either (b = 0) (b = 1) -> subBorrow x 
 subBorrowAddCarry {n} {b} x y b01 with (decEq n 0)
   subBorrowAddCarry {n} {b} x y b01 | Yes n0 =
     rewrite n0 in
-    aux0 (MkBizMod2 BizO (Refl, Refl)) (unsigned x - unsigned y - unsigned b < 0)
-    where
-    aux0 : (x : a) -> (b : Bool) -> (if b then x else x) = x
-    aux0 _ True = Refl
-    aux0 _ False = Refl
+    ifSame (MkBizMod2 BizO (Refl, Refl)) (unsigned x - unsigned y - unsigned b < 0)
   subBorrowAddCarry {n} {b} x y b01 | No nz with (bizCompare (unsigned x - unsigned y - unsigned b) 0) proof cmp
     subBorrowAddCarry {n} {b} x y b01 | No nz | LT =
       rewrite subBorrowAddCarryAux n x y b nz b01 in

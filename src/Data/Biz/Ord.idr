@@ -285,6 +285,12 @@ ltLeTotal p q with (p `compare` q) proof pq
                  rewrite sym pq in
                  uninhabited
 
+leAntisym : (x, y : Biz) -> x `Le` y -> y `Le` x -> x = y
+leAntisym x y xley ylex =
+  case leLtOrEq x y xley of
+    Left xlty => absurd $ ylex $ ltGt x y xlty
+    Right xy => xy
+
 -- lt_succ_r
 -- TODO split into `to` and `fro`
 

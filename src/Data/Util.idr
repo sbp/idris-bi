@@ -350,3 +350,7 @@ notTrueIsFalse False _   = Refl
 trueOrFalse : (b : Bool) -> Either (b = False) (b = True)
 trueOrFalse False = Left Refl
 trueOrFalse True = Right Refl
+
+ifSame : (x : a) -> (b : Bool) -> (if b then x else x) = x
+ifSame _ True = Refl
+ifSame _ False = Refl
