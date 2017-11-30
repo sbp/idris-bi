@@ -216,6 +216,13 @@ signed {n} x =
     then ux
     else ux-m
 
+export
+bizMod2P0Signed : (x : BizMod2 n) -> n = 0 -> signed x = -1
+bizMod2P0Signed x n0 =
+  rewrite n0 in
+  rewrite bizMod2P0N x n0 in
+  Refl
+
 -- Conversely, [repr] takes a Biz and returns the corresponding machine integer.
 -- The argument is treated modulo [modulus n].
 

@@ -788,3 +788,30 @@ shrxCarry {n} x y yltun =
           rewrite sym $ addAssoc (toBizNat n) (-unsigned y) (unsigned y) in
           rewrite addOppDiagL (unsigned y) in
           cong $ sym $ add0R (toBizNat n)))
+
+-- Connections between [shr] and [shru].
+
+shrShruPositive : (x, y : BizMod2 n) -> 0 `Le` signed x -> shr x y = shru x y
+shrShruPositive x y zlesx =
+  rewrite shrDivBizPow2 x y in
+  rewrite shruDivBizPow2 x y in
+  rewrite signedEqUnsigned x (signedPositiveTo x zlesx) in
+  Refl
+
+-- TODO put in Ord
+nltbLeTo : (x, y : BizMod2 n) -> y < x = False -> (signed x) `Le` (signed y)
+nltbLeTo x y prf xy with (y `compare` x) proof yx
+  | LT = absurd prf
+  | EQ = absurd $ trans yx (gtLt (signed x) (signed y) xy)
+  | GT = absurd $ trans yx (gtLt (signed x) (signed y) xy)
+
+shrAndIsShruAnd : (x, y, z : BizMod2 n) -> y < 0 = False -> shr (x `and` y) z = shru (x `and` y) z
+shrAndIsShruAnd {n} x y z ynlt0 =
+  case decEq n 0 of
+    Yes n0 => rewrite n0 in
+              Refl
+    No nnz =>
+      shrShruPositive (x `and` y) z $
+      andPositive x y $
+      rewrite sym $ signedZero n nnz in
+      nltbLeTo (repr 0 n) y ynlt0

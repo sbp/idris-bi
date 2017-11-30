@@ -230,8 +230,8 @@ ltLeIncl n m nltm ngtm with (n `compare` m)
 nltbLeTo : (n, m : Biz) -> m < n = False -> n `Le` m
 nltbLeTo n m prf nm with (m `compare` n) proof mn
   | LT = absurd prf
-  | EQ = absurd $ replace (gtLt n m nm) mn
-  | GT = absurd $ replace (gtLt n m nm) mn
+  | EQ = absurd $ trans mn (gtLt n m nm)
+  | GT = absurd $ trans mn (gtLt n m nm)
 
 nltbLeFro : (n, m : Biz) -> n `Le` m -> m < n = False
 nltbLeFro n m nlem with (m `compare` n) proof mn

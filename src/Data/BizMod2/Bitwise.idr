@@ -320,6 +320,26 @@ signBitOfUnsigned {n=S n} x _  =
     rewrite posSubAdd (toBipNatSucc n) 1 1 in
     Refl
 
+signBitOfUnsignedTo : (z : BizMod2 n) -> Not (n=0) -> testbit z (toBizNat n - 1) = False -> unsigned z `Lt` halfModulus n
+signBitOfUnsignedTo {n} z nz prf =
+  case ltLeTotal (unsigned z) (halfModulus n) of
+    Left uzltn2 => uzltn2
+    Right n2leuz =>
+      let contra = signBitOfUnsigned z nz
+                |> replace {P=\q=>testbit z (toBizNat n - 1) = if q then False else True} (nltbLeFro (halfModulus n) (unsigned z) n2leuz)
+         in
+      absurd $ trans (sym contra) prf
+
+signBitOfUnsignedFro : (z : BizMod2 n) -> Not (n=0) -> unsigned z `Lt` halfModulus n -> testbit z (toBizNat n - 1) = False
+signBitOfUnsignedFro {n} z nz prf =
+  case trueOrFalse (testbit z (toBizNat n - 1)) of
+    Left sbf => sbf
+    Right sbt =>
+      let contra = signBitOfUnsigned z nz
+                |> replace {P=\q=>testbit z (toBizNat n - 1) = if q then False else True} (ltbLtFro (unsigned z) (halfModulus n) prf)
+         in
+      absurd $ trans (sym contra) sbt
+
 -- when `n=0` this becomes `bizTestBit (-1) i = False` which is wrong
 bitsSigned : (x : BizMod2 n) -> (i : Biz) -> Not (n=0) -> 0 `Le` i -> bizTestBit (signed x) i = testbit x (if i < toBizNat n then i else toBizNat n - 1)
 bitsSigned {n} x i nz zlei =
@@ -861,3 +881,29 @@ addAnd x y z prf =
     andZeroL x
   in
   sym $ andOrDistrib x y z
+
+andPositive : (x, y : BizMod2 n) -> 0 `Le` signed y -> 0 `Le` signed (x `and` y)
+andPositive {n} x y zlesy =
+  case decEq n 0 of
+    Yes n0 =>
+      let contra = zlesy
+                |> replace {P=\q=>0 `Le` q} (bizMod2P0Signed y n0)
+         in
+-- TODO bug: contra does not have a function type ((\q => ([__])) (-1))
+      really_believe_me contra
+--      absurd $ contra Refl
+    No nnz =>
+      signedPositiveFro (x `and` y) $
+      ltPredRTo (unsigned (x `and` y)) (halfModulus n) $
+      signBitOfUnsignedTo (x `and` y) nnz $
+      rewrite bitsAnd x y (toBizNat n - 1)
+                (case leLtOrEq 0 (toBizNat n) $ toBizNatIsNonneg n of
+                   Right n0 => absurd $ nnz $ toBizNatInj n 0 $ sym n0
+                   Left zltn => ltPredRTo 0 (toBizNat n) zltn)
+                (ltPred (toBizNat n))
+             in
+      rewrite signBitOfUnsignedFro y nnz $
+                ltPredRFro (unsigned y) (halfModulus n) $
+                signedPositiveTo y zlesy
+             in
+      andFalse (testbit x (toBizNat n - 1))
