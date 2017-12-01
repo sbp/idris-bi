@@ -7,6 +7,8 @@ import Data.Biz.AddSubMul
 import Data.Biz.Ord
 import Data.Biz.Nat
 import Data.Biz.Bitwise
+import Data.Biz.DivMod
+import Data.Biz.PowSqrt
 
 import Data.BizMod2
 import Data.BizMod2.Core
@@ -362,3 +364,16 @@ signExtShrShl {n} m x zltm mltn =
      --    rewrite sym $ addAssoc (-1) (toBizNat n) (-toBizNat n) in
      --    rewrite addOppDiagR (toBizNat n) in
      --    cong {f = testbit x} $ addComm m (-1)
+
+-- [zero_ext n x] is the unique integer congruent to [x] modulo [2^n] in the range [0...2^n-1].
+
+zeroExtRange : (m : Biz) -> (x : BizMod2 n) -> 0 `Le` m -> let uze = unsigned (zeroExt m x) in (0 `Le` uze, uze `Lt` bizPow2 m)
+zeroExtRange m x zlem =
+  rewrite zeroExtMod m x zlem in
+  modPosBound (unsigned x) (bizPow2 m) (bizPow2Pos m zlem)
+
+eqmodZeroExt : (m : Biz) -> (x : BizMod2 n) -> 0 `Le` m -> eqmod (unsigned (zeroExt m x)) (unsigned x) (bizPow2 m)
+eqmodZeroExt m x zlem =
+  rewrite zeroExtMod m x zlem in
+  eqmodSym (unsigned x) ((unsigned x) `bizMod` (bizPow2 m)) (bizPow2 m) $
+  eqmodMod (unsigned x) (bizPow2 m) (ltNotEq (bizPow2 m) 0 (bizPow2Pos m zlem))
