@@ -9,7 +9,9 @@ import Data.Biz.Nat
 import Data.Biz.Bitwise
 
 import Data.BizMod2
+import Data.BizMod2.Core
 import Data.BizMod2.Bitwise
+import Data.BizMod2.Bitwise.Shift
 import Data.BizMod2.Bitwise.Pow2
 
 %access export
@@ -219,3 +221,58 @@ signExtEqualIfZeroEqual m x y zltm zeq =
   rewrite sym $ signExtZeroExt m x zltm in
   rewrite sym $ signExtZeroExt m y zltm in
   cong {f = signExt m} zeq
+
+zeroExtShruShl : (m : Biz) -> (x : BizMod2 n) -> 0 `Lt` m -> m `Lt` toBizNat n -> let y = repr (toBizNat n - m) n in zeroExt m x = shru (shl x y) y
+zeroExtShruShl {n} m x zltm mltn =
+  let unwrapy = unsignedRepr (toBizNat n - m) n
+                 (rewrite sym $ compareSubR m (toBizNat n) in
+                  ltLeIncl m (toBizNat n) mltn)
+                 (ltLeIncl (toBizNat n - m) (maxUnsigned n) $
+                  ltLeTrans (toBizNat n - m) (toBizNat n) (maxUnsigned n)
+                   (rewrite addComm (toBizNat n) (-m) in
+                    rewrite addCompareMonoR (-m) 0 (toBizNat n) in
+                    rewrite sym $ compareOpp 0 m in
+                    zltm)
+                   (wordsizeMaxUnsigned n))
+    in
+  sameBitsEq (zeroExt m x) (shru (shl x (repr (toBizNat n - m) n)) (repr (toBizNat n - m) n)) $ \i, zlei, iltn =>
+  rewrite bitsZeroExt m i x zlei in
+  rewrite bitsShru (shl x (repr (toBizNat n - m) n)) (repr (toBizNat n - m) n) i zlei iltn in
+-- TODO case bug strikes again
+  really_believe_me x
+ --case ltLeTotal i m of
+ --   Left iltm =>
+ --     rewrite ltbLtFro i m iltm in
+ --     rewrite bitsShl x (repr (toBizNat n - m) n) (i + unsigned (repr (toBizNat n - m) n))
+ --              (rewrite unwrapy in
+ --               rewrite addAssoc i (toBizNat n) (-m) in
+ --               rewrite sym $ compareSubR m (i + toBizNat n) in
+ --               ltLeIncl m (i + toBizNat n) $
+ --               ltLeTrans m (toBizNat n) (i + toBizNat n)
+ --                 mltn
+ --                (rewrite addCompareMonoR 0 i (toBizNat n) in
+ --                 zlei))
+ --              (rewrite unwrapy in
+ --               rewrite addComm (toBizNat n) (-m) in
+ --               rewrite addAssoc i (-m) (toBizNat n) in
+ --               rewrite addCompareMonoR (i-m) 0 (toBizNat n) in
+ --               rewrite sym $ compareSub i m in
+ --               iltm)
+ --            in
+ --     rewrite unwrapy in
+ --     rewrite nltbLeFro (toBizNat n - m) (i + (toBizNat n - m)) $
+ --               rewrite addCompareMonoR 0 i (toBizNat n - m) in
+ --               zlei
+ --            in
+ --     rewrite sym $ addAssoc i (toBizNat n - m) (-(toBizNat n - m)) in
+ --     rewrite addOppDiagR (toBizNat n - m) in
+ --     cong {f = testbit x} $ sym $ add0R i
+ --   Right mlei =>
+ --     rewrite nltbLeFro m i mlei in
+ --     sym $ bitsAbove (shl x (repr (toBizNat n - m) n)) (i + unsigned (repr (toBizNat n - m) n)) $
+ --     rewrite unwrapy in
+ --     rewrite addComm (toBizNat n) (-m) in
+ --     rewrite addAssoc i (-m) (toBizNat n) in
+ --     rewrite addCompareMonoR 0 (i-m) (toBizNat n) in
+ --     rewrite sym $ compareSubR m i in
+ --     mlei
