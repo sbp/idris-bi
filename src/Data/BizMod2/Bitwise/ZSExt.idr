@@ -74,14 +74,14 @@ zeroExtAnd m x zlem =
       rewrite nltbLeFro m i mlei in
       sym $ andFalse (testbit x i)
 
-zeroExtMod : (m : Biz) -> (x : BizMod2 n) -> 0 `Le` m -> m `Lt` toBizNat n -> unsigned (zeroExt m x) = (unsigned x) `bizMod` (bizPow2 m)
-zeroExtMod m x zlem mltn =
+zeroExtMod : (m : Biz) -> (x : BizMod2 n) -> 0 `Le` m -> unsigned (zeroExt m x) = (unsigned x) `bizMod` (bizPow2 m)
+zeroExtMod m x zlem =
   equalSameBits (unsigned (zeroExt m x)) ((unsigned x) `bizMod` (bizPow2 m)) $ \i, zlei =>
   rewrite zTestbitModBizPow2 m (unsigned x) i zlem zlei in
   bitsZeroExt m i x zlei
 
-zeroExtWiden : (x : BizMod2 n) -> (m, m1 : Biz) -> m `Le` m1 -> zeroExt m1 (zeroExt m x) = zeroExt m x
-zeroExtWiden x m m1 mlem1 =
+zeroExtWiden : (m, m1 : Biz) -> (x : BizMod2 n) -> m `Le` m1 -> zeroExt m1 (zeroExt m x) = zeroExt m x
+zeroExtWiden m m1 x mlem1 =
   sameBitsEq (zeroExt m1 (zeroExt m x)) (zeroExt m x) $ \i, zlei, _ =>
   rewrite bitsZeroExt m1 i (zeroExt m x) zlei in
   rewrite bitsZeroExt m i x zlei in
@@ -96,8 +96,8 @@ zeroExtWiden x m m1 mlem1 =
 
 -- TODO the next 2 can probably be simplified to use `signExtAbove`
 
-signExtWiden : (x : BizMod2 n) -> (m, m1 : Biz) -> 0 `Lt` m -> m `Le` m1 -> signExt m1 (signExt m x) = signExt m x
-signExtWiden x m m1 zltm mlem1 =
+signExtWiden : (m, m1 : Biz) -> (x : BizMod2 n) -> 0 `Lt` m -> m `Le` m1 -> signExt m1 (signExt m x) = signExt m x
+signExtWiden m m1 x zltm mlem1 =
   sameBitsEq (signExt m1 (signExt m x)) (signExt m x) $ \i, zlei, iltn =>
   let zltm1 = ltLeTrans 0 m m1 zltm mlem1 in
   rewrite bitsSignExt m1 i (signExt m x) zlei iltn zltm1 in
@@ -122,8 +122,8 @@ signExtWiden x m m1 zltm mlem1 =
                  in
           Refl
 
-signZeroExtWiden : (x : BizMod2 n) -> (m, m1 : Biz) -> 0 `Le` m -> m `Lt` m1 -> signExt m1 (zeroExt m x) = zeroExt m x
-signZeroExtWiden x m m1 zlem mltm1 =
+signZeroExtWiden : (m, m1 : Biz) -> (x : BizMod2 n) -> 0 `Le` m -> m `Lt` m1 -> signExt m1 (zeroExt m x) = zeroExt m x
+signZeroExtWiden m m1 x zlem mltm1 =
   sameBitsEq (signExt m1 (zeroExt m x)) (zeroExt m x) $ \i, zlei, iltn =>
   let zltm1 = leLtTrans 0 m m1 zlem mltm1 in
   rewrite bitsSignExt m1 i (zeroExt m x) zlei iltn zltm1 in
@@ -139,8 +139,8 @@ signZeroExtWiden x m m1 zlem mltm1 =
       rewrite nltbLeFro m (m1-1) (ltPredRTo m m1 mltm1) in
       Refl
 
-zeroExtNarrow : (x : BizMod2 n) -> (m, m1 : Biz) -> m `Le` m1 -> zeroExt m (zeroExt m1 x) = zeroExt m x
-zeroExtNarrow x m m1 mlem1 =
+zeroExtNarrow : (m, m1 : Biz) -> (x : BizMod2 n) -> m `Le` m1 -> zeroExt m (zeroExt m1 x) = zeroExt m x
+zeroExtNarrow m m1 x mlem1 =
   sameBitsEq (zeroExt m (zeroExt m1 x)) (zeroExt m x) $ \i, zlei, iltn =>
   rewrite bitsZeroExt m i (zeroExt m1 x) zlei in
   rewrite bitsZeroExt m i x zlei in
@@ -153,3 +153,69 @@ zeroExtNarrow x m m1 mlem1 =
     Right mlei =>
       rewrite nltbLeFro m i mlei in
       Refl
+
+signExtNarrow : (m, m1 : Biz) -> (x : BizMod2 n) -> 0 `Lt` m -> m `Le` m1 -> signExt m (signExt m1 x) = signExt m x
+signExtNarrow m m1 x zltm mlem1 =
+  sameBitsEq (signExt m (signExt m1 x)) (signExt m x) $ \i, zlei, iltn =>
+  let zltm1 = ltLeTrans 0 m m1 zltm mlem1 in
+  rewrite bitsSignExt m i (signExt m1 x) zlei iltn zltm in
+  rewrite bitsSignExt m i x zlei iltn zltm in
+  case ltLeTotal i m of
+    Left iltm =>
+      rewrite ltbLtFro i m iltm in
+      rewrite bitsSignExt m1 i x zlei iltn zltm1 in
+      rewrite ltbLtFro i m1 (ltLeTrans i m m1 iltm mlem1) in
+      Refl
+    Right mlei =>
+      rewrite nltbLeFro m i mlei in
+      rewrite bitsSignExt m1 (m-1) x (ltPredRTo 0 m zltm) (ltTrans (m-1) i (toBizNat n) (ltPredLTo m i mlei) iltn) zltm1 in
+      rewrite ltbLtFro (m-1) m1 (ltPredLTo m m1 mlem1) in
+      Refl
+
+-- TODO we only need 0<m here to deduce 0<m1, maybe requiring it directly is less restrictive?
+zeroSignExtNarrow : (m, m1 : Biz) -> (x : BizMod2 n) -> 0 `Lt` m -> m `Le` m1 -> zeroExt m (signExt m1 x) = zeroExt m x
+zeroSignExtNarrow m m1 x zltm mlem1 =
+  sameBitsEq (zeroExt m (signExt m1 x)) (zeroExt m x) $ \i, zlei, iltn =>
+  rewrite bitsZeroExt m i (signExt m1 x) zlei in
+  rewrite bitsZeroExt m i x zlei in
+  case ltLeTotal i m of
+    Left iltm =>
+      rewrite ltbLtFro i m iltm in
+      rewrite bitsSignExt m1 i x zlei iltn (ltLeTrans 0 m m1 zltm mlem1) in
+      rewrite ltbLtFro i m1 (ltLeTrans i m m1 iltm mlem1) in
+      Refl
+    Right mlei =>
+      rewrite nltbLeFro m i mlei in
+      Refl
+
+zeroExtIdem : (m : Biz) -> (x : BizMod2 n) -> zeroExt m (zeroExt m x) = zeroExt m x
+zeroExtIdem m x = zeroExtWiden m m x (leRefl m)
+
+signExtIdem : (m : Biz) -> (x : BizMod2 n) -> 0 `Lt` m -> signExt m (signExt m x) = signExt m x
+signExtIdem m x zltm = signExtWiden m m x zltm (leRefl m)
+
+signExtZeroExt : (m : Biz) -> (x : BizMod2 n) -> 0 `Lt` m -> signExt m (zeroExt m x) = signExt m x
+signExtZeroExt m x zltm =
+  sameBitsEq (signExt m (zeroExt m x)) (signExt m x) $ \i, zlei, iltn =>
+  rewrite bitsSignExt m i (zeroExt m x) zlei iltn zltm in
+  rewrite bitsSignExt m i x zlei iltn zltm in
+  case ltLeTotal i m of
+    Left iltm =>
+      rewrite ltbLtFro i m iltm in
+      rewrite bitsZeroExt m i x zlei in
+      rewrite ltbLtFro i m iltm in
+      Refl
+    Right mlei =>
+      rewrite nltbLeFro m i mlei in
+      rewrite bitsZeroExt m (m-1) x (ltPredRTo 0 m zltm) in
+      rewrite ltbLtFro (m-1) m (ltPredLTo m m $ leRefl m) in
+      Refl
+
+zeroExtSignExt : (m : Biz) -> (x : BizMod2 n) -> 0 `Lt` m -> zeroExt m (signExt m x) = zeroExt m x
+zeroExtSignExt m x zltm = zeroSignExtNarrow m m x zltm (leRefl m)
+
+signExtEqualIfZeroEqual : (m : Biz) -> (x, y : BizMod2 n) -> 0 `Lt` m -> zeroExt m x = zeroExt m y -> signExt m x = signExt m y
+signExtEqualIfZeroEqual m x y zltm zeq =
+  rewrite sym $ signExtZeroExt m x zltm in
+  rewrite sym $ signExtZeroExt m y zltm in
+  cong {f = signExt m} zeq
