@@ -441,3 +441,36 @@ signExtRange {n} m x zltm mltn =
     rewrite addOppDiagL m in
     rewrite add0R (toBizNat n) in
     sym $ halfModulusPower n
+
+eqmodSignExtU : (m : Biz) -> (x : BizMod2 n) -> 0 `Lt` m -> m `Le` toBizNat n -> eqmod (unsigned (signExt m x)) (unsigned x) (bizPow2 m)
+eqmodSignExtU {n} m x zltm mlen =
+  let nbi = toNatBizId m (ltLeIncl 0 m zltm) in
+  rewrite sym nbi in
+  rewrite sym $ bipPow2Biz (toNatBiz m) in
+  eqmSameBits (toNatBiz m) (unsigned (signExt (toBizNat (toNatBiz m)) x)) (unsigned x) $ \i, zlei, iltm =>
+  rewrite nbi in
+  rewrite bitsSignExt m i x zlei
+            (ltLeTrans i m (toBizNat n)
+              (rewrite sym nbi in iltm)
+              mlen)
+            zltm
+         in
+  rewrite ltbLtFro i m (rewrite sym nbi in iltm) in
+  Refl
+
+eqmodSignExt : (m : Biz) -> (x : BizMod2 n) -> 0 `Lt` m -> m `Le` toBizNat n -> eqmod (signed (signExt m x)) (unsigned x) (bizPow2 m)
+eqmodSignExt {n} m x zltm mlen =
+  eqmodTrans (signed (signExt m x)) (unsigned (signExt m x)) (unsigned x) (bizPow2 m)
+    (eqmodDivides (modulus n) (bizPow2 m) (signed (signExt m x)) (unsigned (signExt m x))
+     (eqmSignedUnsigned (signExt m x))
+     (bizPow2 (toBizNat n - m) **
+       rewrite bipPow2Biz n in
+       rewrite sym $ bizPow2IsExp (toBizNat n - m) m
+                 (rewrite sym $ compareSubR m (toBizNat n) in
+                  mlen)
+                 (ltLeIncl 0 m zltm)
+              in
+       rewrite sym $ addAssoc (toBizNat n) (-m) m in
+       rewrite addOppDiagL m in
+       cong $ sym $ add0R (toBizNat n)))
+    (eqmodSignExtU m x zltm mlen)

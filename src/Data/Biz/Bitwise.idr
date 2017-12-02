@@ -850,7 +850,7 @@ zAddIsOr x y i zlei f =
 zShiftlMulBizPow2 : (x, n : Biz) -> 0 `Le` n -> bizShiftL x n = x * bizPow2 n
 zShiftlMulBizPow2 x  BizO    _    = sym $ mul1R x
 zShiftlMulBizPow2 x (BizP p) zlen =
-  Bip.Iter.peanoRect
+  peanoRect
     (\z => bipIter (2*) x z = x*(BizP (bipIter O U z)))
     (mulComm 2 x)
     (\z, prf =>
