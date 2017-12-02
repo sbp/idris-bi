@@ -377,3 +377,67 @@ eqmodZeroExt m x zlem =
   rewrite zeroExtMod m x zlem in
   eqmodSym (unsigned x) ((unsigned x) `bizMod` (bizPow2 m)) (bizPow2 m) $
   eqmodMod (unsigned x) (bizPow2 m) (ltNotEq (bizPow2 m) 0 (bizPow2Pos m zlem))
+
+-- [sign_ext n x] is the unique integer congruent to [x] modulo [2^n] in the range [-2^(n-1)...2^(n-1) - 1].
+
+signExtRange : (m : Biz) -> (x : BizMod2 n) -> 0 `Lt` m -> m `Lt` toBizNat n -> let sse = signed (signExt m x) in ((-bizPow2 (m-1)) `Le` sse, sse `Lt` bizPow2 (m-1))
+signExtRange {n} m x zltm mltn =
+  case decEq n 0 of
+    Yes n0 =>
+      let zgtm = mltn
+             |> replace {P=\q=>m `Lt` toBizNat q} n0
+             |> ltGt m 0
+         in
+      absurd $ trans (sym zgtm) zltm
+    No nnz =>
+      rewrite signExtShrShl m x zltm mltn in
+      rewrite shrDivBizPow2 (shl x (repr (toBizNat n - m) n)) (repr (toBizNat n - m) n) in
+      rewrite unsignedRepr (toBizNat n - m) n
+               (rewrite sym $ compareSubR m (toBizNat n) in
+                ltLeIncl m (toBizNat n) mltn)
+               (ltLeIncl (toBizNat n - m) (maxUnsigned n) $
+                ltLeTrans (toBizNat n - m) (toBizNat n) (maxUnsigned n)
+                 (rewrite addComm (toBizNat n) (-m) in
+                  rewrite addCompareMonoR (-m) 0 (toBizNat n) in
+                  rewrite sym $ compareOpp 0 m in
+                  zltm)
+                 (wordsizeMaxUnsigned n))
+             in
+      let (mins, maxs) = signedRange (repr (bizShiftL (unsigned x) (toBizNat n - m)) n) nnz
+          zlt2n1 = bizPow2Pos (toBizNat n - 1) $
+                   ltPredRTo 0 (toBizNat n) $
+                   leNeqLt (toBizNat n) 0 (toBizNatIsNonneg n) (nnz . toBizNatInj n 0)
+          zlt2nm = bizPow2Pos (toBizNat n - m) $
+                   rewrite sym $ compareSubR m (toBizNat n) in
+                   ltLeIncl m (toBizNat n) mltn
+          (mind, maxd) = divInterval2 (minSigned n) (maxSigned n) (signed (repr (bizShiftL (unsigned x) (toBizNat n - m)) n)) (bizPow2 (toBizNat n - m))
+                           mins
+                           maxs
+                           (rewrite halfModulusPower n in
+                            rewrite sym $ compareOpp 0 (bizPow2 (toBizNat n - 1) ) in
+                            ltLeIncl 0 (bizPow2 (toBizNat n - 1)) zlt2n1)
+                           (rewrite halfModulusPower n in
+                            ltPredRTo 0 (bizPow2 (toBizNat n - 1)) zlt2n1)
+                           zlt2nm
+         in
+      rewrite signedRepr ((signed (repr (bizShiftL (unsigned x) (toBizNat n - m)) n)) `bizDiv` (bizPow2 (toBizNat n - m))) n nnz mind maxd in
+      divInterval1 (-bizPow2 (m-1)) (bizPow2 (m-1)) (signed (repr (bizShiftL (unsigned x) (toBizNat n - m)) n)) (bizPow2 (toBizNat n - m))
+        zlt2nm
+        (rewrite mulOppL (bizPow2 (m-1)) (bizPow2 (toBizNat n - m)) in
+         rewrite aux in
+         mins)
+       (rewrite aux in
+        ltPredRFro (signed (repr (bizShiftL (unsigned x) (toBizNat n - m)) n)) (halfModulus n) maxs)
+  where
+  aux : (bizPow2 (m-1))*(bizPow2 (toBizNat n - m)) = halfModulus n
+  aux =
+    rewrite sym $ bizPow2IsExp (m-1) (toBizNat n - m) (ltPredRTo 0 m zltm) $
+                rewrite sym $ compareSubR m (toBizNat n) in
+                ltLeIncl m (toBizNat n) mltn
+               in
+    rewrite addComm (m-1) (toBizNat n - m) in
+    rewrite addAssoc (toBizNat n - m) m (-1) in
+    rewrite sym $ addAssoc (toBizNat n) (-m) m in
+    rewrite addOppDiagL m in
+    rewrite add0R (toBizNat n) in
+    sym $ halfModulusPower n

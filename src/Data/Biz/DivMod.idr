@@ -757,6 +757,57 @@ divShift x y zlty =
          rewrite sym dmeq in
          addAssoc x y (-1))
 
+divInterval1 : (lo, hi, a, b : Biz) -> 0 `Lt` b -> lo * b `Le` a -> a `Lt` hi * b -> (lo `Le` (a `bizDiv` b), (a `bizDiv` b) `Lt` hi)
+divInterval1 lo hi a b zltb loblea althib =
+  ( ltSuccRTo lo (a `bizDiv` b) $
+    rewrite sym $ mulCompareMonoR b lo ((a `bizDiv` b)+1) zltb in
+    rewrite mulAddDistrR (a `bizDiv` b) 1 b in
+    rewrite mul1L b in
+    leLtTrans (lo*b) a ((a `bizDiv` b)*b + b) loblea $
+      leLtTrans a ((a `bizDiv` b)*b + (a `bizMod` b)) ((a `bizDiv` b)*b + b)
+        (rewrite sym $ divEuclEq a b (ltNotEq b 0 zltb) in
+         leRefl a)
+        (rewrite addCompareMonoL ((a `bizDiv` b)*b) (a `bizMod` b) b in
+         snd $ modPosBound a b zltb)
+  , rewrite sym $ mulCompareMonoR b (a `bizDiv` b) hi zltb in
+    leLtTrans ((a `bizDiv` b)*b) a (hi*b)
+      (leTrans ((a `bizDiv` b)*b) ((a `bizDiv` b)*b + (a `bizMod` b)) a
+        (rewrite addComm ((a `bizDiv` b)*b) (a `bizMod` b) in
+         rewrite addCompareMonoR 0 (a `bizMod` b) ((a `bizDiv` b)*b) in
+         fst $ modPosBound a b zltb)
+        (rewrite sym $ divEuclEq a b (ltNotEq b 0 zltb) in
+         leRefl a)
+      )
+      althib)
+
+divInterval2 : (lo, hi, a, b : Biz) -> lo `Le` a -> a `Le` hi -> lo `Le` 0 -> 0 `Le` hi -> 0 `Lt` b -> (lo `Le` (a `bizDiv` b), (a `bizDiv` b) `Le` hi)
+divInterval2 lo hi a b lolea alehi lolez zlehi zltb =
+  let (loleab, ablthi1) = divInterval1 lo (hi+1) a b zltb
+                            (leTrans (lo*b) (lo*1) a
+                              (case leLtOrEq lo 0 lolez of
+                                 Left loltz =>
+                                   rewrite compareOpp (lo*b) (lo*1) in
+                                   rewrite sym $ mulOppL lo 1 in
+                                   rewrite sym $ mulOppL lo b in
+                                   rewrite mulCompareMonoL (-lo) 1 b $
+                                           rewrite sym $ compareOpp lo 0 in
+                                           loltz
+                                          in
+                                   leSuccLFro 0 b zltb
+                                 Right loz => rewrite loz in
+                                              leRefl (the Biz 0))
+                              (rewrite mul1R lo in
+                               lolea))
+                            (ltLeTrans a ((hi+1)*1) ((hi+1)*b)
+                              (rewrite mul1R (hi+1) in
+                               ltSuccRFro a hi alehi)
+                              (rewrite mulCompareMonoL (hi+1) 1 b $
+                                       ltSuccRFro 0 hi zlehi
+                                      in
+                               leSuccLFro 0 b zltb))
+     in
+  (loleab, ltSuccRTo (a `bizDiv` b) hi ablthi1)
+
 -- Basic properties of divisibility
 
 public export
