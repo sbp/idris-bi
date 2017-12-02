@@ -26,6 +26,8 @@ import Data.BizMod2.Bitwise.Shift
 
 -- Properties of [Z_one_bits] and [is_power2].
 
+-- TODO move to Biz?
+public export
 powerserie : List Biz -> Biz
 powerserie []        = 0
 powerserie (x :: xs) = bizPow2 x + powerserie xs
@@ -798,3 +800,52 @@ shrAndIsShruAnd {n} x y z ynlt0 =
       andPositive x y $
       rewrite sym $ signedZero n nnz in
       nltbLeTo (repr 0 n) y ynlt0
+
+-- Properties of [one_bits] (decomposition in sum of powers of two)
+
+-- TODO move to Ord
+reprLtu : (p : Biz) -> (n : Nat) -> 0 `Le` p -> p `Lt` toBizNat n -> (repr p n) `ltu` iwordsize n = True
+reprLtu p n zlep pltn =
+  rewrite unsignedRepr p n zlep $
+          ltLeIncl p (maxUnsigned n) $
+          ltLeTrans p (toBizNat n) (maxUnsigned n) pltn (wordsizeMaxUnsigned n)
+         in
+  rewrite unsignedReprWordsize n in
+  ltbLtFro p (toBizNat n) pltn
+
+oneBitsRange : (x, i : BizMod2 n) -> Elem i (oneBits x) -> i `ltu` iwordsize n = True
+oneBitsRange {n} x i elem =
+  let (ui ** (eq, elemui)) = listElemMapInv (\x => repr x n) (zOneBits n (unsigned x) 0) i elem
+      (zleui, uiltn) = zOneBitsRange n (unsigned x) ui elemui
+     in
+  rewrite eq in
+  reprLtu ui n zleui uiltn
+
+-- TODO move to BizMod2
+intOfOneBits : List (BizMod2 n) -> BizMod2 n
+intOfOneBits [] = 0
+intOfOneBits (a :: b) = (shl 1 a) + (intOfOneBits b)
+
+oneBitsDecomp : (x : BizMod2 n) -> x = intOfOneBits (oneBits x)
+oneBitsDecomp {n} x =
+  trans {b = repr (powerserie (zOneBits n (unsigned x) 0)) n}
+    (trans {b = repr (unsigned x) n}
+      (sym $ reprUnsigned x)
+      (let (minu, maxu) = unsignedRange x in
+       cong {f=\q=>repr q n} $ zOneBitsPowerserie n (unsigned x) minu maxu))
+    (aux ((zOneBits n (unsigned x) BizO)) (zOneBitsRange n (unsigned x)))
+  where
+  aux : (l : List Biz) -> ((z : Biz) -> Elem z l -> (0 `Le` z, z `Lt` toBizNat n)) -> repr (powerserie l) n = intOfOneBits ((\x => repr x n) <$> l)
+  aux [] _ = Refl
+  aux (e :: l) f =
+    rewrite sym $ aux l (\z, el => f z (There el)) in
+    eqmSamerepr ((bizPow2 e)+(powerserie l)) ((unsigned (shl 1 (repr e n)))+(unsigned (repr (powerserie l) n))) n $
+    eqmodAdd (bizPow2 e) (unsigned (shl 1 (repr e n))) (powerserie l) (unsigned (repr (powerserie l) n)) (modulus n)
+      (rewrite shl1BizPow2 (repr e n) in
+       eqmUnsignedReprR (bizPow2 e)  (bizPow2 (unsigned (repr e n))) n $
+       let (mine, maxe) = f e Here in
+       rewrite unsignedRepr e n mine $
+               ltLeIncl e (maxUnsigned n) $
+               ltLeTrans e (toBizNat n) (maxUnsigned n) maxe (wordsizeMaxUnsigned n) in
+       eqmodRefl (bizPow2 e) (modulus n))
+      (eqmUnsignedRepr (powerserie l) n)
