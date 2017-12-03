@@ -25,10 +25,10 @@ Uninhabited (Just _ = Nothing) where
 -------- List properties ----------
 
 listElemMapInv : (f : a -> b) -> (l : List a) -> (y : b) -> Elem y (map f l) -> (x : a ** (y = f x, Elem x l))
-listElemMapInv f [] y prf = absurd prf
-listElemMapInv f (e :: l) (f e) Here = (e ** (Refl, Here))
-listElemMapInv f (e :: l) y (There lr) = let (x ** (yfx, el)) = listElemMapInv f l y lr in
-                                         (x ** (yfx, There el))
+listElemMapInv _ []        _     prf       = absurd prf
+listElemMapInv f (e :: _) (f e)  Here      = (e ** (Refl, Here))
+listElemMapInv f (_ :: l)  y    (There lr) = let (x ** (yfx, el)) = listElemMapInv f l y lr in
+                                             (x ** (yfx, There el))
 
 -------- Comparison properties ----
 

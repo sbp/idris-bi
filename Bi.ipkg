@@ -33,6 +33,7 @@ modules = Data.Bi
 
         , Data.BizMod2
         , Data.BizMod2.Core
+        , Data.BizMod2.Ord
         , Data.BizMod2.AddSubMul
         , Data.BizMod2.DivMod
         , Data.BizMod2.Bitwise

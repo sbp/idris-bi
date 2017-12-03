@@ -438,20 +438,20 @@ swapComparison Cgt = Clt
 swapComparison Cge = Cle
 
 cmp : (c : Comparison) -> (x, y : BizMod2 n) -> Bool
-cmp Ceq = (==)
-cmp Cne = (/=)
-cmp Clt = (<)
-cmp Cle = (<=)
-cmp Cgt = (>)
-cmp Cge = (>=)
+cmp Ceq x y = x == y
+cmp Cne x y = x /= y
+cmp Clt x y = x < y
+cmp Cle x y = not (y < x)
+cmp Cgt x y = y < x
+cmp Cge x y = not (x < y)
 
 cmpu : (c : Comparison) -> (x, y : BizMod2 n) -> Bool
-cmpu Ceq = (==)
-cmpu Cne = (/=)
-cmpu Clt = ltu
-cmpu Cle = \x,y => not (x `ltu` y)
-cmpu Cgt = \x,y => y `ltu` x
-cmpu Cge = \x,y => not (y `ltu` x)
+cmpu Ceq x y = x == y
+cmpu Cne x y = x /= y
+cmpu Clt x y = x `ltu` y
+cmpu Cle x y = not (y `ltu` x) 
+cmpu Cgt x y = y `ltu` x
+cmpu Cge x y = not (x `ltu` y)
 
 isFalse : (x : BizMod2 n) -> Type
 isFalse x = x=0

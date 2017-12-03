@@ -50,6 +50,11 @@ neqbNeqFro n m neq with (n == m) proof nm
   | False = Refl
   | True  = absurd $ neq $ eqbEqTo n m $ sym nm
 
+eqSym : (n, m : Biz) -> n == m = m == n
+eqSym n m with (n == m) proof nm
+  | True = sym $ eqbEqFro m n $ sym $ eqbEqTo n m $ sym nm
+  | False = sym $ neqbNeqFro m n $ (neqbNeqTo n m $ sym nm) . sym
+
 public export
 Lt : (x, y : Biz) -> Type
 Lt x y = x `compare` y = LT

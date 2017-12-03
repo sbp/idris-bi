@@ -17,6 +17,7 @@ import Data.Biz.PowSqrt
 
 import Data.BizMod2
 import Data.BizMod2.Core
+import Data.BizMod2.Ord
 import Data.BizMod2.AddSubMul
 import Data.BizMod2.Bitwise
 import Data.BizMod2.Bitwise.Shift
@@ -471,31 +472,7 @@ shrxZero {n} x ultn =
   rewrite quot1R (signed x) in
   reprSigned x
 
--- TODO put in Ord
-ltbLtFro : (x, y : BizMod2 n) -> (signed x) `Lt` (signed y) -> x < y = True
-ltbLtFro _ _ sxltsy = rewrite sxltsy in
-                      Refl
-
-nltbLeFro : (x, y : BizMod2 n) -> (signed x) `Le` (signed y) -> y < x = False
-nltbLeFro x y sxlesy with (y `compare` x) proof yx
-  | LT = absurd $ sxlesy $ ltGt (signed y) (signed x) (sym yx)
-  | EQ = Refl
-  | GT = Refl
-
--- shared lemmas
--- TODO put in Ord?
-ltuInvPredNZ : (y : BizMod2 n) -> y `ltu` (repr (toBizNat n - 1) n) = True -> Not (n=0) -> unsigned y `Lt` toBizNat n - 1
-ltuInvPredNZ {n} y yltun nz =
-  rewrite sym $ unsignedRepr (toBizNat n - 1) n
-                (case leLtOrEq 0 (toBizNat n) $ toBizNatIsNonneg n of   -- TODO use leNeqLt
-                   Right n0 => absurd $ nz $ toBizNatInj n 0 $ sym n0
-                   Left zltn => ltPredRTo 0 (toBizNat n) zltn)
-                (leTrans (toBizNat n - 1) (toBizNat n) (maxUnsigned n)
-                   (ltLeIncl (toBizNat n - 1) (toBizNat n) $ ltPred (toBizNat n))
-                   (wordsizeMaxUnsigned n))
-              in
-  ltuInv y (repr (toBizNat n - 1) n) yltun
-
+-- shared lemma, put in Biz.PowSqrt?
 unsignedPowHalfMod : (y : BizMod2 n) -> unsigned y `Lt` toBizNat n - 1 -> bizPow2 (unsigned y) `Lt` halfModulus n
 unsignedPowHalfMod {n} y yltn1 =
   rewrite halfModulusPower n in
@@ -783,13 +760,6 @@ shrShruPositive x y zlesx =
   rewrite signedEqUnsigned x (signedPositiveTo x zlesx) in
   Refl
 
--- TODO put in Ord
-nltbLeTo : (x, y : BizMod2 n) -> y < x = False -> (signed x) `Le` (signed y)
-nltbLeTo x y prf xy with (y `compare` x) proof yx
-  | LT = absurd prf
-  | EQ = absurd $ trans yx (gtLt (signed x) (signed y) xy)
-  | GT = absurd $ trans yx (gtLt (signed x) (signed y) xy)
-
 shrAndIsShruAnd : (x, y, z : BizMod2 n) -> y < 0 = False -> shr (x `and` y) z = shru (x `and` y) z
 shrAndIsShruAnd {n} x y z ynlt0 =
   case decEq n 0 of
@@ -802,16 +772,6 @@ shrAndIsShruAnd {n} x y z ynlt0 =
       nltbLeTo (repr 0 n) y ynlt0
 
 -- Properties of [one_bits] (decomposition in sum of powers of two)
-
--- TODO move to Ord
-reprLtu : (p : Biz) -> (n : Nat) -> 0 `Le` p -> p `Lt` toBizNat n -> (repr p n) `ltu` iwordsize n = True
-reprLtu p n zlep pltn =
-  rewrite unsignedRepr p n zlep $
-          ltLeIncl p (maxUnsigned n) $
-          ltLeTrans p (toBizNat n) (maxUnsigned n) pltn (wordsizeMaxUnsigned n)
-         in
-  rewrite unsignedReprWordsize n in
-  ltbLtFro p (toBizNat n) pltn
 
 oneBitsRange : (x, i : BizMod2 n) -> Elem i (oneBits x) -> i `ltu` iwordsize n = True
 oneBitsRange {n} x i elem =
