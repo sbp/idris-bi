@@ -153,6 +153,10 @@ compareOpp n m =
   rewrite addComm n (-m) in
   Refl
 
+ltNotEq : (x, y : Biz) -> y `Lt` x -> Not (x=y)
+ltNotEq x y yltx xy =
+  absurd $ replace {P=\z=>z=LT} (compareEqIffFro y x (sym xy)) yltx
+
 -- gt_lt
 
 gtLt : (p, q : Biz) -> p `Gt` q -> q `Lt` p
@@ -249,6 +253,13 @@ lebLeFro n m nlem with (n `compare` m) proof nm
   | LT = Refl
   | EQ = eqbEqFro n m $ compareEqIffTo n m (sym nm)
   | GT = absurd $ nlem Refl
+
+nlebLtFro : (n, m : Biz) -> n `Lt` m -> m <= n = False
+nlebLtFro n m nltm with (n `compare` m) proof nm
+  | LT = rewrite ltGt n m $ sym nm in
+         neqbNeqFro m n $ ltNotEq m n $ sym nm
+  | EQ = absurd nltm
+  | GT = absurd nltm
 
 -- Some more advanced properties of comparison and orders, including
 -- [compare_spec] and [lt_irrefl] and [lt_eq_cases].
@@ -436,6 +447,14 @@ addCompareMonoR n m p =
   rewrite addComm m p in
   addCompareMonoL p n m
 
+-- convenience lemma, look for other places to use it
+addCompareTransferL : (a, b, c : Biz) -> a `compare` (b+c) = ((-b)+a) `compare` c
+addCompareTransferL a b c =
+  rewrite sym $ addCompareMonoL (-b) a (b+c) in
+  rewrite addAssoc (-b) b c in
+  rewrite addOppDiagL b in
+  Refl
+
 -- TODO look for places to use these
 ltSucc : (x : Biz) -> x `Lt` bizSucc x
 ltSucc x =
@@ -571,10 +590,6 @@ bizDCompare n m =
   rewrite doubleSpec m in
   mulCompareMonoL 2 n m Refl
 
-ltNotEq : (x, y : Biz) -> y `Lt` x -> Not (x=y)
-ltNotEq x y yltx xy =
-  absurd $ replace {P=\z=>z=LT} (compareEqIffFro y x (sym xy)) yltx
-
 ltPredRTo : (n, m : Biz) -> n `Lt` m -> n `Le` bizPred m
 ltPredRTo n m nltm =
   ltSuccRTo n (bizPred m) $
@@ -604,6 +619,14 @@ ltPredLTo n m nlem =
   rewrite addCompareMonoR n m (-1) in
   nlem
 
+ltPredLFro : (n, m : Biz) -> bizPred n `Lt` m -> n `Le` m
+ltPredLFro n m n1ltm =
+  ltSuccRTo n m $
+  rewrite addComm m 1 in
+  rewrite addCompareTransferL n 1 m in
+  rewrite addComm (-1) n in
+  n1ltm
+
 mulCompareMonoR : (p, q, r : Biz) -> 0 `Lt` p -> (q*p) `compare` (r*p) = q `compare` r
 mulCompareMonoR p q r zltp =
   rewrite mulComm q p in
@@ -615,14 +638,6 @@ mulAddDistrR1 : (n, m : Biz) -> (n + 1) * m = n * m + m
 mulAddDistrR1 n m = rewrite mulAddDistrR n 1 m in
                     rewrite mul1L m in
                     Refl
-
--- convenience lemma, look for other places to use it
-addCompareTransferL : (a, b, c : Biz) -> a `compare` (b+c) = ((-b)+a) `compare` c
-addCompareTransferL a b c =
-  rewrite sym $ addCompareMonoL (-b) a (b+c) in
-  rewrite addAssoc (-b) b c in
-  rewrite addOppDiagL b in
-  Refl
 
 leRefl : (x : Biz) -> x `Le` x
 leRefl x = rewrite compareEqIffFro x x Refl in

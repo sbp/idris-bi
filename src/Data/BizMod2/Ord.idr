@@ -6,10 +6,12 @@ import Data.Biz
 import Data.Biz.AddSubMul
 import Data.Biz.Ord
 import Data.Biz.Nat
+import Data.Biz.DivMod
 
 import Data.BizMod2
 import Data.BizMod2.Core
 import Data.BizMod2.AddSubMul
+import Data.BizMod2.Bitwise
 
 %access export
 %default total
@@ -226,3 +228,137 @@ ltuRangeTest {n} x y xltuy uylems =
   , rewrite signedEqUnsigned x uxltms in
     uxltuy
   )
+
+-- TODO move to Bitwise?
+ltSubOverflow : (x, y : BizMod2 n) -> (subOverflow x y 0) `xor` (negative (x-y)) = if x<y then 1 else 0
+ltSubOverflow {n} x y =
+  case decEq n 0 of
+    Yes n0 =>
+      rewrite bizMod2P0Signed x n0 in
+      rewrite bizMod2P0Signed y n0 in
+      rewrite n0 in
+      Refl
+    No nnz =>
+      let (minx, maxx) = signedRange x nnz
+          (miny, maxy) = signedRange y nnz
+          zlexypm = addLeMono (minSigned n) (signed x) (minSigned n + 1) (-signed y)
+                      minx
+                      (rewrite sym $ oppAddDistr (halfModulus n) (-1) in
+                       rewrite sym $ compareOpp (signed y) (maxSigned n) in
+                       maxy)
+                 |> replace {P=\q=>q `Le` signed x - signed y} (addAssoc (minSigned n) (minSigned n) 1)
+                 |> replace {P=\q=>q+1 `Le` signed x - signed y} (sym $ oppAddDistr (halfModulus n) (halfModulus n))
+                 |> replace {P=\q=>-(q+q)+1 `Le` signed x - signed y} (sym $ mul1L (halfModulus n))
+                 |> replace {P=\q=>-q+1 `Le` signed x - signed y} (sym $ mulAddDistrR 1 1 (halfModulus n))
+                 |> replace {P=\q=>Not (q = GT)} (sym $ addCompareTransferL 1 (2*(halfModulus n)) (signed x - signed y))
+                 |> replace {P=\q=>1 `Le` q + (signed x - signed y)} (sym $ halfModulusModulus n nnz)
+                 |> replace {P=\q=>1 `Le` q} (addComm (modulus n) (signed x - signed y))
+                 |> ltLeTrans 0 1 (signed x - signed y + modulus n) Refl
+                 |> ltLeIncl 0 (signed x - signed y + modulus n)
+          xyltm = addLeMono (signed x) (maxSigned n) (-signed y) (halfModulus n)
+                    maxx
+                    (rewrite compareOpp (-signed y) (halfModulus n) in
+                     rewrite oppInvolutive (signed y) in
+                     miny)
+               |> replace {P=\q=>signed x - signed y `Le` q} (addComm (maxSigned n) (halfModulus n))
+               |> replace {P=\q=>signed x - signed y `Le` q} (addAssoc (halfModulus n) (halfModulus n) (-1))
+               |> replace {P=\q=>signed x - signed y `Le` (q+q)-1} (sym $ mul1L (halfModulus n))
+               |> replace {P=\q=>signed x - signed y `Le` q-1} (sym $ mulAddDistrR 1 1 (halfModulus n))
+               |> replace {P=\q=>signed x - signed y `Le` q-1} (sym $ halfModulusModulus n nnz)
+               |> ltPredRFro (signed x - signed y) (modulus n)
+         in
+      rewrite subSigned x y in
+      rewrite aux nnz in
+      case ltLeTotal (signed x - signed y) (signed {n} 0) of
+        Left xylts0 =>
+          let xylt0 = replace {P=\z=>signed x - signed y `Lt` z} (signedZero n nnz) xylts0 in
+          rewrite ltbLtFro x y $
+                  rewrite compareSub (signed x) (signed y) in
+                  xylt0
+                 in
+          let xyltmax = ltLeTrans (signed x - signed y) 0 (maxSigned n)
+                          xylt0
+                          (ltPredRTo 0 (halfModulus n) $
+                           halfModulusPos n nnz)
+             in
+          rewrite ltbLtFro (signed x - signed y) (maxSigned n) xyltmax in
+          rewrite andTrue (minSigned n <= (signed x - signed y)) in
+          case ltLeTotal (signed x - signed y) (minSigned n) of
+            Left xyltmin =>
+              rewrite nlebLtFro (signed x - signed y) (minSigned n) xyltmin in
+              rewrite nltbLeFro (repr 0 n) (repr (signed x - signed y) n) $
+                      rewrite signedZero n nnz in
+                      rewrite signedReprEq (signed x - signed y) n in
+                      rewrite sym $ snd $ divModPos (signed x - signed y) (modulus n) (-1) (signed x - signed y + modulus n)
+                                zlexypm
+                                (rewrite addCompareMonoR (signed x - signed y) 0 (modulus n) in
+                                 xylt0)
+                                (rewrite addComm (-modulus n) (signed x - signed y + modulus n) in
+                                 rewrite sym $ addAssoc (signed x - signed y) (modulus n) (-modulus n) in
+                                 rewrite addOppDiagR (modulus n) in
+                                 sym $ add0R (signed x - signed y))
+                             in
+                      rewrite ltbLtFro (signed x - signed y + modulus n) (halfModulus n) $
+                              ltLeTrans (signed x - signed y + modulus n) (minSigned n + modulus n) (halfModulus n)
+                                (rewrite addCompareMonoR (signed x - signed y) (minSigned n) (modulus n) in
+                                 xyltmin)
+                                (rewrite sym $ addCompareTransferL (modulus n) (halfModulus n) (halfModulus n) in
+                                 rewrite sym $ mul1L (halfModulus n) in
+                                 rewrite sym $ mulAddDistrR 1 1 (halfModulus n) in
+                                 rewrite sym $ halfModulusModulus n nnz in
+                                 leRefl (modulus n))
+                             in
+                      zlexypm
+                     in
+              xorZero 1
+            Right minlexy =>
+              rewrite lebLeFro (minSigned n) (signed x - signed y) minlexy in
+              rewrite ltbLtFro (repr (signed x - signed y) n) 0 $
+                      rewrite signedRepr (signed x - signed y) n nnz
+                                minlexy
+                                (ltLeIncl (signed x - signed y) (maxSigned n) xyltmax)
+                             in
+                      xylts0
+                     in
+              xorZeroL 1
+        Right szlexy =>
+          let zlexy = replace {P=\z=>z `Le` signed x - signed y} (signedZero n nnz) szlexy in
+          rewrite nltbLeFro y x $
+                  rewrite compareSubR (signed y) (signed x) in
+                  zlexy
+                 in
+          let minltxy = ltLeTrans (minSigned n) 0 (signed x - signed y)
+                          (rewrite sym $ compareOpp 0 (halfModulus n) in
+                           halfModulusPos n nnz)
+                          zlexy
+             in
+          rewrite ltbLtFro (minSigned n) (signed x - signed y) minltxy in
+          case ltLeTotal (maxSigned n) (signed x - signed y) of
+            Left maxltxy =>
+              rewrite nlebLtFro (maxSigned n) (signed x - signed y) maxltxy in
+              rewrite ltbLtFro (repr (signed x - signed y) n) (repr 0 n) $
+                      rewrite signedZero n nnz in
+                      rewrite signedReprEq (signed x - signed y) n in
+                      rewrite snd $ divModSmall (signed x - signed y) (modulus n) zlexy xyltm in
+                      rewrite nltbLeFro (halfModulus n) (signed x - signed y) $
+                              ltPredLFro (halfModulus n) (signed x - signed y) maxltxy
+                             in
+                      rewrite addComm (signed x - signed y) (-modulus n) in
+                      rewrite sym $ addCompareTransferL (signed x - signed y) (modulus n) 0 in
+                      xyltm
+                     in
+              xorIdem 1
+            Right xylemax =>
+              rewrite lebLeFro (signed x - signed y) (maxSigned n) xylemax in
+              rewrite nltbLeFro 0 (repr (signed x - signed y) n) $
+                      rewrite signedRepr (signed x - signed y) n nnz
+                               (ltLeIncl (minSigned n) (signed x - signed y) minltxy)
+                                xylemax
+                             in
+                      szlexy
+                     in
+              xorIdem 0
+  where
+  aux : Not (n=0) -> signed x - signed y - signed (repr 0 n) = signed x - signed y
+  aux nnz = rewrite signedZero n nnz in
+            sub0R (signed x - signed y)
