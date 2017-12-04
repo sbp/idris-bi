@@ -229,6 +229,57 @@ ltuRangeTest {n} x y xltuy uylems =
     uxltuy
   )
 
+notLt : (x, y : BizMod2 n) -> not (y < x) = (x <= y)
+notLt x y =
+  rewrite eqSigned x y in
+  case ltLeTotal (signed y) (signed x) of
+    Left syltsx =>
+      rewrite ltbLtFro y x syltsx in
+      rewrite nltbLeFro y x $
+              ltLeIncl (signed y) (signed x) syltsx in
+      sym $ neqbNeqFro (signed x) (signed y) $
+      ltNotEq (signed x) (signed y) syltsx
+    Right sxlesy =>
+      rewrite nltbLeFro x y sxlesy in
+      case leLtOrEq (signed x) (signed y) sxlesy of
+        Left sxltsy =>
+          rewrite ltbLtFro x y sxltsy in
+          Refl
+        Right sxeqsy =>
+          rewrite eqbEqFro (signed x) (signed y) sxeqsy in
+          sym $ orbTrue (x<y)
+
+ltNot : (x, y : BizMod2 n) -> y < x = not (x < y) && not (x == y)
+ltNot x y =
+  rewrite sym $ notOr (x < y) (x == y) in
+  rewrite sym $ notLt x y in
+  sym $ notNot (y<x)
+
+notLtu : (x, y : BizMod2 n) -> not (y `ltu` x) = ((x `ltu` y) || (x == y))
+notLtu x y =
+  case ltLeTotal (unsigned y) (unsigned x) of
+    Left uyltux =>
+      rewrite ltbLtFro (unsigned y) (unsigned x) uyltux in
+      rewrite nltbLeFro (unsigned y) (unsigned x) $
+              ltLeIncl (unsigned y) (unsigned x) uyltux in
+      sym $ neqbNeqFro (unsigned x) (unsigned y) $
+      ltNotEq (unsigned x) (unsigned y) uyltux
+    Right uxleuy =>
+      rewrite nltbLeFro (unsigned x) (unsigned y) uxleuy in
+      case leLtOrEq (unsigned x) (unsigned y) uxleuy of
+        Left uxltuy =>
+          rewrite ltbLtFro (unsigned x) (unsigned y) uxltuy in
+          Refl
+        Right uxequy =>
+          rewrite eqbEqFro (unsigned x) (unsigned y) uxequy in
+          sym $ orbTrue (x `ltu` y)
+
+ltuNot : (x, y : BizMod2 n) -> y `ltu` x = not (x `ltu` y) && not (x == y)
+ltuNot x y =
+  rewrite sym $ notOr (x `ltu` y) (x == y) in
+  rewrite sym $ notLtu x y in
+  sym $ notNot (y `ltu` x)
+
 -- TODO move to Bitwise?
 ltSubOverflow : (x, y : BizMod2 n) -> (subOverflow x y 0) `xor` (negative (x-y)) = if x<y then 1 else 0
 ltSubOverflow {n} x y =
