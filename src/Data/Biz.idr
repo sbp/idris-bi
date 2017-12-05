@@ -450,6 +450,10 @@ bizXor (BizP a') (BizM b') =
 bizXor (BizM a') (BizM b') =
   toBizBin (binXor (bipPredBin a') (bipPredBin b'))
 
+bizDigits : (x : Biz) -> Biz
+bizDigits (BizP p) = BizP (bipDigits p)
+bizDigits _        = BizO
+
 -- Idris specific
 
 fromIntegerBiz : Integer -> Biz

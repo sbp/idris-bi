@@ -429,7 +429,7 @@ zTestbitBizPow2M1 n i zlen zlei =
   where
   aux : bizPow2 n - 1 = (-1) `bizMod` (bizPow2 n)
   aux =
-    Basics.snd $ divModPos (-1) (bizPow2 n) (-1) (bizPow2 n - 1)
+    snd $ divModPos (-1) (bizPow2 n) (-1) (bizPow2 n - 1)
       (ltPredRTo 0 (bizPow2 n) $
        bizPow2Pos n zlen)
       (rewrite addComm (bizPow2 n) (-1) in
@@ -472,7 +472,7 @@ shrxZero {n} x ultn =
   rewrite quot1R (signed x) in
   reprSigned x
 
--- shared lemma, put in Biz.PowSqrt?
+-- shared lemma, move to Biz.PowSqrt for 0 `Le` y?
 unsignedPowHalfMod : (y : BizMod2 n) -> unsigned y `Lt` toBizNat n - 1 -> bizPow2 (unsigned y) `Lt` halfModulus n
 unsignedPowHalfMod {n} y yltn1 =
   rewrite halfModulusPower n in

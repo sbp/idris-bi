@@ -995,3 +995,62 @@ zSignExtSpec n x i zlei zltn =
   rewrite sym $ addAssoc n (-1) 1 in
   rewrite add0R n in
   Refl
+
+bizDigitsNonneg : (x : Biz) -> 0 `Le` bizDigits x
+bizDigitsNonneg  BizO    = uninhabited
+bizDigitsNonneg (BizP _) = uninhabited
+bizDigitsNonneg (BizM _) = uninhabited
+
+bizDigitsPos : (x : Biz) -> 0 `Lt` x -> 0 `Lt` bizDigits x
+bizDigitsPos  BizO    zltx = absurd zltx
+bizDigitsPos (BizP _) _    = Refl
+bizDigitsPos (BizM _) zltx = absurd zltx
+
+bizDigitsShiftin : (b : Bool) -> (x : Biz) -> 0 `Lt` x -> bizDigits (bizShiftin b x) = bizSucc (bizDigits x)
+bizDigitsShiftin _      BizO    zltx = absurd zltx
+bizDigitsShiftin True  (BizP p) _    = cong $ sym $ add1R (bipDigits p)
+bizDigitsShiftin False (BizP p) _    = cong $ sym $ add1R (bipDigits p)
+bizDigitsShiftin _     (BizM _) zltx = absurd zltx
+
+bizTestbitDigits1 : (x : Biz) -> 0 `Lt` x -> bizTestBit x (bizPred (bizDigits x)) = True
+bizTestbitDigits1 x zltx =
+  bizShiftinPosInd
+    (\y => bizTestBit y (bizPred (bizDigits y)) = True)
+    Refl
+    (\b, y, zlty, prf =>
+      rewrite bizDigitsShiftin b y zlty in
+      rewrite sym $ addAssoc (bizDigits y) 1 (-1) in
+      rewrite addAssoc (bizDigits y) (-1) 1 in
+      rewrite zTestbitShiftinSucc b y (bizDigits y - 1) (ltPredRTo 0 (bizDigits y) $ bizDigitsPos y zlty) in
+      prf)
+    x zltx
+
+bizTestbitDigits2 : (x, i : Biz) -> 0 `Le` x -> bizDigits x `Le` i -> bizTestBit x i = False
+bizTestbitDigits2 x i zlex dxlei =
+  case leLtOrEq 0 x zlex of
+    Left zltx =>
+      bizShiftinPosInd
+        (\y => (j : Biz) -> bizDigits y `Le` j -> bizTestBit y j = False)
+        (\j, ulej =>
+          rewrite testbit1L j in
+          neqbNeqFro j 0 $
+          ltNotEq j 0 $
+          leSuccLTo 0 j ulej)
+        (\b, y, zlty, prf, j =>
+          rewrite bizDigitsShiftin b y zlty in
+          \dy1lei =>
+          let zltj = ltLeTrans 0 (bizDigits y + 1) j
+                       (ltSuccRFro 0 (bizDigits y) (bizDigitsNonneg y))
+                       dy1lei
+             in
+          rewrite zTestbitShiftin b y j (ltLeIncl 0 j zltj) in
+          rewrite neqbNeqFro j 0 $ ltNotEq j 0 zltj in
+          prf (j-1) $
+          rewrite addComm j (-1) in
+          rewrite addCompareTransferL (bizDigits y) (-1) j in
+          rewrite addComm 1 (bizDigits y) in
+          dy1lei)
+        x zltx i dxlei
+    Right zeqx =>
+      rewrite sym zeqx in
+      testbit0L i

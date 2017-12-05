@@ -1,5 +1,7 @@
 module Data.BizMod2.Ord
 
+import Data.So
+
 import Data.Util
 
 import Data.Biz
@@ -413,3 +415,82 @@ ltSubOverflow {n} x y =
   aux : Not (n=0) -> signed x - signed y - signed (repr 0 n) = signed x - signed y
   aux nnz = rewrite signedZero n nnz in
             sub0R (signed x - signed y)
+
+-- Non-overlapping test
+
+noOverlap : (ofs1, ofs2 : BizMod2 n) -> (sz1, sz2 : Biz) -> Bool
+noOverlap {n} ofs1 ofs2 sz1 sz2 =
+  let x1 = unsigned ofs1
+      x2 = unsigned ofs2
+     in
+  (x1 + sz1 <= modulus n) && (x2 + sz2 <= modulus n) && ((x1 + sz1 <= x2) || (x2 + sz2 <= x1))
+
+noOverlapSound : (ofs1, ofs2, base : BizMod2 n) -> (sz1, sz2 : Biz) -> noOverlap ofs1 ofs2 sz1 sz2 = True
+             -> Either (unsigned (base + ofs1) + sz1 `Le` unsigned (base + ofs2)) (unsigned (base + ofs2) + sz2 `Le` unsigned (base + ofs1))
+noOverlapSound {n} ofs1 ofs2 base sz1 sz2 noov =
+  let (p1, p2p3) = soAndSo $ eqToSo noov
+      (p2, ep3) = soAndSo p2p3
+      p3 = soOrSo ep3
+     in
+   case unsignedAddEither base ofs1 of
+     Left under1 =>
+       rewrite under1 in
+       rewrite sym $ addAssoc (unsigned base) (unsigned ofs1) sz1 in
+       case unsignedAddEither base ofs2 of
+         Left under2 =>
+           rewrite under2 in
+           rewrite sym $ addAssoc (unsigned base) (unsigned ofs2) sz2 in
+           rewrite addCompareMonoL (unsigned base) (unsigned ofs1 + sz1) (unsigned ofs2) in
+           rewrite addCompareMonoL (unsigned base) (unsigned ofs2 + sz2) (unsigned ofs1) in
+           case p3 of
+             Left lprf =>
+               Left $ lebLeTo (unsigned ofs1 + sz1) (unsigned ofs2) $ soToEq lprf
+             Right rprf =>
+               Right $ lebLeTo (unsigned ofs2 + sz2) (unsigned ofs1) $ soToEq rprf
+         Right over2 =>
+           rewrite over2 in
+           rewrite sym $ addAssoc (unsigned base) (unsigned ofs2) (-modulus n) in
+           rewrite sym $ addAssoc (unsigned base) (unsigned ofs2 - modulus n) sz2 in
+           rewrite addCompareMonoL (unsigned base) (unsigned ofs2 - modulus n + sz2) (unsigned ofs1) in
+           rewrite addComm (unsigned ofs2) (-modulus n) in
+           rewrite sym $ addAssoc (-modulus n) (unsigned ofs2) sz2 in
+           rewrite sym $ addCompareTransferL (unsigned ofs2 + sz2) (modulus n) (unsigned ofs1) in
+           Right $ leTrans (unsigned ofs2 + sz2) (modulus n) (modulus n + unsigned ofs1)
+                     (lebLeTo (unsigned ofs2 + sz2) (modulus n) $ soToEq p2)
+                     (rewrite addComm (modulus n) (unsigned ofs1) in
+                      rewrite addCompareMonoR 0 (unsigned ofs1) (modulus n) in
+                      fst $ unsignedRange ofs1)
+     Right over1 =>
+       rewrite over1 in
+       rewrite sym $ addAssoc (unsigned base) (unsigned ofs1) (-modulus n) in
+       rewrite sym $ addAssoc (unsigned base) (unsigned ofs1 - modulus n) sz1 in
+       case unsignedAddEither base ofs2 of
+         Left under2 =>
+           rewrite under2 in
+           rewrite sym $ addAssoc (unsigned base) (unsigned ofs2) sz2 in
+           rewrite addCompareMonoL (unsigned base) (unsigned ofs1 - modulus n + sz1) (unsigned ofs2) in
+           rewrite addComm (unsigned ofs1) (-modulus n) in
+           rewrite sym $ addAssoc (-modulus n) (unsigned ofs1) sz1 in
+           rewrite sym $ addCompareTransferL (unsigned ofs1 + sz1) (modulus n) (unsigned ofs2) in
+           Left $ leTrans (unsigned ofs1 + sz1) (modulus n) (modulus n + unsigned ofs2)
+                    (lebLeTo (unsigned ofs1 + sz1) (modulus n) $ soToEq p1)
+                    (rewrite addComm (modulus n) (unsigned ofs2) in
+                     rewrite addCompareMonoR 0 (unsigned ofs2) (modulus n) in
+                     fst $ unsignedRange ofs2)
+         Right over2 =>
+           rewrite over2 in
+           rewrite addComm (unsigned ofs1) (-modulus n) in
+           rewrite addAssoc (unsigned base) (-modulus n + unsigned ofs1) sz1 in
+           rewrite addAssoc (unsigned base) (-modulus n) (unsigned ofs1) in
+           rewrite sym$ addAssoc (unsigned base - modulus n) (unsigned ofs1) sz1 in
+           rewrite sym $ addAssoc (unsigned base) (unsigned ofs2) (-modulus n) in
+           rewrite addComm (unsigned ofs2) (-modulus n) in
+           rewrite addAssoc (unsigned base) (-modulus n) (unsigned ofs2) in
+           rewrite sym $ addAssoc (unsigned base - modulus n) (unsigned ofs2) sz2 in
+           rewrite addCompareMonoL (unsigned base - modulus n) (unsigned ofs1 + sz1) (unsigned ofs2) in
+           rewrite addCompareMonoL (unsigned base - modulus n) (unsigned ofs2 + sz2) (unsigned ofs1) in
+           case p3 of
+             Left lprf =>
+               Left $ lebLeTo (unsigned ofs1 + sz1) (unsigned ofs2) $ soToEq lprf
+             Right rprf =>
+               Right $ lebLeTo (unsigned ofs2 + sz2) (unsigned ofs1) $ soToEq rprf

@@ -248,7 +248,7 @@ ltbLtFro _ _ pltq = rewrite pltq in Refl
 
 -- leb_le
 -- TODO split into `to` and `fro`
-
+-- TODO rename to lebNlt* for consistency or change to p <= q = True
 lebLeTo : (p, q : Bip) -> p > q = False -> p `Le` q
 lebLeTo p q prf pq with (p `compare` q)
   | LT = absurd pq

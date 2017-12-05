@@ -1,6 +1,7 @@
 module Data.Util
 
 import Data.List
+import Data.So
 
 %default total
 %access public export
@@ -96,8 +97,8 @@ opSwitch _ GT = Refl
 
 -- TODO Remove in the next release
 
-Uninhabited (S n = Z) where
-  uninhabited Refl impossible
+-- Uninhabited (S n = Z) where
+--   uninhabited Refl impossible
 
 -- TODO contribute to Prelude.Nat
 
@@ -364,3 +365,27 @@ trueOrFalse True = Right Refl
 ifSame : (x : a) -> (b : Bool) -> (if b then x else x) = x
 ifSame _ True = Refl
 ifSame _ False = Refl
+
+
+------------------------- So properties --------------------------
+
+-- TODO add to Data.So
+
+eqToSo : b = True -> So b
+eqToSo Refl = Oh
+
+soToEq : So b -> b = True
+soToEq Oh = Refl
+
+soAndSo : So (a && b) -> (So a, So b)
+soAndSo {a} {b} soand with (choose a)
+  soAndSo {a = True}  soand | Left Oh = (Oh, soand)
+  soAndSo {a = False} Oh    | Right Oh impossible
+  soAndSo {a = True}  Oh    | Right Oh impossible
+
+soOrSo : So (a || b) -> Either (So a) (So b)
+soOrSo {a} {b} soor with (choose a)
+  soOrSo {a = True}  _    | Left Oh = Left Oh
+  soOrSo {a = False} _    | Left Oh impossible
+  soOrSo {a = False} soor | Right Oh = Right soor
+  soOrSo {a = True}  _    | Right Oh impossible

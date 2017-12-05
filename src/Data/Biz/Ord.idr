@@ -248,6 +248,12 @@ nltbLeFro n m nlem with (m `compare` n) proof mn
   | EQ = Refl
   | GT = Refl
 
+lebLeTo : (n, m : Biz) -> n <= m = True -> n `Le` m
+lebLeTo n m nlebm nm with (n `compare` m) proof nmcmp
+  | LT = absurd nm
+  | EQ = absurd nm
+  | GT = absurd $ trans nmcmp $ compareEqIffFro n m $ eqbEqTo n m nlebm
+
 lebLeFro : (n, m : Biz) -> n `Le` m -> n <= m = True
 lebLeFro n m nlem with (n `compare` m) proof nm
   | LT = Refl
