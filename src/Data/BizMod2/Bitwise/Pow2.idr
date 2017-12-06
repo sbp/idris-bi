@@ -809,3 +809,55 @@ oneBitsDecomp {n} x =
                ltLeTrans e (toBizNat n) (maxUnsigned n) maxe (wordsizeMaxUnsigned n) in
        eqmodRefl (bizPow2 e) (modulus n))
       (eqmUnsignedRepr (powerserie l) n)
+
+-- !!!
+-- TODO can't put the following in Biz/BizMod2.Bitwise because of equalSameBits & zTestbitModBizPow2
+-- TODO move this + dependencies + earlier complex lemmas to Biz.Bitwise.Extended? how to move equalSameBits, refactor modulus?
+bizDigitsInterval1 : (x : Biz) -> 0 `Le` x -> x `Lt` bizPow2 (bizDigits x)
+bizDigitsInterval1 x zlex =
+  leLtTrans x (x `bizMod` (bizPow2 (bizDigits x))) (bizPow2 (bizDigits x))
+    (rewrite compareEqIffFro x (x `bizMod` (bizPow2 (bizDigits x))) $
+             equalSameBits x (x `bizMod` (bizPow2 (bizDigits x))) $ \i, zlei =>
+             rewrite zTestbitModBizPow2 (bizDigits x) x i (bizDigitsNonneg x) zlei in
+             case ltLeTotal i (bizDigits x) of
+               Left iltdx =>
+                 rewrite ltbLtFro i (bizDigits x) iltdx in
+                 Refl
+               Right dxlei =>
+                 rewrite nltbLeFro (bizDigits x) i dxlei in
+                 bizTestbitDigits2 x i zlex dxlei
+            in
+     uninhabited)
+    (snd $ modPosBound x (bizPow2 (bizDigits x)) (bizPow2Pos (bizDigits x) (bizDigitsNonneg x)))
+
+bizDigitsMonotone : (x, y : Biz) -> 0 `Le` x -> x `Le` y -> bizDigits x `Le` bizDigits y
+bizDigitsMonotone x y zlex xley =
+  bizDigitsInterval2 x (bizDigits y) (bizDigitsNonneg y) zlex $
+  leLtTrans x y (bizPow2 (bizDigits y)) xley $
+  bizDigitsInterval1 y (leTrans 0 x y zlex xley)
+
+digitsInterval1 : (x : BizMod2 n) -> unsigned x `Lt` bizPow2 (digits x)
+digitsInterval1 x = bizDigitsInterval1 (unsigned x) (fst $ unsignedRange x)
+
+digitsInterval2 : (x : BizMod2 n) -> (m : Biz) -> 0 `Le` m -> unsigned x `Lt` bizPow2 m -> digits x `Le` m
+digitsInterval2 x m zlem uxlt2m = bizDigitsInterval2 (unsigned x) m zlem (fst $ unsignedRange x) uxlt2m
+
+andInterval : (a, b : BizMod2 n) -> unsigned (a `and` b) `Lt` bizPow2 (digits a `min` digits b)
+andInterval a b =
+  ltLeTrans (unsigned (a `and` b)) (bizPow2 (digits (a `and` b))) (bizPow2 (digits a `min` digits b))
+    (digitsInterval1 (a `and` b))
+    (bizPow2Monotone (digits (a `and` b)) (digits a `min` digits b)
+      (fst $ digitsRange (a `and` b))
+      (digitsAnd a b))
+
+orInterval : (a, b : BizMod2 n) -> unsigned (a `or` b) `Lt` bizPow2 (digits a `max` digits b)
+orInterval a b = rewrite sym $ digitsOr a b in
+                 digitsInterval1 (a `or` b)
+
+xorInterval : (a, b : BizMod2 n) -> unsigned (a `xor` b) `Lt` bizPow2 (digits a `max` digits b)
+xorInterval a b =
+  ltLeTrans (unsigned (a `xor` b)) (bizPow2 (digits (a `xor` b))) (bizPow2 (digits a `max` digits b))
+  (digitsInterval1 (a `xor` b))
+  (bizPow2Monotone (digits (a `xor` b)) (digits a `max` digits b)
+    (fst $ digitsRange (a `xor` b))
+    (digitsXor a b))

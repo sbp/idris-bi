@@ -11,6 +11,7 @@ import Data.Biz.Ord
 import Data.Biz.DivMod
 import Data.Biz.Bitwise
 import Data.Biz.Nat
+import Data.Biz.PowSqrt   -- TODO only used for bizDigitsInterval2
 
 import Data.BizMod2
 import Data.BizMod2.Core
@@ -903,3 +904,206 @@ andPositive {n} x y zlesy =
                 signedPositiveTo y zlesy
              in
       andFalse (testbit x (toBizNat n - 1))
+
+-- TODO can't put this in Biz.Bitwise because of zTestbitAbove
+bizDigitsInterval2 : (x, n : Biz) -> 0 `Le` n -> 0 `Le` x -> x `Lt` bizPow2 n -> bizDigits x `Le` n
+bizDigitsInterval2 x n zlen zlex xlt2n =
+  case leLtOrEq 0 x zlex of
+    Left zltx =>
+      \dxgtn =>
+        let tbf = zTestbitAbove (toNatBiz n) x (bizDigits x - 1) zlex
+                   (rewrite bipPow2Biz (toNatBiz n) in
+                    rewrite toNatBizId n zlen in
+                    xlt2n)
+                   (rewrite toNatBizId n zlen in
+                    ltPredRTo n (bizDigits x) $
+                    gtLt (bizDigits x) n dxgtn)
+        in
+        absurd $ trans (sym tbf) (bizTestbitDigits1 x zltx)
+    Right zeqx =>
+      rewrite sym zeqx in
+      zlen
+
+public export
+digits : (x : BizMod2 n) -> Biz
+digits x = bizDigits (unsigned x)
+
+digitsZero : (n : Nat) -> digits (repr 0 n) = 0
+digitsZero n = rewrite unsignedZero n in
+               Refl
+
+bitsDigits1 : (x : BizMod2 n) -> Either (x = 0) (testbit x (bizPred (digits x)) = True)
+bitsDigits1 {n} x =
+  case decEq (unsigned x) 0 of
+    Yes ux0 => Left $ rewrite sym $ reprUnsigned x in
+                      cong {f=\z=>repr z n} ux0
+    No uxnz => Right $ bizTestbitDigits1 (unsigned x) $
+                       leNeqLt (unsigned x) 0 (fst $ unsignedRange x) uxnz
+
+bitsDigits2 : (x : BizMod2 n) -> (i : Biz) -> digits x `Le` i -> testbit x i = False
+bitsDigits2 x i dxlei = bizTestbitDigits2 (unsigned x) i (fst $ unsignedRange x) dxlei
+
+-- TODO drop the first part since it's just bizDigitsNonneg?
+digitsRange : (x : BizMod2 n) -> (0 `Le` digits x, digits x `Le` toBizNat n)
+digitsRange {n} x =
+  ( bizDigitsNonneg (unsigned x)
+  , case bitsDigits1 x of
+      Left x0 =>
+        rewrite x0 in
+        rewrite unsignedZero n in
+        toBizNatIsNonneg n
+      Right tbxdx1t =>
+        \dxgtn =>
+        let tbxdx1f = bitsAbove x (digits x - 1) $
+                      ltPredRTo (toBizNat n) (digits x) $
+                      gtLt (digits x) (toBizNat n) dxgtn
+           in
+        absurd $ trans (sym tbxdx1f) tbxdx1t)
+
+bitsDigits3 : (x : BizMod2 n) -> (m : Biz) -> 0 `Le` m -> ((i : Biz) -> m `Le` i -> i `Lt` toBizNat n -> testbit x i = False) -> digits x `Le` m
+bitsDigits3 {n} x m zlem f =
+  case bitsDigits1 x of
+    Left x0 =>
+      rewrite x0 in
+      rewrite unsignedZero n in
+      zlem
+    Right tbxdx1t =>
+      \dxgtm =>
+      let tt = f (digits x - 1)
+                 (ltPredRTo m (digits x) $ gtLt (digits x) m dxgtm)
+                 (ltPredLTo (digits x) (toBizNat n) (snd $ digitsRange x))
+         in
+      absurd $ trans (sym tt) tbxdx1t
+
+bitsDigits4 : (x : BizMod2 n) -> (m : Biz) -> 0 `Le` m -> testbit x (bizPred m) = True -> ((i : Biz) -> m `Le` i -> i `Lt` toBizNat n -> testbit x i = False) -> digits x = m
+bitsDigits4 {n} x m zlem tbxm1t f =
+  case leLtOrEq (digits x) m (bitsDigits3 x m zlem f) of
+    Left dxltm =>
+      let tbxm1f = bitsDigits2 x (m-1) (ltPredRTo (digits x) m dxltm) in
+      absurd $ trans (sym tbxm1f) tbxm1t
+    Right dxeqm => dxeqm
+
+digitsAnd : (a, b : BizMod2 n) -> digits (a `and` b) `Le` (digits a `min` digits b)
+digitsAnd a b =
+  let zlemin = the (0 `Le` (digits a `min` digits b)) $
+               case minTotal (digits a) (digits b) of
+                 Left mina => rewrite mina in
+                              fst $ digitsRange a
+                 Right minb => rewrite minb in
+                               fst $ digitsRange b
+     in
+  bitsDigits3 (a `and` b) (digits a `min` digits b) zlemin $ \i, minlei, iltn =>
+  rewrite bitsAnd a b i (leTrans 0 (digits a `min` digits b) i zlemin minlei) iltn in
+  case minTotal (digits a) (digits b) of
+    Left mina => rewrite bitsDigits2 a i $
+                         rewrite sym $ mina in
+                         minlei
+                        in
+                 Refl
+    Right minb => rewrite bitsDigits2 b i $
+                         rewrite sym $ minb in
+                         minlei
+                        in
+                 andFalse (testbit a i)
+
+digitsOr : (a, b : BizMod2 n) -> digits (a `or` b) = digits a `max` digits b
+digitsOr {n} a b =
+  let (zleda, dalen) = digitsRange a
+      (zledb, dblen) = digitsRange b
+      zlemax = the (0 `Le` (digits a `max` digits b)) $
+               case maxTotal (digits a) (digits b) of
+                 Left maxa => rewrite maxa in
+                              zleda
+                 Right maxb => rewrite maxb in
+                               zledb
+     in
+  case bitsDigits1 a of
+    Left a0 =>
+      rewrite a0 in
+      rewrite digitsZero n in
+      rewrite orZeroL b in
+      sym $ maxR 0 (digits b) zledb
+    Right tbada1t =>
+      case bitsDigits1 b of
+        Left b0 =>
+          rewrite b0 in
+          rewrite digitsZero n in
+          rewrite orZero a in
+          sym $ maxL (digits a) 0 zleda
+        Right tbbdb1t =>
+          case maxTotal (digits a) (digits b) of
+            Left maxa =>
+              rewrite maxa in
+              bitsDigits4 (a `or` b) (digits a) zleda
+                (rewrite bitsOr a b (digits a - 1)
+                           (ltPredRTo 0 (digits a) (aux a tbada1t))
+                           (ltPredLTo (digits a) (toBizNat n) dalen)
+                        in
+                 rewrite tbada1t in
+                 Refl) $ \i, dalei, iltn =>
+              rewrite bitsOr a b i (leTrans 0 (digits a) i zleda dalei) iltn in
+              rewrite bitsDigits2 a i dalei in
+              bitsDigits2 b i $
+              leTrans (digits b) (digits a) i (maxLFro (digits a) (digits b) maxa) dalei
+            Right maxb =>
+              rewrite maxb in
+              bitsDigits4 (a `or` b) (digits b) zledb
+                (rewrite bitsOr a b (digits b - 1)
+                           (ltPredRTo 0 (digits b) (aux b tbbdb1t))
+                           (ltPredLTo (digits b) (toBizNat n) dblen)
+                        in
+                 rewrite tbbdb1t in
+                 orbTrue (testbit a (digits b - 1))) $ \i, dblei, iltn =>
+              rewrite bitsOr a b i (leTrans 0 (digits b) i zledb dblei) iltn in
+              rewrite bitsDigits2 b i dblei in
+              rewrite orFalse (testbit a i) in
+              bitsDigits2 a i $
+              leTrans (digits a) (digits b) i (maxRFro (digits a) (digits b) maxb) dblei
+  where
+  aux : (x : BizMod2 n) -> testbit x (bizPred (digits x)) = True -> 0 `Lt` digits x
+  aux x tbxdx1t =
+    case leLtOrEq 0 (digits x) (fst $ digitsRange x) of
+      Left zltdx => zltdx
+      Right zeqdx =>
+        let tbxdx1f = testbitNegR (unsigned x) (digits x - 1) $
+                      rewrite sym zeqdx in
+                      Refl
+           in
+        absurd $ trans (sym tbxdx1f) tbxdx1t
+
+digitsXor : (a, b : BizMod2 n) -> digits (a `xor` b) `Le` (digits a `max` digits b)
+digitsXor a b =
+  let zlemax = the (0 `Le` (digits a `max` digits b)) $
+               case maxTotal (digits a) (digits b) of
+                 Left maxa => rewrite maxa in
+                              fst $ digitsRange a
+                 Right maxb => rewrite maxb in
+                               fst $ digitsRange b
+     in
+  bitsDigits3 (a `xor` b) (digits a `max` digits b) zlemax $ \i, maxlei, iltn =>
+  rewrite bitsXor a b i (leTrans 0 (digits a `max` digits b) i zlemax maxlei) iltn in
+  case maxTotal (digits a) (digits b) of
+    Left maxa =>
+      let dalei = the ((digits a) `Le` i) $
+                  rewrite sym maxa in
+                  maxlei
+         in
+      rewrite bitsDigits2 a i dalei in
+      rewrite bitsDigits2 b i $
+              leTrans (digits b) (digits a) i
+                (maxLFro (digits a) (digits b) maxa)
+                dalei
+             in
+      Refl
+    Right maxb =>
+      let dblei = the ((digits b) `Le` i) $
+                  rewrite sym maxb in
+                  maxlei
+         in
+      rewrite bitsDigits2 a i $
+              leTrans (digits a) (digits b) i
+               (maxRFro (digits a) (digits b) maxb)
+               dblei
+             in
+      rewrite bitsDigits2 b i dblei in
+      Refl

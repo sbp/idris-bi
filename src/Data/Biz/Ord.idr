@@ -386,6 +386,30 @@ minR n m mlen = rewrite compareAntisym m n in
     | EQ = Refl
     | GT = absurd $ mlen Refl
 
+minTotal : (x, y : Biz) -> Either (x `min` y = x) (x `min` y = y)
+minTotal x y =
+  case ltLeTotal x y of
+    Left xlty => Left $ minL x y (ltLeIncl x y xlty)
+    Right ylex => Right $ minR x y ylex
+
+maxTotal : (x, y : Biz) -> Either (x `max` y = x) (x `max` y = y)
+maxTotal x y =
+  case ltLeTotal x y of
+    Left xlty => Right $ maxR x y (ltLeIncl x y xlty)
+    Right ylex => Left $ maxL x y ylex
+
+maxLFro : (n, m : Biz) -> n `max` m = n -> m `Le` n
+maxLFro n m maxn mgtn with (n `compare` m) proof nm
+  | LT = absurd $ trans nm (compareEqIffFro n m (sym maxn))
+  | EQ = absurd $ trans nm (gtLt m n mgtn)
+  | GT = absurd $ trans nm (gtLt m n mgtn)
+
+maxRFro : (n, m : Biz) -> n `max` m = m -> n `Le` m
+maxRFro n m maxm ngtm with (n `compare` m) proof nm
+  | LT = absurd ngtm
+  | EQ = absurd ngtm
+  | GT = absurd $ trans nm (compareEqIffFro n m maxm)
+
 -- Specification of absolute value
 
 absNonneg : (a : Biz) -> 0 `Le` abs a
