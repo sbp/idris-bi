@@ -97,8 +97,8 @@ opSwitch _ GT = Refl
 
 -- TODO Remove in the next release
 
--- Uninhabited (S n = Z) where
---   uninhabited Refl impossible
+Uninhabited (S n = Z) where
+  uninhabited Refl impossible
 
 -- TODO contribute to Prelude.Nat
 

@@ -423,7 +423,7 @@ noOverlap {n} ofs1 ofs2 sz1 sz2 =
   let x1 = unsigned ofs1
       x2 = unsigned ofs2
      in
-  (x1 + sz1 <= modulus n) && (x2 + sz2 <= modulus n) && ((x1 + sz1 <= x2) || (x2 + sz2 <= x1))
+  (x1 + sz1 <= modulus n) && ((x2 + sz2 <= modulus n) && ((x1 + sz1 <= x2) || (x2 + sz2 <= x1)))
 
 noOverlapSound : (ofs1, ofs2, base : BizMod2 n) -> (sz1, sz2 : Biz) -> noOverlap ofs1 ofs2 sz1 sz2 = True
              -> Either (unsigned (base + ofs1) + sz1 `Le` unsigned (base + ofs2)) (unsigned (base + ofs2) + sz2 `Le` unsigned (base + ofs1))
