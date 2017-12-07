@@ -114,7 +114,7 @@ bizPow _ (BizM _)  = BizO
 
 bizPow2 : (x : Biz) -> Biz
 bizPow2  BizO = BizP U
-bizPow2 (BizP y) = BizP $ bipIter O 1 y
+bizPow2 (BizP y) = BizP $ bipIter O U y
 bizPow2 (BizM _) = BizO
 
 ||| Square
@@ -450,6 +450,10 @@ bizXor (BizP a') (BizM b') =
 bizXor (BizM a') (BizM b') =
   toBizBin (binXor (bipPredBin a') (bipPredBin b'))
 
+bizDigits : (x : Biz) -> Biz
+bizDigits (BizP p) = BizP (bipDigits p)
+bizDigits _        = BizO
+
 -- Idris specific
 
 fromIntegerBiz : Integer -> Biz
@@ -512,8 +516,8 @@ Num Biz where
 
 Neg Biz where
   negate = bizOpp
-  abs    = bizAbs
   (-)    = bizMinus
+  abs    = bizAbs
 
 -- TODO Integral instance? which div+mod to use?
 

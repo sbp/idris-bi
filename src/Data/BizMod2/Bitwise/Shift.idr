@@ -15,6 +15,7 @@ import Data.Biz.Nat
 
 import Data.BizMod2
 import Data.BizMod2.Core
+import Data.BizMod2.Ord
 import Data.BizMod2.AddSubMul
 import Data.BizMod2.Bitwise
 
@@ -98,16 +99,6 @@ orShl x y k = bitwiseBinopShl or (\a, b => a || b) x y k bitsOr Refl
 
 xorShl : (x, y, k : BizMod2 n) -> (shl x k) `xor` (shl y k) = shl (x `xor` y) k
 xorShl x y k = bitwiseBinopShl xor xor x y k bitsXor Refl
-
--- TODO put in Ord
--- `0 <= unsigned x` is just unsignedRange
-ltuInv : (x, y : BizMod2 n) -> x `ltu` y = True -> unsigned x `Lt` unsigned y
-ltuInv x y = ltbLtTo (unsigned x) (unsigned y)
-
-ltuIwordsizeInv : (x : BizMod2 n) -> x `ltu` iwordsize n = True -> unsigned x `Lt` toBizNat n
-ltuIwordsizeInv {n} x prf =
-  rewrite sym $ unsignedReprWordsize n in
-  ltuInv x (iwordsize n) prf
 
 ltuSum : (x, y : BizMod2 n) -> x `ltu` iwordsize n = True -> y `ltu` iwordsize n = True
       -> unsigned (x+y) = unsigned x + unsigned y

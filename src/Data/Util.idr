@@ -1,5 +1,8 @@
 module Data.Util
 
+import Data.List
+import Data.So
+
 %default total
 %access public export
 
@@ -19,6 +22,14 @@ Uninhabited (Nothing = Just _) where
 
 Uninhabited (Just _ = Nothing) where
   uninhabited Refl impossible
+
+-------- List properties ----------
+
+listElemMapInv : (f : a -> b) -> (l : List a) -> (y : b) -> Elem y (map f l) -> (x : a ** (y = f x, Elem x l))
+listElemMapInv _ []        _     prf       = absurd prf
+listElemMapInv f (e :: _) (f e)  Here      = (e ** (Refl, Here))
+listElemMapInv f (_ :: l)  y    (There lr) = let (x ** (yfx, el)) = listElemMapInv f l y lr in
+                                             (x ** (yfx, There el))
 
 -------- Comparison properties ----
 
@@ -350,3 +361,31 @@ notTrueIsFalse False _   = Refl
 trueOrFalse : (b : Bool) -> Either (b = False) (b = True)
 trueOrFalse False = Left Refl
 trueOrFalse True = Right Refl
+
+ifSame : (x : a) -> (b : Bool) -> (if b then x else x) = x
+ifSame _ True = Refl
+ifSame _ False = Refl
+
+
+------------------------- So properties --------------------------
+
+-- TODO add to Data.So
+
+eqToSo : b = True -> So b
+eqToSo Refl = Oh
+
+soToEq : So b -> b = True
+soToEq Oh = Refl
+
+soAndSo : So (a && b) -> (So a, So b)
+soAndSo {a} {b} soand with (choose a)
+  soAndSo {a = True}  soand | Left Oh = (Oh, soand)
+  soAndSo {a = False} Oh    | Right Oh impossible
+  soAndSo {a = True}  Oh    | Right Oh impossible
+
+soOrSo : So (a || b) -> Either (So a) (So b)
+soOrSo {a} {b} soor with (choose a)
+  soOrSo {a = True}  _    | Left Oh = Left Oh
+  soOrSo {a = False} _    | Left Oh impossible
+  soOrSo {a = False} soor | Right Oh = Right soor
+  soOrSo {a = True}  _    | Right Oh impossible

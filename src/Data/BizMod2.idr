@@ -216,6 +216,13 @@ signed {n} x =
     then ux
     else ux-m
 
+export
+bizMod2P0Signed : (x : BizMod2 n) -> n = 0 -> signed x = -1
+bizMod2P0Signed x n0 =
+  rewrite n0 in
+  rewrite bizMod2P0N x n0 in
+  Refl
+
 -- Conversely, [repr] takes a Biz and returns the corresponding machine integer.
 -- The argument is treated modulo [modulus n].
 
@@ -431,20 +438,20 @@ swapComparison Cgt = Clt
 swapComparison Cge = Cle
 
 cmp : (c : Comparison) -> (x, y : BizMod2 n) -> Bool
-cmp Ceq = (==)
-cmp Cne = (/=)
-cmp Clt = (<)
-cmp Cle = (<=)
-cmp Cgt = (>)
-cmp Cge = (>=)
+cmp Ceq x y = x == y
+cmp Cne x y = x /= y
+cmp Clt x y = x < y
+cmp Cle x y = not (y < x)
+cmp Cgt x y = y < x
+cmp Cge x y = not (x < y)
 
 cmpu : (c : Comparison) -> (x, y : BizMod2 n) -> Bool
-cmpu Ceq = (==)
-cmpu Cne = (/=)
-cmpu Clt = ltu
-cmpu Cle = \x,y => not (x `ltu` y)
-cmpu Cgt = \x,y => y `ltu` x
-cmpu Cge = \x,y => not (y `ltu` x)
+cmpu Ceq x y = x == y
+cmpu Cne x y = x /= y
+cmpu Clt x y = x `ltu` y
+cmpu Cle x y = not (y `ltu` x) 
+cmpu Cgt x y = y `ltu` x
+cmpu Cge x y = not (x `ltu` y)
 
 isFalse : (x : BizMod2 n) -> Type
 isFalse x = x=0

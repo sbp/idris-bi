@@ -50,6 +50,11 @@ neqbNeqFro n m neq with (n == m) proof nm
   | False = Refl
   | True  = absurd $ neq $ eqbEqTo n m $ sym nm
 
+eqSym : (n, m : Biz) -> n == m = m == n
+eqSym n m with (n == m) proof nm
+  | True = sym $ eqbEqFro m n $ sym $ eqbEqTo n m $ sym nm
+  | False = sym $ neqbNeqFro m n $ (neqbNeqTo n m $ sym nm) . sym
+
 public export
 Lt : (x, y : Biz) -> Type
 Lt x y = x `compare` y = LT
@@ -148,6 +153,10 @@ compareOpp n m =
   rewrite addComm n (-m) in
   Refl
 
+ltNotEq : (x, y : Biz) -> y `Lt` x -> Not (x=y)
+ltNotEq x y yltx xy =
+  absurd $ replace {P=\z=>z=LT} (compareEqIffFro y x (sym xy)) yltx
+
 -- gt_lt
 
 gtLt : (p, q : Biz) -> p `Gt` q -> q `Lt` p
@@ -230,8 +239,8 @@ ltLeIncl n m nltm ngtm with (n `compare` m)
 nltbLeTo : (n, m : Biz) -> m < n = False -> n `Le` m
 nltbLeTo n m prf nm with (m `compare` n) proof mn
   | LT = absurd prf
-  | EQ = absurd $ replace (gtLt n m nm) mn
-  | GT = absurd $ replace (gtLt n m nm) mn
+  | EQ = absurd $ trans mn (gtLt n m nm)
+  | GT = absurd $ trans mn (gtLt n m nm)
 
 nltbLeFro : (n, m : Biz) -> n `Le` m -> m < n = False
 nltbLeFro n m nlem with (m `compare` n) proof mn
@@ -239,11 +248,24 @@ nltbLeFro n m nlem with (m `compare` n) proof mn
   | EQ = Refl
   | GT = Refl
 
+lebLeTo : (n, m : Biz) -> n <= m = True -> n `Le` m
+lebLeTo n m nlebm nm with (n `compare` m) proof nmcmp
+  | LT = absurd nm
+  | EQ = absurd nm
+  | GT = absurd $ trans nmcmp $ compareEqIffFro n m $ eqbEqTo n m nlebm
+
 lebLeFro : (n, m : Biz) -> n `Le` m -> n <= m = True
 lebLeFro n m nlem with (n `compare` m) proof nm
   | LT = Refl
   | EQ = eqbEqFro n m $ compareEqIffTo n m (sym nm)
   | GT = absurd $ nlem Refl
+
+nlebLtFro : (n, m : Biz) -> n `Lt` m -> m <= n = False
+nlebLtFro n m nltm with (n `compare` m) proof nm
+  | LT = rewrite ltGt n m $ sym nm in
+         neqbNeqFro m n $ ltNotEq m n $ sym nm
+  | EQ = absurd nltm
+  | GT = absurd nltm
 
 -- Some more advanced properties of comparison and orders, including
 -- [compare_spec] and [lt_irrefl] and [lt_eq_cases].
@@ -284,6 +306,12 @@ ltLeTotal p q with (p `compare` q) proof pq
   | GT = Right $ rewrite compareAntisym p q in
                  rewrite sym pq in
                  uninhabited
+
+leAntisym : (x, y : Biz) -> x `Le` y -> y `Le` x -> x = y
+leAntisym x y xley ylex =
+  case leLtOrEq x y xley of
+    Left xlty => absurd $ ylex $ ltGt x y xlty
+    Right xy => xy
 
 -- lt_succ_r
 -- TODO split into `to` and `fro`
@@ -358,6 +386,30 @@ minR n m mlen = rewrite compareAntisym m n in
     | EQ = Refl
     | GT = absurd $ mlen Refl
 
+minTotal : (x, y : Biz) -> Either (x `min` y = x) (x `min` y = y)
+minTotal x y =
+  case ltLeTotal x y of
+    Left xlty => Left $ minL x y (ltLeIncl x y xlty)
+    Right ylex => Right $ minR x y ylex
+
+maxTotal : (x, y : Biz) -> Either (x `max` y = x) (x `max` y = y)
+maxTotal x y =
+  case ltLeTotal x y of
+    Left xlty => Right $ maxR x y (ltLeIncl x y xlty)
+    Right ylex => Left $ maxL x y ylex
+
+maxLFro : (n, m : Biz) -> n `max` m = n -> m `Le` n
+maxLFro n m maxn mgtn with (n `compare` m) proof nm
+  | LT = absurd $ trans nm (compareEqIffFro n m (sym maxn))
+  | EQ = absurd $ trans nm (gtLt m n mgtn)
+  | GT = absurd $ trans nm (gtLt m n mgtn)
+
+maxRFro : (n, m : Biz) -> n `max` m = m -> n `Le` m
+maxRFro n m maxm ngtm with (n `compare` m) proof nm
+  | LT = absurd ngtm
+  | EQ = absurd ngtm
+  | GT = absurd $ trans nm (compareEqIffFro n m maxm)
+
 -- Specification of absolute value
 
 absNonneg : (a : Biz) -> 0 `Le` abs a
@@ -425,7 +477,21 @@ addCompareMonoR n m p =
   rewrite addComm m p in
   addCompareMonoL p n m
 
--- TODO look for places to use
+-- convenience lemma, look for other places to use it
+addCompareTransferL : (a, b, c : Biz) -> a `compare` (b+c) = ((-b)+a) `compare` c
+addCompareTransferL a b c =
+  rewrite sym $ addCompareMonoL (-b) a (b+c) in
+  rewrite addAssoc (-b) b c in
+  rewrite addOppDiagL b in
+  Refl
+
+-- TODO look for places to use these
+ltSucc : (x : Biz) -> x `Lt` bizSucc x
+ltSucc x =
+  rewrite addComm x 1 in
+  rewrite addCompareMonoR 0 1 x in
+  Refl
+
 ltPred : (x : Biz) -> bizPred x `Lt` x
 ltPred x =
   rewrite addComm x (-1) in
@@ -554,10 +620,6 @@ bizDCompare n m =
   rewrite doubleSpec m in
   mulCompareMonoL 2 n m Refl
 
-ltNotEq : (x, y : Biz) -> y `Lt` x -> Not (x=y)
-ltNotEq x y yltx xy =
-  absurd $ replace {P=\z=>z=LT} (compareEqIffFro y x (sym xy)) yltx
-
 ltPredRTo : (n, m : Biz) -> n `Lt` m -> n `Le` bizPred m
 ltPredRTo n m nltm =
   ltSuccRTo n (bizPred m) $
@@ -587,6 +649,14 @@ ltPredLTo n m nlem =
   rewrite addCompareMonoR n m (-1) in
   nlem
 
+ltPredLFro : (n, m : Biz) -> bizPred n `Lt` m -> n `Le` m
+ltPredLFro n m n1ltm =
+  ltSuccRTo n m $
+  rewrite addComm m 1 in
+  rewrite addCompareTransferL n 1 m in
+  rewrite addComm (-1) n in
+  n1ltm
+
 mulCompareMonoR : (p, q, r : Biz) -> 0 `Lt` p -> (q*p) `compare` (r*p) = q `compare` r
 mulCompareMonoR p q r zltp =
   rewrite mulComm q p in
@@ -598,14 +668,6 @@ mulAddDistrR1 : (n, m : Biz) -> (n + 1) * m = n * m + m
 mulAddDistrR1 n m = rewrite mulAddDistrR n 1 m in
                     rewrite mul1L m in
                     Refl
-
--- convenience lemma, look for other places to use it
-addCompareTransferL : (a, b, c : Biz) -> a `compare` (b+c) = ((-b)+a) `compare` c
-addCompareTransferL a b c =
-  rewrite sym $ addCompareMonoL (-b) a (b+c) in
-  rewrite addAssoc (-b) b c in
-  rewrite addOppDiagL b in
-  Refl
 
 leRefl : (x : Biz) -> x `Le` x
 leRefl x = rewrite compareEqIffFro x x Refl in
@@ -649,7 +711,7 @@ leNeqLt x y ylex nxy =
     Left yltx => yltx
     Right xy => absurd $ nxy $ sym xy
 
--- TODO can't put in Iter because of cycle (we use biInduction for ltTrans)
+-- TODO can't put the following in Iter because of cycle (we use biInduction for ltTrans)
 natlikeInd : (P : Biz -> Type) -> (f0 : P BizO)
           -> ((y : Biz) -> 0 `Le` y -> P y -> P (bizSucc y))
           -> (x : Biz) -> 0 `Le` x -> P x
@@ -658,3 +720,23 @@ natlikeInd P f0 f (BizP a) zlex =
   peanoRect (P . BizP) (f 0 uninhabited f0) (\p => rewrite sym $ add1R p in
                                                    f (BizP p) uninhabited) a
 natlikeInd _ _  _ (BizM _) zlex = absurd $ zlex Refl
+
+iterBaseZ : (f : a -> a) -> (n : Biz) -> (x : a) -> n `Le` 0 -> bizIter f n x = x
+iterBaseZ _  BizO    _ _    = Refl
+iterBaseZ _ (BizP _) _ nle0 = absurd $ nle0 Refl
+iterBaseZ _ (BizM _) _ _    = Refl
+
+iterSuccZ : (f : a -> a) -> (n : Biz) -> (x : a) -> 0 `Le` n -> bizIter f (bizSucc n) x = f (bizIter f n x)
+iterSuccZ f  BizO    x zlen = Refl
+iterSuccZ f (BizP p) x zlen = rewrite add1R p in
+                             iterSucc f x p
+iterSuccZ f (BizM _) x zlen = absurd $ zlen Refl
+
+natlikeIndM : (P : Biz -> Type) -> (f0 : P BizO)
+         -> ((y : Biz) -> y `Le` 0 -> P y)
+         -> ((y : Biz) -> 0 `Le` y -> P y -> P (bizSucc y))
+         -> (x : Biz) -> P x
+natlikeIndM P f0 fM fP x =
+  case ltLeTotal x 0 of
+    Left xlt0 => fM x (ltLeIncl x 0 xlt0)
+    Right zlex => natlikeInd P f0 fP x zlex
