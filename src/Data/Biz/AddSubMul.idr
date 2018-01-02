@@ -1,5 +1,7 @@
 module Data.Biz.AddSubMul
 
+import Control.Pipeline
+
 import Data.Util
 
 import Data.Bip.AddMul
@@ -42,7 +44,7 @@ posSubSpec (O a) (I b) = rewrite posSubSpec a b in
                          rewrite compareContSpec a b LT in
                          aux
   where
-  aux : bizDMO (posSubSpecHelp a b (a `compare` b)) = posSubSpecHelp (O a) (I b) (switchEq LT (a `compare` b))
+  aux : bizDMO (posSubSpecHelp a b (a `compare` b)) = posSubSpecHelp (O a) (I b) (thenCompare (a `compare` b) LT)
   aux with (a `compare` b) proof ab
     | EQ = rewrite subMaskNulFro b a $ sym $ compareEqIffTo a b $ sym ab in
            Refl
@@ -58,7 +60,7 @@ posSubSpec (I a) (O b) = rewrite posSubSpec a b in
                          rewrite compareContSpec a b GT in
                          aux
   where
-  aux : bizDPO (posSubSpecHelp a b (a `compare` b)) = posSubSpecHelp (I a) (O b) (switchEq GT (a `compare` b))
+  aux : bizDPO (posSubSpecHelp a b (a `compare` b)) = posSubSpecHelp (I a) (O b) (thenCompare (a `compare` b) GT)
   aux with (a `compare` b) proof ab
     | EQ = rewrite subMaskNulFro a b $ compareEqIffTo a b $ sym ab in
            Refl

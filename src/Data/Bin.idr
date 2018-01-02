@@ -302,11 +302,11 @@ Num Bin where
   (*)         = binMult
   fromInteger = fromIntegerBin
 
--- negate and abs don't make much sense here, but it's syntactically convenient
+-- negate doesn't make much sense here, but it's syntactically convenient
 Neg Bin where
   negate = const BinO
   (-) = binMinus
-  abs = id
+--  abs = id
 
 Integral Bin where
   div = binDiv

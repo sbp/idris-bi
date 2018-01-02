@@ -1,5 +1,7 @@
 module Data.BizMod2.Core
 
+import Control.Pipeline
+
 import Data.Util
 
 import Data.Bip.AddMul

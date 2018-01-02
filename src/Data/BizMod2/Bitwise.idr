@@ -1,5 +1,7 @@
 module Data.BizMod2.Bitwise
 
+import Control.Pipeline
+
 import Data.Util
 
 import Data.Bip.AddMul

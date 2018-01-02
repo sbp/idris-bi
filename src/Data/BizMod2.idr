@@ -275,7 +275,7 @@ Num (BizMod2 n) where
 
 Neg (BizMod2 n) where
   negate x = repr (-unsigned x) n
-  abs x    = repr (abs (signed x)) n  -- TODO `Abs` is separated since idris-dev/4196
+--  abs x    = repr (abs (signed x)) n  -- TODO `Abs` is separated since idris-dev/4196
   x - y    = repr (unsigned x - unsigned y) n
 
 -- TODO which of the following to use for `Integral`?
