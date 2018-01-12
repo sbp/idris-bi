@@ -9,12 +9,6 @@ import Data.So
 %hide Prelude.Nat.GT
 %hide Prelude.Nat.LT
 
-Uninhabited (Nothing = Just _) where
-  uninhabited Refl impossible
-
-Uninhabited (Just _ = Nothing) where
-  uninhabited Refl impossible
-
 cong2 : {f : x -> y -> z} -> a = b -> c = d -> f a c = f b d
 cong2 Refl Refl = Refl
 
@@ -81,11 +75,6 @@ opThenDistribute EQ _ = Refl
 opThenDistribute GT _ = Refl
 
 ------- Nat properties -------
-
--- TODO Remove in the next release
-
-Uninhabited (S n = Z) where
-  uninhabited Refl impossible
 
 -- TODO contribute to Prelude.Nat
 
