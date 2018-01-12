@@ -306,7 +306,6 @@ Num Bin where
 Neg Bin where
   negate = const BinO
   (-) = binMinus
---  abs = id
 
 Integral Bin where
   div = binDiv
