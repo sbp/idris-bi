@@ -775,7 +775,7 @@ shrAndIsShruAnd {n} x y z ynlt0 =
 
 oneBitsRange : (x, i : BizMod2 n) -> Elem i (oneBits x) -> i `ltu` iwordsize n = True
 oneBitsRange {n} x i elem =
-  let (ui ** (eq, elemui)) = listElemMapInv (\x => repr x n) (zOneBits n (unsigned x) 0) i elem
+  let (ui ** (eq, elemui)) = listElemMapInv (\x => repr x n) i (zOneBits n (unsigned x) 0) elem
       (zleui, uiltn) = zOneBitsRange n (unsigned x) ui elemui
      in
   rewrite eq in

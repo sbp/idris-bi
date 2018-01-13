@@ -1,5 +1,7 @@
 module Data.BizMod2.Bitwise.ZSExt
 
+import Control.Pipeline
+
 import Data.Util
 
 import Data.Biz

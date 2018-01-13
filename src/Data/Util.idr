@@ -9,26 +9,15 @@ import Data.So
 %hide Prelude.Nat.GT
 %hide Prelude.Nat.LT
 
--- TODO import Control.Pipeline from contrib
-infixl 9 |>
-(|>) : a -> (a -> b) -> b
-a |> f = f a
-
 cong2 : {f : x -> y -> z} -> a = b -> c = d -> f a c = f b d
 cong2 Refl Refl = Refl
 
-Uninhabited (Nothing = Just _) where
-  uninhabited Refl impossible
-
-Uninhabited (Just _ = Nothing) where
-  uninhabited Refl impossible
-
 -------- List properties ----------
 
-listElemMapInv : (f : a -> b) -> (l : List a) -> (y : b) -> Elem y (map f l) -> (x : a ** (y = f x, Elem x l))
-listElemMapInv _ []        _     prf       = absurd prf
-listElemMapInv f (e :: _) (f e)  Here      = (e ** (Refl, Here))
-listElemMapInv f (_ :: l)  y    (There lr) = let (x ** (yfx, el)) = listElemMapInv f l y lr in
+listElemMapInv : (f : a -> b) -> (y : b) -> (l : List a) -> Elem y (map f l) -> (x : a ** (y = f x, Elem x l))
+listElemMapInv _  _     []       prf       = absurd prf
+listElemMapInv f (f h) (h :: _)  Here      = (h ** (Refl, Here))
+listElemMapInv f  y    (_ :: t) (There th) = let (x ** (yfx, el)) = listElemMapInv f y t th in
                                              (x ** (yfx, There el))
 
 -------- Comparison properties ----
@@ -80,25 +69,12 @@ compareOpInj GT LT Refl impossible
 compareOpInj GT EQ Refl impossible
 compareOpInj GT GT Refl = Refl
 
--- switch_Eq
--- TODO use `thenCompare`?
-
-switchEq : (c, c' : Ordering) -> Ordering
-switchEq _ LT = LT
-switchEq c EQ = c
-switchEq _ GT = GT
-
-opSwitch : (o, o1 : Ordering) -> compareOp (switchEq o o1) = switchEq (compareOp o) (compareOp o1)
-opSwitch _ LT = Refl
-opSwitch _ EQ = Refl
-opSwitch _ GT = Refl
+opThenDistribute : (o1, o2 : Ordering) -> compareOp (thenCompare o1 o2) = thenCompare (compareOp o1) (compareOp o2)
+opThenDistribute LT _ = Refl
+opThenDistribute EQ _ = Refl
+opThenDistribute GT _ = Refl
 
 ------- Nat properties -------
-
--- TODO Remove in the next release
-
-Uninhabited (S n = Z) where
-  uninhabited Refl impossible
 
 -- TODO contribute to Prelude.Nat
 

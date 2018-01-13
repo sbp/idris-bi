@@ -3,6 +3,8 @@ package Bi
 sourcedir = src
 modules = Data.Bi
 
+        , Data.Util
+
         , Data.Bip
         , Data.Bip.AddMul
         , Data.Bip.Iter
@@ -41,4 +43,4 @@ modules = Data.Bi
         , Data.BizMod2.Bitwise.Pow2
         , Data.BizMod2.Bitwise.ZSExt
 
-opts = "-p pruviloj"
+opts = "-p pruviloj -p contrib"

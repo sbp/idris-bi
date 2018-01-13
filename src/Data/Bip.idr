@@ -515,7 +515,6 @@ Num Bip where
 Neg Bip where
   negate = const U
   (-) = bipMinus
-  abs = id
 
 DecEq Bip where
   decEq  U     U    = Yes Refl

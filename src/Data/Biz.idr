@@ -517,6 +517,8 @@ Num Biz where
 Neg Biz where
   negate = bizOpp
   (-)    = bizMinus
+
+Abs Biz where
   abs    = bizAbs
 
 -- TODO Integral instance? which div+mod to use?

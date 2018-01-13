@@ -1,5 +1,6 @@
 module Data.BizMod2.Ord
 
+import Control.Pipeline
 import Data.So
 
 import Data.Util

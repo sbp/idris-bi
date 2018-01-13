@@ -1,5 +1,7 @@
 module Data.Biz.Ord
 
+import Control.Pipeline
+
 import Data.Util
 
 import Data.Bip.AddMul
@@ -586,7 +588,7 @@ mulRegR n m p =
   rewrite mulComm m p in
   mulRegL n m p
 
-bizDPODCompare : (n, m : Biz) -> bizDPO n `compare` bizD m = switchEq GT (n `compare` m)
+bizDPODCompare : (n, m : Biz) -> bizDPO n `compare` bizD m = thenCompare (n `compare` m) GT
 bizDPODCompare  BizO     BizO    = Refl
 bizDPODCompare  BizO    (BizP _) = Refl
 bizDPODCompare  BizO    (BizM _) = Refl
@@ -607,12 +609,12 @@ bizDPODCompare (BizM a) (BizM b) =
       rewrite compareSuccR b (bipPred a) in
       compareContSpec b (bipPred a) LT
 
-bizDDPOCompare : (n, m : Biz) -> bizD n `compare` bizDPO m = switchEq LT (n `compare` m)
+bizDDPOCompare : (n, m : Biz) -> bizD n `compare` bizDPO m = thenCompare (n `compare` m) LT
 bizDDPOCompare n m =
   rewrite compareAntisym (bizDPO m) (bizD n) in
   rewrite bizDPODCompare m n in
   rewrite compareAntisym m n in
-  opSwitch GT (m `compare` n)
+  opThenDistribute (m `compare` n) GT
 
 bizDCompare : (n, m : Biz) -> bizD n `compare` bizD m = n `compare` m
 bizDCompare n m =

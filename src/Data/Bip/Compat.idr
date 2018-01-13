@@ -11,19 +11,16 @@ import Data.Bip.OrdSub
 
 -- Pminus_mask_Gt
 
-subMaskGt : (p, q : Bip) -> p `Gt` q -> (r ** ( bimMinus p q = BimP r
-                                              , q + r = p
-                                              , Either (r = U) (bimMinusCarry p q = BimP $ bipPred r)
-                                              ))
+subMaskGt : (p, q : Bip) -> p `Gt` q -> (r ** (bimMinus p q = BimP r, q + r = p, Either (r = U) (bimMinusCarry p q = BimP $ bipPred r)))
 subMaskGt p q pgtq =
-  let (r**(prfm,prfp)) = subMaskPos' p q $ gtLt p q pgtq
+  let (r ** (prfm,prfp)) = subMaskPos' p q $ gtLt p q pgtq
   in
-    (r**( prfm
-        , prfp
-        , rewrite subMaskCarrySpec p q in
-          rewrite prfm in
-          aux
-        ))
+    (r ** ( prfm
+          , prfp
+          , rewrite subMaskCarrySpec p q in
+            rewrite prfm in
+            aux
+          ))
   where
   aux : Either (r = U) (bimPred $ BimP r = BimP $ bipPred r)
   aux {r=U  } = Left Refl
