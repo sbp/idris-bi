@@ -35,7 +35,7 @@ main = printLn (modNatNZ n1501857320 (S n86399) SIsNotZ)
 
 This file is reasonably fast to type check and to compile, but now the runtime takes so long to execute that once again the actual duration could only be extrapolated from smaller examples. The code is also extremely ugly.
 
-If we use the P, N, and Z arithmetics from Coq, this code can be made to work much faster. The [tutorial in VFA](https://www.cs.princeton.edu/~appel/vfa/Trie.html) explains why these arithmetics are necessary and how they are constructed. An element of ZArith is already mentioned several times in the Idris literature:
+If we use the P, N, and Z arithmetics from Coq, this code can be made to work much faster. The [tutorial in VFA](https://softwarefoundations.cis.upenn.edu/vfa-current/Trie.html) explains why these arithmetics are necessary and how they are constructed. An element of ZArith is already mentioned several times in the Idris literature:
 
 * [In the examples directory](https://github.com/idris-lang/idris-tutorial/blob/master/examples/binary.idr)
 * [Talking about erasure of Nat in binary numbers](https://github.com/idris-lang/Idris-dev/blob/master/docs/reference/erasure.rst#binary-numbers)
