@@ -8,6 +8,12 @@ This package implements arithmetics based on [PArith](https://coq.inria.fr/libra
 
 Because Idris is dependently typed, it is possible to assert arbitrary properties about the code that the type checker will verify at compile time. This means that it is possible to prove characteristics of code, equivalent to running tests for all possible inputs (even an infinite number) simultaneously. We are porting dozens of proofs specifying the behaviour of the three arithmetics from Coq, making it possible to rely on those proven specifications when using the code.
 
+## Fixed precision
+
+This package also includes a fixed-precision binary arithmetic [BizMod2](https://github.com/sbp/idris-bi/blob/master/src/Data/BizMod2.idr), based on CompCert's [integers](https://github.com/AbsInt/CompCert/blob/master/lib/Integers.v). It uses the `Biz` representation underneath, but normalizes all operations modulo `2^n`, where `n` is an arbitrary `Nat` index. Idris' standard  `Data.Bits` type, mentioned above, is wrapper for machine words that only tracks the word size; its internal structure is opaque to the type checker. The inductive definition here allows us to prove arbitrary logical-arithmetic properties, e.g., for operations like [bit shifts](https://github.com/sbp/idris-bi/blob/master/src/Data/BizMod2/Bitwise/Shift.idr). 
+
+This, however, comes at the cost of performance, since the runtime presentation of `BizMod2` is still inductive. Finding a way to transparently map this type (as well as the arbitrary precision ones) to optimized machine arithmetic is a goal for the future.
+
 ## Motivation
 
 Using `Nat`, the unary arithmetic type, for arithmetic on large numbers in Idris causes significant performance degradation when type checking, compiling, evaluating, and executing code. Consider the example of taking the remainder of dividing the current unixtime by the number of seconds in a day:
