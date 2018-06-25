@@ -80,16 +80,16 @@ iterAdd f x (I a) q =
 
 -- iter_invariant
 
-iterInvariant : (f : a -> a) -> (Inv : a -> Type) -> (p : Bip) ->
-                ((x : a) -> Inv x -> Inv (f x)) ->
-                (x : a) -> Inv x -> Inv (bipIter f x p)
-iterInvariant f Inv  U    g x ix = g x ix
-iterInvariant f Inv (O b) g x ix =
-  let ih = iterInvariant f Inv b g x ix in
-    iterInvariant f Inv b g (bipIter f x b) ih
-iterInvariant f Inv (I b) g x ix =
-  let ih = iterInvariant f Inv b g x ix
-      ih2 = iterInvariant f Inv b g (bipIter f x b) ih in
+iterInvariant : (f : a -> a) -> (inv : a -> Type) -> (p : Bip) ->
+                ((x : a) -> inv x -> inv (f x)) ->
+                (x : a) -> inv x -> inv (bipIter f x p)
+iterInvariant f inv  U    g x ix = g x ix
+iterInvariant f inv (O b) g x ix =
+  let ih = iterInvariant f inv b g x ix in
+    iterInvariant f inv b g (bipIter f x b) ih
+iterInvariant f inv (I b) g x ix =
+  let ih = iterInvariant f inv b g x ix
+      ih2 = iterInvariant f inv b g (bipIter f x b) ih in
     g (bipIter f (bipIter f x b) b) ih2
 
 -- TODO reformulate iter_op_succ so that it describes toNatBip/bipMultNat
