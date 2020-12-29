@@ -1,13 +1,15 @@
 module Data.Util
 
 import Data.List
+import Data.List.Elem
+import Data.Nat
 import Data.So
+import Decidable.Equality
 
 %default total
-%access public export
 
-%hide Prelude.Nat.GT
-%hide Prelude.Nat.LT
+%hide Data.Nat.GT
+%hide Data.Nat.LT
 
 cong2 : {f : x -> y -> z} -> a = b -> c = d -> f a c = f b d
 cong2 Refl Refl = Refl
@@ -69,6 +71,11 @@ compareOpInj GT LT Refl impossible
 compareOpInj GT EQ Refl impossible
 compareOpInj GT GT Refl = Refl
 
+thenCompare : Ordering -> Lazy Ordering -> Ordering
+thenCompare LT y = LT
+thenCompare EQ y = y
+thenCompare GT y = GT
+
 opThenDistribute : (o1, o2 : Ordering) -> compareOp (thenCompare o1 o2) = thenCompare (compareOp o1) (compareOp o2)
 opThenDistribute LT _ = Refl
 opThenDistribute EQ _ = Refl
@@ -87,29 +94,25 @@ compareRefl  Z    = Refl
 compareRefl (S k) = compareRefl k
 
 compareEq : (a, b : Nat) -> a `compare` b = EQ -> a = b
-compareEq  Z     Z    = const Refl
-compareEq  Z    (S _) = absurd
-compareEq (S _)  Z    = absurd
-compareEq (S k) (S j) = cong . compareEq k j
+compareEq  Z     Z    p = Refl
+compareEq (S k) (S j) p = cong S $ compareEq k j p
 
 ltGt : (a,b : Nat) -> a `compare` b = LT -> b `compare` a = GT
-ltGt  Z     Z    = absurd
-ltGt  Z    (S _) = const Refl
-ltGt (S _)  Z    = absurd
-ltGt (S k) (S j) = ltGt k j
+ltGt  Z    (S _) _ = Refl
+ltGt (S k) (S j) p = ltGt k j p
 
 gtLt : (a,b : Nat) -> a `compare` b = GT -> b `compare` a = LT
-gtLt  Z     Z    = absurd
-gtLt  Z    (S _) = absurd
-gtLt (S _)  Z    = const Refl
-gtLt (S k) (S j) = gtLt k j
+gtLt  Z     Z    p = absurd p
+gtLt  Z    (S _) p = absurd p
+gtLt (S _)  Z    p = Refl
+gtLt (S k) (S j) p = gtLt k j p
 
 plusMinus : (a, b : Nat) -> b `compare` a = LT -> (a `minus` b)+b = a
 plusMinus  Z     Z    blta = absurd blta
 plusMinus  Z    (S _) blta = absurd blta
 plusMinus (S k)  Z    blta = rewrite plusZeroRightNeutral k in Refl
 plusMinus (S k) (S j) blta = rewrite sym $ plusSuccRightSucc (k `minus` j) j in
-                             cong $ plusMinus k j blta
+                             cong S $ plusMinus k j blta
 
 minusNeg : (p, q : Nat) -> p `compare` q = LT -> p `minus` q = Z
 minusNeg  Z     Z    = absurd
@@ -127,7 +130,7 @@ maxLTE : (p, q : Nat) -> p `LTE` q -> maximum p q = q
 maxLTE  Z     Z    = const Refl
 maxLTE  Z    (S _) = const Refl
 maxLTE (S _)  Z    = absurd
-maxLTE (S k) (S j) = cong . maxLTE k j . fromLteSucc
+maxLTE (S k) (S j) = cong S . maxLTE k j . fromLteSucc
 
 sub1R : (p : Nat) -> p `minus` 1 = pred p
 sub1R  Z    = Refl
@@ -137,13 +140,13 @@ maxLt : (p, q : Nat) -> q `compare` p = LT -> maximum p q = p
 maxLt  Z     Z    = absurd
 maxLt  Z    (S _) = absurd
 maxLt (S _)  Z    = const Refl
-maxLt (S k) (S j) = cong . maxLt k j
+maxLt (S k) (S j) = cong S . maxLt k j
 
 minLt : (p, q : Nat) -> p `compare` q = LT -> minimum p q = p
 minLt  Z     Z    = absurd
 minLt  Z    (S _) = const Refl
 minLt (S _)  Z    = absurd
-minLt (S k) (S j) = cong . minLt k j
+minLt (S k) (S j) = cong S . minLt k j
 
 natIter : (f : a -> a) -> (x : a) -> (n : Nat) -> a
 natIter _ x  Z    = x
@@ -162,145 +165,11 @@ plusLTEMonoR p (S b) (S c) (LTESucc l) = LTESucc $ plusLTEMonoR p b c l
 
 -- TODO contribute to Prelude.Bool
 
-xor : Bool -> Bool -> Bool
-xor = (/=)
-
-xorDiag : (b : Bool) -> xor b b = False
-xorDiag False = Refl
-xorDiag True = Refl
-
-xorComm : (a, b : Bool) -> xor a b = xor b a
-xorComm False False = Refl
-xorComm False True  = Refl
-xorComm True  False = Refl
-xorComm True  True  = Refl
-
-xorFalse : (b : Bool) -> xor False b = b
-xorFalse False = Refl
-xorFalse True = Refl
-
-orDiag : (b : Bool) -> b || b = b
-orDiag False = Refl
-orDiag True = Refl
-
-orFalse : (b : Bool) -> b || False = b
-orFalse False = Refl
-orFalse True = Refl
-
-andDiag : (b : Bool) -> b && b = b
-andDiag False = Refl
-andDiag True = Refl
-
-andFalse : (b : Bool) -> b && False = False
-andFalse False = Refl
-andFalse True = Refl
-
-andTrue : (b : Bool) -> b && True = b
-andTrue False = Refl
-andTrue True = Refl
-
-andNot : (b : Bool) -> b && not b = False
-andNot False = Refl
-andNot True = Refl
-
-notAnd : (x, y : Bool) -> not (x && y) = (not x) || (not y)
-notAnd True  True  = Refl
-notAnd True  False = Refl
-notAnd False True  = Refl
-notAnd False False = Refl
-
-notNot : (x : Bool) -> not (not x) = x
-notNot True  = Refl
-notNot False = Refl
-
-orComm : (x, y : Bool) -> x || y = y || x
-orComm True  True  = Refl
-orComm True  False = Refl
-orComm False True  = Refl
-orComm False False = Refl
-
-andComm : (x, y : Bool) -> x && y = y && x
-andComm True  True  = Refl
-andComm True  False = Refl
-andComm False True  = Refl
-andComm False False = Refl
-
-notOr : (x, y : Bool) -> not (x || y) = (not x) && (not y)
-notOr True  True  = Refl
-notOr True  False = Refl
-notOr False True  = Refl
-notOr False False = Refl
-
-notXorR : (x, y : Bool) -> not (x `xor` y) = x `xor` (not y)
-notXorR True  True  = Refl
-notXorR True  False = Refl
-notXorR False True  = Refl
-notXorR False False = Refl
-
-notXorL : (x, y : Bool) -> not (x `xor` y) = (not x) `xor` y
-notXorL True  True  = Refl
-notXorL True  False = Refl
-notXorL False True  = Refl
-notXorL False False = Refl
-
-notXor2 : (x, y : Bool) -> x `xor` y = (not x) `xor` (not y)
-notXor2 True  True  = Refl
-notXor2 True  False = Refl
-notXor2 False True  = Refl
-notXor2 False False = Refl
-
-andbAssoc : (x, y, z : Bool) -> (x && y) && z = x && (y && z)
-andbAssoc False _ _ = Refl
-andbAssoc True  _ _ = Refl
-
-orbAssoc : (x, y, z : Bool) -> (x || y) || z = x || (y || z)
-orbAssoc False _ _ = Refl
-orbAssoc True  _ _ = Refl
-
-xorTrue : (b : Bool) -> True `xor` b = not b
-xorTrue False = Refl
-xorTrue True  = Refl
-
-xorTrueR : (b : Bool) -> b `xor` True = not b
-xorTrueR False = Refl
-xorTrueR True  = Refl
-
-andbIdem : (x : Bool) -> x && x = x
-andbIdem False = Refl
-andbIdem True = Refl
-
-orbTrue : (b : Bool) -> b || True = True
-orbTrue False = Refl
-orbTrue True = Refl
-
-orbIdem : (b : Bool) -> b || b = b
-orbIdem False = Refl
-orbIdem True = Refl
-
-andbOrbDistribR : (b1, b2, b3 : Bool) -> b1 && (b2 || b3) = (b1 && b2) || (b1 && b3)
-andbOrbDistribR False b2 b3 = Refl
-andbOrbDistribR True  b2 b3 = Refl
-
-orbAndbDistribR : (b1, b2, b3 : Bool) -> b1 || (b2 && b3) = (b1 || b2) && (b1 || b3)
-orbAndbDistribR False _ _ = Refl
-orbAndbDistribR True  _ _ = Refl
-
 notEq : (a, b : Bool) -> (not a) == b = a /= b
 notEq False False = Refl
 notEq False True  = Refl
 notEq True  False = Refl
 notEq True  True  = Refl
-
-xorbAssoc : (x, y, z : Bool) -> (x `xor` y) `xor` z = x `xor` (y `xor` z)
-xorbAssoc False y z =
-  rewrite xorFalse y in
-  rewrite xorFalse (y `xor` z) in
-  Refl
-xorbAssoc True y z =
-  rewrite xorTrue y in
-  rewrite xorTrue (y `xor` z) in
-  rewrite notEq y z in
-  Refl
 
 andbTrueIffTo : (a, b : Bool) -> a && b = True -> (a = True, b = True)
 andbTrueIffTo False False prf  = absurd prf
@@ -310,58 +179,14 @@ andbTrueIffTo True  True  Refl = (Refl, Refl)
 
 -- De Morgan's laws
 
-negbOrb : (a, b : Bool) -> not (a || b) = (not a) && (not b)
-negbOrb False _ = Refl
-negbOrb True  _ = Refl
-
-negbAndb : (a, b : Bool) -> not (a && b) = (not a) || (not b)
-negbAndb False _ = Refl
-negbAndb True  _ = Refl
-
-andbNotSelf : (a : Bool) -> a && (not a) = False
-andbNotSelf False = Refl
-andbNotSelf True  = Refl
-
-orbNotSelf : (a : Bool) -> a || (not a) = True
-orbNotSelf False = Refl
-orbNotSelf True  = Refl
-
-xorbNotSelf : (a : Bool) -> a `xor` (not a) = True
-xorbNotSelf False = Refl
-xorbNotSelf True  = Refl
-
 notTrueIsFalse : (b : Bool) -> Not (b = True) -> b = False
 notTrueIsFalse True  nbt = absurd $ nbt Refl
 notTrueIsFalse False _   = Refl
 
-trueOrFalse : (b : Bool) -> Either (b = False) (b = True)
-trueOrFalse False = Left Refl
-trueOrFalse True = Right Refl
+--trueOrFalse : (b : Bool) -> Either (b = False) (b = True)
+--trueOrFalse False = Left Refl
+--trueOrFalse True = Right Refl
 
 ifSame : (x : a) -> (b : Bool) -> (if b then x else x) = x
 ifSame _ True = Refl
 ifSame _ False = Refl
-
-
-------------------------- So properties --------------------------
-
--- TODO add to Data.So
-
-eqToSo : b = True -> So b
-eqToSo Refl = Oh
-
-soToEq : So b -> b = True
-soToEq Oh = Refl
-
-soAndSo : So (a && b) -> (So a, So b)
-soAndSo {a} {b} soand with (choose a)
-  soAndSo {a = True}  soand | Left Oh = (Oh, soand)
-  soAndSo {a = False} Oh    | Right Oh impossible
-  soAndSo {a = True}  Oh    | Right Oh impossible
-
-soOrSo : So (a || b) -> Either (So a) (So b)
-soOrSo {a} {b} soor with (choose a)
-  soOrSo {a = True}  _    | Left Oh = Left Oh
-  soOrSo {a = False} _    | Left Oh impossible
-  soOrSo {a = False} soor | Right Oh = Right soor
-  soOrSo {a = True}  _    | Right Oh impossible

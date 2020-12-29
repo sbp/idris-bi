@@ -1,5 +1,6 @@
 .DS_Store
 *.idc
 *.ibc
+build/
 bin/Examples
 src/Data/Bip/PM.idr

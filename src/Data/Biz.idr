@@ -1,9 +1,9 @@
 module Data.Biz
 
+import Decidable.Equality
 import public Data.Bin
 
 %default total
-%access public export
 
 -- Basic properties of constructors
 
@@ -529,11 +529,11 @@ DecEq Biz where
   decEq  BizO    (BizM _) = No uninhabited
   decEq (BizP _)  BizO    = No uninhabited
   decEq (BizP a) (BizP b) = case decEq a b of
-    Yes prf   => Yes $ cong prf
+    Yes prf   => Yes $ cong BizP prf
     No contra => No $ contra . bizPInj
   decEq (BizP _) (BizM _) = No uninhabited
   decEq (BizM _)  BizO    = No uninhabited
   decEq (BizM _) (BizP _) = No uninhabited
   decEq (BizM a) (BizM b) = case decEq a b of
-    Yes prf   => Yes $ cong prf
+    Yes prf   => Yes $ cong BizM prf
     No contra => No $ contra . bizMInj

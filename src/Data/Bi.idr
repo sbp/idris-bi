@@ -1,11 +1,11 @@
 module Data.Bi
 
 %default total
-%access public export
 
 -- Binary P, Positive
 
 ||| Positive binary number, little endian
+public export
 data Bip =
   ||| One, acting like a most-significant one digit.
   ||| (Mnemonic: U for Unit)
@@ -22,6 +22,7 @@ data Bip =
 -- Binary N, Natural
 
 ||| Natural binary number
+public export
 data Bin =
   ||| Zero
   BinO |
@@ -33,6 +34,7 @@ data Bin =
 -- Binary Z, Integer
 
 ||| Binary integer
+public export
 data Biz =
   ||| Zero
   BizO |

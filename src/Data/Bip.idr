@@ -1,10 +1,10 @@
 module Data.Bip
 
 import Data.Primitives.Views
+import Decidable.Equality
 import public Data.Bi
 
 %default total
-%access public export
 
 -- Basic properties of constructors
 
@@ -35,6 +35,7 @@ IInj Refl = Refl
 -- Following Coq.PArith.BinPosDef
 
 ||| Successor
+public export
 bipSucc : (a: Bip) -> Bip
 bipSucc  U     = O U
 bipSucc (O a') = I a'
@@ -43,6 +44,7 @@ bipSucc (I a') = O (bipSucc a')
 mutual
   ||| Addition
   -- TODO: bipAdd?
+  public export
   bipPlus : (a, b: Bip) -> Bip
   bipPlus  U      U     = O U
   bipPlus  U     (O b') = I b'
@@ -54,6 +56,7 @@ mutual
   bipPlus (I a') (O b') = I (bipPlus a' b')
   bipPlus (I a') (I b') = O (bipCarry a' b')
 
+  public export
   bipCarry : (a, b: Bip) -> Bip
   bipCarry  U      U     = I U
   bipCarry  U     (O b') = O (bipSucc b')
@@ -66,6 +69,7 @@ mutual
   bipCarry (I a') (I b') = I (bipCarry a' b')
 
 ||| Operation x -> 2*x-1
+public export
 bipDMO : (a: Bip) -> Bip
 bipDMO  U     = U
 bipDMO (O a') = I (bipDMO a')
@@ -78,12 +82,14 @@ bipPred (O a') = bipDMO a'
 bipPred (I a') = O a'
 
 ||| Predecessor seen as Bin
+public export
 bipPredBin : (a: Bip) -> Bin
 bipPredBin  U     = BinO
 bipPredBin (O a') = BinP (bipDMO a')
 bipPredBin (I a') = BinP (O a')
 
 ||| Auxiliary type for subtraction
+public export
 data Bim =
    ||| Zero
    BimO |
@@ -144,6 +150,7 @@ bimPred  BimM    = BimM
 
 mutual
   ||| Subtraction, result as a mask
+  public export
   bimMinus : (a, b: Bip) -> Bim
   bimMinus  U      U     = BimO
   bimMinus  U      _     = BimM
@@ -154,6 +161,7 @@ mutual
   bimMinus (I a') (O b') = bimDPO (bimMinus a' b')
   bimMinus (I a') (I b') = bimD (bimMinus a' b')
 
+  public export
   bimMinusCarry : (a, b: Bip) -> Bim
   bimMinusCarry  U      _     = BimM
   bimMinusCarry (O a')  U     = bimDMT a'
@@ -173,18 +181,21 @@ bipMinus : (a, b: Bip) -> Bip
 bipMinus a b = bipMinusHelp (bimMinus a b)
 
 ||| Multiplication
+public export
 bipMult : (a, b: Bip) -> Bip
 bipMult  U     b = b
 bipMult (O a') b = O (bipMult a' b)
 bipMult (I a') b = bipPlus b (O (bipMult a' b))
 
 ||| Iteration over a positive number
-bipIter : {ty: Type} -> (f: ty -> ty) -> (a: ty) -> (b: Bip) -> ty
+public export
+bipIter : {0 ty: Type} -> (f: ty -> ty) -> (a: ty) -> (b: Bip) -> ty
 bipIter f a  U     = f a
 bipIter f a (O b') = bipIter f (bipIter f a b') b'
 bipIter f a (I b') = f (bipIter f (bipIter f a b') b')
 
 ||| Power
+public export
 bipPow : (a, b: Bip) -> Bip
 bipPow a = bipIter (bipMult a) U
 
@@ -194,36 +205,42 @@ bipPow2  Z    = U
 bipPow2 (S k) = O (bipPow2 k)
 
 ||| Square
+public export
 bipSquare : (a: Bip) -> Bip
 bipSquare  U     = U
 bipSquare (O a') = O (O (bipSquare a'))
 bipSquare (I a') = I (O (bipPlus (bipSquare a') a'))
 
 ||| Division by 2 rounded below but for 1
+public export
 bipDivTwo : (a: Bip) -> Bip
 bipDivTwo  U     = U
 bipDivTwo (O a') = a'
 bipDivTwo (I a') = a'
 
 ||| Division by 2 rounded up
+public export
 bipDivTwoCeil : (a: Bip) -> Bip
 bipDivTwoCeil  U     = U
 bipDivTwoCeil (O a') = a'
 bipDivTwoCeil (I a') = bipSucc a'
 
 ||| Number of digits in Bip, into Nat
+public export
 bipDigitsNat : (a: Bip) -> Nat
 bipDigitsNat  U     = S Z
 bipDigitsNat (O a') = S (bipDigitsNat a')
 bipDigitsNat (I a') = S (bipDigitsNat a')
 
 ||| Number of digits in a positive number
+public export
 bipDigits : (a: Bip) -> Bip
 bipDigits  U     = U
 bipDigits (O a') = bipSucc (bipDigits a')
 bipDigits (I a') = bipSucc (bipDigits a')
 
 ||| Comparison on binary positive numbers
+public export
 bipCompare : (a, b: Bip) -> (c: Ordering) -> Ordering
 bipCompare  U      U     c = c
 bipCompare  U     (O _)  _ = LT
@@ -267,6 +284,7 @@ bipSqrtRemStep f g (s, BimP r) =
 bipSqrtRemStep f g (s, _) = (O s, bimMinus (g (f U)) (O (O U)))
 
 ||| Square root with remainder
+public export
 bipSqrtRem : (a: Bip) -> (Bip, Bim)
 bipSqrtRem  U         = (U, BimO)
 bipSqrtRem (O  U)     = (U, BimP U)
@@ -277,6 +295,7 @@ bipSqrtRem (O (I a')) = bipSqrtRemStep I O (bipSqrtRem a')
 bipSqrtRem (I (I a')) = bipSqrtRemStep I I (bipSqrtRem a')
 
 ||| Square root
+public export
 bipSqrt : (a: Bip) -> Bip
 bipSqrt = fst . bipSqrtRem
 
@@ -301,6 +320,7 @@ mutual
   bipGCDN (S n') (I a') (I b') = bipGCDNHelp n' a' b' (bipCompare a' b' EQ)
 
 ||| GCD, using the Stein binary algorithm
+public export
 bipGCD : (a, b: Bip) -> Bip
 bipGCD a b = bipGCDN ((bipDigitsNat a) + (bipDigitsNat b)) a b
 
@@ -345,10 +365,12 @@ mutual
   bipGGCDN (S n') (I a') (I b') = bipGGCDNHelp n' a' b' (bipCompare a' b' EQ)
 
 ||| Generalised GCD
+public export
 bipGGCD : (a, b: Bip) -> (Bip, (Bip, Bip))
 bipGGCD a b = bipGGCDN ((bipDigitsNat a) + (bipDigitsNat b)) a b
 
 ||| Logical OR
+public export
 bipOr : (a, b: Bip) -> Bip
 bipOr  U     (O b') = I b'
 bipOr  U      b     = b
@@ -368,6 +390,7 @@ binDouble  BinO     = BinO
 binDouble (BinP a') = BinP (O a')
 
 ||| Logical AND
+public export
 bipAnd : (a, b: Bip) -> Bin
 bipAnd  U     (O _)  = BinO
 bipAnd  U      _     = BinP U
@@ -379,6 +402,7 @@ bipAnd (I a') (O b') = binDouble (bipAnd a' b')
 bipAnd (I a') (I b') = binDoubleSucc (bipAnd a' b')
 
 ||| Logical DIFF
+public export
 bipDiff : (a, b: Bip) -> Bin
 bipDiff  U     (O _)  = BinP U
 bipDiff  U      _     = BinO
@@ -390,6 +414,7 @@ bipDiff (I a') (O b') = binDoubleSucc (bipDiff a' b')
 bipDiff (I a') (I b') = binDouble (bipDiff a' b')
 
 ||| Logical XOR
+public export
 bipXor : (a, b: Bip) -> Bin
 bipXor  U      U     = BinO
 bipXor  U     (O b') = BinP (I b')
@@ -405,6 +430,7 @@ bipXor (I a') (I b') = binDouble (bipXor a' b')
 -- TODO
 
 ||| Shift left
+public export
 bipShiftL : (a: Bip) -> (b: Bin) -> Bip
 bipShiftL a  BinO     = a
 bipShiftL a (BinP b') = bipIter O a b'
@@ -415,6 +441,7 @@ bipShiftR a  BinO     = a
 bipShiftR a (BinP b') = bipIter bipDivTwo a b'
 
 ||| Checking whether a bit is set, with Nat
+public export
 bipTestBitNat : (a: Bip) -> (n: Nat) -> Bool
 bipTestBitNat  U      Z     = True
 bipTestBitNat  U     (S _)  = False
@@ -424,6 +451,7 @@ bipTestBitNat (I _ )  Z     = True
 bipTestBitNat (I a') (S n') = bipTestBitNat a' n'
 
 ||| Checking whether a bit is set, with Bin
+public export
 bipTestBit : (a: Bip) -> (b: Bin) -> Bool
 bipTestBit (O _ )  BinO     = False
 bipTestBit  _      BinO     = True
@@ -439,6 +467,7 @@ bipMultNat (O a') pow2 = bipMultNat a' (pow2 + pow2)
 bipMultNat (I a') pow2 = pow2 + (bipMultNat a' (pow2 + pow2))
 
 ||| From Bip to Nat
+public export
 toNatBip : (a: Bip) -> Nat
 toNatBip a = bipMultNat a 1
 
@@ -449,6 +478,7 @@ toBipNat (S Z)  = U
 toBipNat (S n') = bipSucc (toBipNat n')
 
 ||| From successor of Nat to Bip
+public export
 toBipNatSucc : (n: Nat) -> Bip
 toBipNatSucc  Z     = U
 toBipNatSucc (S n') = bipSucc (toBipNatSucc n')
@@ -459,11 +489,11 @@ data Parity = Even | Odd
 
 fastHalf : Integer -> Integer
 fastHalf n with (divides n 2)
-  fastHalf ((2 * div) + _) | DivBy _ = div
+  fastHalf ((2 * div) + _) | DivBy div _ _ = div
 
 fastHalfMod : Integer -> Integer
 fastHalfMod n with (divides n 2)
-  fastHalfMod ((2 * _) + rem) | DivBy _ = rem
+  fastHalfMod ((2 * _) + rem) | DivBy _ rem _ = rem
 
 integerParity : Integer -> Parity
 integerParity n =
@@ -475,11 +505,13 @@ integerParity n =
       else Odd
 
 mutual
-  -- Helper for fromIntegerBip, to work around #4001
+  -- TODO Helper for fromIntegerBip, to work around #4001
+  public export
   fromIntegerBipHelp : Integer -> Parity -> Bip
   fromIntegerBipHelp x Even = O (fromIntegerBip x)
   fromIntegerBipHelp x Odd  = I (fromIntegerBip x)
 
+  public export
   fromIntegerBip : Integer -> Bip
   fromIntegerBip n =
     if n > 1
@@ -489,6 +521,7 @@ mutual
              fromIntegerBipHelp quotient' (integerParity n)
       else U
 
+public export
 Eq Bip where
   U     ==  U    = True
   (O a) == (O b) = a == b
@@ -501,6 +534,7 @@ Cast Bip Nat where
 Cast Bip Integer where
   cast = cast {to=Integer} . toNatBip
 
+public export
 Ord Bip where
   compare a b = bipCompare a b EQ
   max = bipMax
@@ -516,17 +550,18 @@ Neg Bip where
   negate = const U
   (-) = bipMinus
 
+public export
 DecEq Bip where
   decEq  U     U    = Yes Refl
   decEq  U    (O _) = No uninhabited
   decEq  U    (I _) = No uninhabited
   decEq (O _)  U    = No uninhabited
   decEq (O a) (O b) with (decEq a b)
-    | Yes prf   = Yes $ cong prf
-    | No contra = No $ contra . OInj
+    decEq (O a) (O b) | Yes prf   = Yes $ cong O prf
+    decEq (O a) (O b) | No contra = No $ contra . OInj
   decEq (O _) (I _) = No uninhabited
   decEq (I _)  U    = No uninhabited
   decEq (I _) (O _) = No uninhabited
   decEq (I a) (I b) with (decEq a b)
-    | Yes prf   = Yes $ cong prf
-    | No contra = No $ contra . IInj
+    decEq (I a) (I b) | Yes prf   = Yes $ cong I prf
+    decEq (I a) (I b) | No contra = No $ contra . IInj

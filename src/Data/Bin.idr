@@ -1,9 +1,9 @@
 module Data.Bin
 
+import Decidable.Equality
 import public Data.Bip
 
 %default total
-%access public export
 
 -- Basic properties of constructors
 
@@ -39,6 +39,7 @@ binPred  BinO     = BinO
 binPred (BinP a') = bipPredBin a'
 
 ||| The successor of Bin seen as a Bip
+public export
 binSuccBip : (a : Bin) -> Bip
 binSuccBip  BinO     = U
 binSuccBip (BinP a') = bipSucc a'
@@ -139,13 +140,14 @@ binDigitsNat : (a : Bin) -> Nat
 binDigitsNat  BinO     = Z
 binDigitsNat (BinP a') = bipDigitsNat a'
 
--- Helper for bipDivEuclid, to work around #4001
+-- TODO Helper for bipDivEuclid, to work around #4001
 bipDivEuclidHelp : (q, r, b : Bin) -> (o : Ordering) -> (Bin, Bin)
 bipDivEuclidHelp q r b LT = (binDPO q, binMinus r b)
 bipDivEuclidHelp q r b EQ = (binDPO q, binMinus r b)
 bipDivEuclidHelp q r _ GT = (binD q, r)
 
 ||| Euclidean division on Bip and Bin
+public export
 bipDivEuclid : (a : Bip) -> (b : Bin) -> (Bin, Bin)
 bipDivEuclid  U     (BinP U) = (BinP U, BinO)
 bipDivEuclid  U      _       = (BinO, BinP U)
@@ -211,24 +213,28 @@ binSqrt  BinO     = BinO
 binSqrt (BinP a') = BinP (bipSqrt a')
 
 ||| Logical OR
+public export
 binOr : (a, b : Bin) -> Bin
 binOr  BinO      b        = b
 binOr  a         BinO     = a
 binOr (BinP a') (BinP b') = BinP (bipOr a' b')
 
 ||| Logical AND
+public export
 binAnd : (a, b : Bin) -> Bin
 binAnd  BinO      _        = BinO
 binAnd  _         BinO     = BinO
 binAnd (BinP a') (BinP b') = bipAnd a' b'
 
 ||| Logical DIFF
+public export
 binDiff : (a, b : Bin) -> Bin
 binDiff  BinO      _        = BinO
 binDiff  a         BinO     = a
 binDiff (BinP a') (BinP b') = bipDiff a' b'
 
 ||| Logical XOR
+public export
 binXor : (a, b : Bin) -> Bin
 binXor  BinO      b        = b
 binXor  a         BinO     = a
@@ -250,6 +256,7 @@ binTestBitNat  BinO     _ = False
 binTestBitNat (BinP a') b = bipTestBitNat a' b
 
 ||| Checking whether a bit is set, with index in Bin
+public export
 binTestBit : (a, b : Bin) -> Bool
 binTestBit  BinO     _ = False
 binTestBit (BinP a') b = bipTestBit a' b
@@ -316,7 +323,7 @@ DecEq Bin where
   decEq  BinO    (BinP _) = No absurd
   decEq (BinP _)  BinO    = No absurd
   decEq (BinP a) (BinP b) = case decEq a b of
-    Yes prf => Yes $ cong prf
+    Yes prf => Yes $ cong BinP prf
     No contra => No $ contra . binPInj
 
 -- TODO: Where does this come from?
