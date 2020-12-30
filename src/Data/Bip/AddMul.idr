@@ -2,7 +2,6 @@ module Data.Bip.AddMul
 
 import Data.Bip
 
-%access export
 %default total
 
 -- xI_succ_xO is trivial
@@ -17,10 +16,10 @@ succDiscr (I _) = absurd
 -- pred_double_spec is trivial
 
 -- succ_pred_double
-
+export
 succPredDouble : (p : Bip) -> bipSucc (bipDMO p) = O p
 succPredDouble  U    = Refl
-succPredDouble (O a) = rewrite succPredDouble a in Refl
+succPredDouble (O a) = cong O $ succPredDouble a
 succPredDouble (I _) = Refl
 
 -- pred_double_succ
@@ -28,7 +27,7 @@ succPredDouble (I _) = Refl
 predDoubleSucc : (p : Bip) -> bipDMO (bipSucc p) = I p
 predDoubleSucc  U    = Refl
 predDoubleSucc (O _) = Refl
-predDoubleSucc (I a) = rewrite predDoubleSucc a in Refl
+predDoubleSucc (I a) = cong I $ predDoubleSucc a
 
 -- double_succ is trivial
 
@@ -49,26 +48,20 @@ succNotU (I _) = absurd
 -- pred_succ
 
 predSucc : (p : Bip) -> bipPred (bipSucc p) = p
-predSucc  U    = Refl
-predSucc (O _) = Refl
-predSucc (I a) = case a of
-  U     => Refl
-  (O _) => Refl
-  (I b) => rewrite predSucc (I b) in Refl
+predSucc  U        = Refl
+predSucc (O  _)    = Refl
+predSucc (I  U)    = Refl
+predSucc (I (O _)) = Refl
+predSucc (I (I b)) = cong I $ predSucc (I b)
 
 -- succ_pred_or
 
 succPredOr : (p : Bip) -> Either (p = U) (bipSucc (bipPred p) = p)
-succPredOr  U    = Left Refl
-succPredOr (O a) = case a of
-  U     => Right Refl
-  (O b) =>
-    -- Either (O (O b) = U) (O (bipSucc (bipDMO b)) = O (O b))
-    -- Cf. succPredDouble : (p: Bip) -> bipSucc (bipDMO p) = (O p)
-    rewrite succPredDouble (O b) in
-    Right Refl
-  (I _) => Right Refl
-succPredOr (I _) = Right Refl
+succPredOr  U        = Left Refl
+succPredOr (O  U)    = Right Refl
+succPredOr (O (O b)) = Right $ cong O $ succPredDouble b
+succPredOr (O (I _)) = Right Refl
+succPredOr (I  _)    = Right Refl
 
 -- succ_inj
 ||| Injectivity of successor
@@ -77,28 +70,28 @@ succInj  U     U    Refl = Refl
 succInj  U    (O _) Refl impossible
 succInj  U    (I a) prf  = absurd $ succNotU a (sym $ OInj prf)
 succInj (O _)  U    prf  = absurd prf
-succInj (O a) (O a) Refl = cong {f=O} Refl
+succInj (O a) (O a) Refl = cong O Refl
 succInj (O _) (I _) prf  = absurd prf
 succInj (I a)  U    prf  = absurd $ succNotU a (OInj prf)
 succInj (I _) (O _) prf  = absurd prf
-succInj (I a) (I b) prf  = cong $ succInj a b (OInj prf)
+succInj (I a) (I b) prf  = cong I $ succInj a b (OInj prf)
 
 -- pred_N_succ
 
 predBinSucc : (p : Bip) -> bipPredBin (bipSucc p) = BinP p
 predBinSucc  U    = Refl
 predBinSucc (O _) = Refl
-predBinSucc (I a) = cong $ predDoubleSucc a
+predBinSucc (I a) = cong BinP $ predDoubleSucc a
 
 -- add_1_r
-
+export
 add1R : (p : Bip) -> p + U = bipSucc p
 add1R  U    = Refl
 add1R (O _) = Refl
 add1R (I _) = Refl
 
 -- add_1_l
-
+export
 add1L : (p : Bip) -> U + p = bipSucc p
 add1L  U    = Refl
 add1L (O _) = Refl
@@ -112,40 +105,41 @@ addCarrySpec  U    (O _) = Refl
 addCarrySpec  U    (I _) = Refl
 addCarrySpec (O _)  U    = Refl
 addCarrySpec (O _) (O _) = Refl
-addCarrySpec (O a) (I b) = cong $ addCarrySpec a b
+addCarrySpec (O a) (I b) = cong O $ addCarrySpec a b
 addCarrySpec (I _)  U    = Refl
-addCarrySpec (I a) (O b) = cong $ addCarrySpec a b
+addCarrySpec (I a) (O b) = cong O $ addCarrySpec a b
 addCarrySpec (I _) (I _) = Refl
 
 -- add_comm
 ||| Commutativity
+export
 addComm : (p, q : Bip) -> p + q = q + p
 addComm  p     U    = rewrite add1R p in
-                      rewrite add1L p in Refl
+                      sym $ add1L p
 addComm  U     q    = rewrite add1R q in
-                      rewrite add1L q in Refl
-addComm (O a) (O b) = cong $ addComm a b
-addComm (I a) (O b) = cong $ addComm a b
-addComm (O a) (I b) = cong $ addComm a b
+                      add1L q
+addComm (O a) (O b) = cong O $ addComm a b
+addComm (I a) (O b) = cong I $ addComm a b
+addComm (O a) (I b) = cong I $ addComm a b
 addComm (I a) (I b) = rewrite addCarrySpec a b in
                       rewrite addCarrySpec b a in
-                      cong {f = O . bipSucc} $ addComm a b
+                      cong (O . bipSucc) $ addComm a b
 
 -- add_succ_r
 
 addSuccR : (p, q : Bip) -> p + bipSucc q = bipSucc (p + q)
 addSuccR  U     q    = rewrite add1L (bipSucc q) in
-                       rewrite add1L q in Refl
-addSuccR (O a)  U    = cong $ add1R a
-addSuccR (I a)  U    = cong $ add1R a
+                       cong bipSucc $ sym $ add1L q
+addSuccR (O a)  U    = cong O $ add1R a
+addSuccR (I a)  U    = cong I $ add1R a
 addSuccR (O _) (O _) = Refl
-addSuccR (I a) (O b) = cong $ addCarrySpec a b
-addSuccR (O a) (I b) = cong $ addSuccR a b
+addSuccR (I a) (O b) = cong O $ addCarrySpec a b
+addSuccR (O a) (I b) = cong O $ addSuccR a b
 addSuccR (I a) (I b) = rewrite addCarrySpec a b in
-                       cong $ addSuccR a b
+                       cong I $ addSuccR a b
 
 -- add_succ_l
-
+export
 addSuccL : (p, q : Bip) -> bipSucc p + q = bipSucc (p + q)
 addSuccL p q =
   rewrite addComm (bipSucc p) q in
@@ -154,8 +148,9 @@ addSuccL p q =
 
 -- add_no_neutral
 ||| No neutral elements for addition
+export
 addNoNeutral : (p, q : Bip) -> Not (q + p = p)
-addNoNeutral  p     U    = rewrite add1L p in succDiscr p . sym
+addNoNeutral  p     U    = rewrite add1L p in \prf => succDiscr p $ sym prf
 addNoNeutral  U    (O _) = uninhabited
 addNoNeutral (O a) (O b) = addNoNeutral a b . OInj
 addNoNeutral (I a) (O b) = addNoNeutral a b . IInj
@@ -173,6 +168,7 @@ addCarryAdd p q r s =
 
 -- add_reg_r
 -- TODO this can probably be simplified
+export
 addRegR : (p, q, r : Bip) -> p + r = q + r -> p = q
 addRegR  p     q     U    = rewrite add1R p in
                             rewrite add1R q in
@@ -187,10 +183,10 @@ addRegR (I a)  U    (I c) =
 
 addRegR  U    (O _) (O _) = absurd
 addRegR  U    (O _) (I _) = absurd
-addRegR  U    (I b) (O c) = absurd . addNoNeutral c b . sym . IInj
+addRegR  U    (I b) (O c) = absurd . addNoNeutral c b . (\prf => sym $ IInj prf)
 addRegR  U    (I b) (I c) =
   rewrite addCarrySpec b c in
-  absurd . addNoNeutral c b . sym . succInj c (b+c) . OInj
+  absurd . addNoNeutral c b . (\prf => sym $ succInj c (b+c) $ OInj prf)
 
 addRegR (O _) (I _) (O _) = absurd
 addRegR (O _) (I _) (I _) = absurd
@@ -198,16 +194,16 @@ addRegR (I _) (O _) (O _) = absurd
 addRegR (I _) (O _) (I _) = absurd
 
 addRegR  U     U    _     = const Refl
-addRegR (O a) (O b) (O c) = cong . addRegR a b c . OInj
-addRegR (O a) (O b) (I c) = cong . addRegR a b c . IInj
-addRegR (I a) (I b) (O c) = cong . addRegR a b c . IInj
+addRegR (O a) (O b) (O c) = cong O . addRegR a b c . OInj
+addRegR (O a) (O b) (I c) = cong O . addRegR a b c . IInj
+addRegR (I a) (I b) (O c) = cong I . addRegR a b c . IInj
 addRegR (I a) (I b) (I c) =
   rewrite addCarrySpec a c in
   rewrite addCarrySpec b c in
-  cong . addRegR a b c . succInj (a+c) (b+c) . OInj
+  cong I . addRegR a b c . succInj (a+c) (b+c) . OInj
 
 -- add_reg_l
-
+export
 addRegL : (p, q, r : Bip) -> p + q = p + r -> q = r
 addRegL p q r = rewrite addComm p q in
                 rewrite addComm p r in
@@ -229,6 +225,7 @@ addCarryRegL p q r = addRegL p q r . addCarryAdd p p q r
 
 -- add_assoc
 ||| Addition is associative
+export
 addAssoc : (p, q, r : Bip) -> p + (q + r) = p + q + r
 addAssoc  U     q     r    = rewrite add1L (q+r) in
                              rewrite add1L q in
@@ -240,31 +237,31 @@ addAssoc  p     U     r    = rewrite add1L r in
 addAssoc  p     q     U    = rewrite add1R (p+q) in
                              rewrite add1R q in
                              addSuccR p q
-addAssoc (O a) (O b) (O c) = cong $ addAssoc a b c
-addAssoc (O a) (O b) (I c) = cong $ addAssoc a b c
-addAssoc (O a) (I b) (O c) = cong $ addAssoc a b c
+addAssoc (O a) (O b) (O c) = cong O $ addAssoc a b c
+addAssoc (O a) (O b) (I c) = cong I $ addAssoc a b c
+addAssoc (O a) (I b) (O c) = cong I $ addAssoc a b c
 addAssoc (O a) (I b) (I c) = rewrite addCarrySpec b c in
                              rewrite addCarrySpec (a+b) c in
                              rewrite addSuccR a (b+c) in
-                             cong {f=O . bipSucc} $ addAssoc a b c
-addAssoc (I a) (O b) (O c) = cong $ addAssoc a b c
+                             cong (O . bipSucc) $ addAssoc a b c
+addAssoc (I a) (O b) (O c) = cong I $ addAssoc a b c
 addAssoc (I a) (O b) (I c) = rewrite addCarrySpec a (b+c) in
                              rewrite addCarrySpec (a+b) c in
-                             cong {f=O . bipSucc} $ addAssoc a b c
+                             cong (O . bipSucc) $ addAssoc a b c
 addAssoc (I a) (I b) (O c) = rewrite addCarrySpec a (b+c) in
                              rewrite addCarrySpec a b in
                              rewrite addSuccL (a+b) c in
-                             cong {f=O . bipSucc} $ addAssoc a b c
+                             cong (O . bipSucc) $ addAssoc a b c
 addAssoc (I a) (I b) (I c) = rewrite addCarrySpec a b in
                              rewrite addCarrySpec b c in
                              rewrite addSuccR a (b+c) in
                              rewrite addSuccL (a+b) c in
-                             cong {f=I . bipSucc} $ addAssoc a b c
+                             cong (I . bipSucc) $ addAssoc a b c
 
 -- add_xO is trivial
 
 -- add_xI_pred_double
-
+export
 addXIPredDouble : (p, q : Bip) -> O (p+q) = I p + bipDMO q
 addXIPredDouble p q =
   rewrite aux p (bipDMO q) in
@@ -272,10 +269,10 @@ addXIPredDouble p q =
   Refl
   where
   aux : (p,q : Bip) -> I p + q = O p + bipSucc q
-  aux p  U    = cong $ sym $ add1R p
+  aux p  U    = cong O $ sym $ add1R p
   aux p (O _) = Refl
   aux p (I b) = rewrite addCarrySpec p b in
-                cong $ sym $ addSuccR p b
+                cong O $ sym $ addSuccR p b
 
 -- add_xO_pred_double
 
@@ -283,19 +280,19 @@ addXOPredDouble : (p, q : Bip) -> bipDMO (p+q) = O p + bipDMO q
 addXOPredDouble  p     U    = rewrite add1R p in
                               predDoubleSucc p
 addXOPredDouble  U    (O b) = rewrite add1L (bipDMO b) in
-                              cong $ sym $ succPredDouble b
-addXOPredDouble (O a) (O b) = cong $ addXOPredDouble a b
-addXOPredDouble (I a) (O b) = cong $ addXIPredDouble a b
-addXOPredDouble  U    (I b) = cong $ predDoubleSucc b
+                              cong I $ sym $ succPredDouble b
+addXOPredDouble (O a) (O b) = cong I $ addXOPredDouble a b
+addXOPredDouble (I a) (O b) = cong I $ addXIPredDouble a b
+addXOPredDouble  U    (I b) = cong I $ predDoubleSucc b
 addXOPredDouble (O _) (I _) = Refl
 addXOPredDouble (I a) (I b) = rewrite addCarrySpec a b in
-                              cong $ predDoubleSucc (a+b)
+                              cong I $ predDoubleSucc (a+b)
 
 -- add_diag
-
+export
 addDiag : (p : Bip) -> p + p = O p
 addDiag  U    = Refl
-addDiag (O a) = cong $ addDiag a
+addDiag (O a) = cong O $ addDiag a
 addDiag (I a) =
   rewrite addCarrySpec a a in
   rewrite addDiag a in
@@ -307,35 +304,36 @@ addDiag (I a) =
 
 mul1R : (p : Bip) -> p * U = p
 mul1R  U    = Refl
-mul1R (O a) = cong $ mul1R a
-mul1R (I a) = cong $ mul1R a
+mul1R (O a) = cong O $ mul1R a
+mul1R (I a) = cong I $ mul1R a
 
 -- mul_xO_r
 
 mulXOR : (p, q : Bip) -> p * O q = O (p * q)
 mulXOR  U    _ = Refl
-mulXOR (O a) q = cong $ mulXOR a q
-mulXOR (I a) q = cong {f=O . bipPlus q} $ mulXOR a q
+mulXOR (O a) q = cong O $ mulXOR a q
+mulXOR (I a) q = cong (O . bipPlus q) $ mulXOR a q
 
 -- mul_xI_r
 
 mulXIR : (p, q : Bip) -> p * I q = p + O (p * q)
 mulXIR  U    _ = Refl
-mulXIR (O a) q = cong $ mulXIR a q
+mulXIR (O a) q = cong O $ mulXIR a q
 mulXIR (I a) q =
   rewrite addComm a (q + O (a * q)) in
   rewrite sym $ addAssoc q (O (a * q)) a in
   rewrite addComm (O (a * q)) a in
-  cong {f=I . bipPlus q} $ mulXIR a q
+  cong (I . bipPlus q) $ mulXIR a q
 
 -- mul_comm
 ||| Commutativity of multiplication
+export
 mulComm : (p, q : Bip) -> p * q = q * p
 mulComm p  U    = mul1R p
 mulComm p (O b) = rewrite mulXOR p b in
-                  cong $ mulComm p b
+                  cong O $ mulComm p b
 mulComm p (I b) = rewrite mulXIR p b in
-                  cong {f=bipPlus p . O} $ mulComm p b
+                  cong (bipPlus p . O) $ mulComm p b
 
 -- mul_add_distr_l
 
@@ -348,9 +346,10 @@ addShuffle p q r s =
   rewrite sym $ addAssoc (p+r) q s in
   Refl
 
+export
 mulAddDistrL : (p, q, r : Bip) -> p * (q + r) = p * q + p * r
 mulAddDistrL  U    _ _ = Refl
-mulAddDistrL (O a) q r = cong $ mulAddDistrL a q r
+mulAddDistrL (O a) q r = cong O $ mulAddDistrL a q r
 mulAddDistrL (I a) q r =
   rewrite mulAddDistrL a q r in
   rewrite sym $ addShuffle q (O (a*q)) r (O (a*r)) in
@@ -369,9 +368,9 @@ mulAddDistrR p q r =
 ||| Associativity of multiplication
 mulAssoc : (p, q, r : Bip) -> p * (q * r) = p * q * r
 mulAssoc  U    _ _ = Refl
-mulAssoc (O a) q r = cong $ mulAssoc a q r
+mulAssoc (O a) q r = cong O $ mulAssoc a q r
 mulAssoc (I a) q r = rewrite mulAddDistrR q (O (a*q)) r in
-                     cong {f=bipPlus (q*r) . O} $ mulAssoc a q r
+                     cong (bipPlus (q*r) . O) $ mulAssoc a q r
 
 -- mul_succ_l
 
@@ -435,12 +434,12 @@ mulOneNeutral (I a) (I b) = rewrite addComm b (a*(I b)) in
 
 mulRegR : (p, q, r : Bip) -> p * r = q * r -> p = q
 mulRegR  p     U     r = mulOneNeutral p r
-mulRegR  U     q     r = sym . mulOneNeutral q r . sym
-mulRegR (O a) (O b)  r = cong . mulRegR a b r . OInj
+mulRegR  U     q     r = \prf => sym $ mulOneNeutral q r $ sym prf
+mulRegR (O a) (O b)  r = cong O . mulRegR a b r . OInj
 mulRegR (I a) (I b)  r =
-  cong . mulRegR a b r . OInj . addRegL r (O (a*r)) (O (b*r))
+  cong I . mulRegR a b r . OInj . addRegL r (O (a*r)) (O (b*r))
 mulRegR (I a) (O b)  r = absurd . addXONotXO a b r
-mulRegR (O a) (I b)  r = absurd . addXONotXO b a r . sym
+mulRegR (O a) (I b)  r = absurd . addXONotXO b a r . (\prf => sym prf)
 
 -- mul_reg_l
 
@@ -467,7 +466,7 @@ mulEq1R p q = rewrite mulComm p q in mulEq1L q p
 -- square_xO
 
 squareXO : (p : Bip) -> (O p) * (O p) = O (O (p*p))
-squareXO p = cong $ mulXOR p p
+squareXO p = cong O $ mulXOR p p
 
 -- square_xI
 
@@ -476,17 +475,17 @@ squareXI p =
   rewrite mulXIR p p in
   rewrite addAssoc p p (O(p*p)) in
   rewrite addDiag p in
-  cong {f=I . O} $ addComm p (p*p)
+  cong (I . O) $ addComm p (p*p)
 
 -- square_spec
 
 squareSpec : (p : Bip) -> bipSquare p = p * p
 squareSpec  U    = Refl
 squareSpec (O a) = rewrite mulComm a (O a) in
-                   cong {f=O . O} $ squareSpec a
+                   cong (O . O) $ squareSpec a
 squareSpec (I a) =
   rewrite mulXIR a a in
   rewrite addAssoc a a (O (a*a)) in
   rewrite addDiag a in
   rewrite addComm (bipSquare a) a in
-  cong {f=I . O . bipPlus a} $ squareSpec a
+  cong (I . O . bipPlus a) $ squareSpec a

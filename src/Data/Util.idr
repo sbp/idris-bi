@@ -26,24 +26,31 @@ listElemMapInv f  y    (_ :: t) (There th) = let (x ** (yfx, el)) = listElemMapI
 
 ------ TODO add to Prelude.Interfaces
 
+export
 Uninhabited (LT = EQ) where
   uninhabited Refl impossible
 
+export
 Uninhabited (EQ = LT) where
   uninhabited Refl impossible
 
+export
 Uninhabited (LT = GT) where
   uninhabited Refl impossible
 
+export
 Uninhabited (GT = LT) where
   uninhabited Refl impossible
 
+export
 Uninhabited (GT = EQ) where
   uninhabited Refl impossible
 
+export
 Uninhabited (EQ = GT) where
   uninhabited Refl impossible
 
+export
 DecEq Ordering where
   decEq LT LT = Yes Refl
   decEq LT EQ = No uninhabited
@@ -55,11 +62,13 @@ DecEq Ordering where
   decEq GT EQ = No uninhabited
   decEq GT GT = Yes Refl
 
+public export
 compareOp : Ordering -> Ordering
 compareOp LT = GT
 compareOp EQ = EQ
 compareOp GT = LT
 
+public export
 compareOpInj : (o1, o2 : Ordering) -> compareOp o1 = compareOp o2 -> o1 = o2
 compareOpInj LT LT Refl = Refl
 compareOpInj LT EQ Refl impossible
@@ -71,6 +80,7 @@ compareOpInj GT LT Refl impossible
 compareOpInj GT EQ Refl impossible
 compareOpInj GT GT Refl = Refl
 
+public export
 thenCompare : Ordering -> Lazy Ordering -> Ordering
 thenCompare LT y = LT
 thenCompare EQ y = y
@@ -182,6 +192,10 @@ andbTrueIffTo True  True  Refl = (Refl, Refl)
 notTrueIsFalse : (b : Bool) -> Not (b = True) -> b = False
 notTrueIsFalse True  nbt = absurd $ nbt Refl
 notTrueIsFalse False _   = Refl
+
+notSoIsFalse : (b : Bool) -> Not (So b) -> b = False
+notSoIsFalse True  nbt = absurd $ nbt Oh
+notSoIsFalse False _   = Refl
 
 --trueOrFalse : (b : Bool) -> Either (b = False) (b = True)
 --trueOrFalse False = Left Refl

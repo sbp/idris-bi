@@ -3,23 +3,23 @@ module Data.Bip.Iter
 import Data.Bip
 import Data.Bip.AddMul
 
-%access export
 %default total
 
 -- peano_rect
 
 mutual
-  peanoRect : (P : Bip -> Type) -> (a : P U) ->
-              (f : (p : Bip) -> P p -> P (bipSucc p)) ->
-              (p : Bip) -> P p
-  peanoRect P a _  U    = a
-  peanoRect P a f (O q) = peanoAux P a f q
-  peanoRect P a f (I q) = f _ (peanoAux P a f q)
+  export
+  peanoRect : (0 t : Bip -> Type) -> (a : t U) ->
+              (f : (p : Bip) -> t p -> t (bipSucc p)) ->
+              (p : Bip) -> t p
+  peanoRect _ a _  U    = a
+  peanoRect t a f (O q) = peanoAux t a f q
+  peanoRect t a f (I q) = f _ (peanoAux t a f q)
 
-  peanoAux : (P : Bip -> Type) -> (a : P U) ->
-             (f : (p : Bip) -> P p -> P (bipSucc p)) ->
-             (p : Bip) -> P (O p)
-  peanoAux P a f p = peanoRect (P . O) (f _ a) (\_ => f _ . f _) p
+  peanoAux : (0 t : Bip -> Type) -> (a : t U) ->
+             (f : (p : Bip) -> t p -> t (bipSucc p)) ->
+             (p : Bip) -> t (O p)
+  peanoAux t a f p = peanoRect (t . O) (f _ a) (\_ => f _ . f _) p
 
 -- TODO rest of Peano?
 
