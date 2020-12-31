@@ -39,7 +39,7 @@ predDoubleODiscr (O _) = absurd
 predDoubleODiscr (I _) = absurd
 
 -- succ_not_1
-
+export
 succNotU : (p : Bip) -> Not (bipSucc p = U)
 succNotU  U    = absurd
 succNotU (O _) = absurd

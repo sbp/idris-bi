@@ -1,5 +1,6 @@
 module Data.Bip.OrdSub
 
+import Syntax.WithProof
 import Data.Nat
 import Data.So
 import Data.Util
@@ -281,39 +282,19 @@ mutual
   compGtNotEq (I a) (O b) = compGtNotEq a b
   compGtNotEq (I a) (I b) = compGtNotEq a b
 
-mutual
-  thenCompareLT : (a, b : Bip) -> thenCompare (bipCompare a b LT) o = bipCompare a b LT
-  thenCompareLT  U     U    = Refl
-  thenCompareLT  U    (O _) = Refl
-  thenCompareLT  U    (I _) = Refl
-  thenCompareLT (O _)  U    = Refl
-  thenCompareLT (O a) (O b) = thenCompareLT a b
-  thenCompareLT (O a) (I b) = thenCompareLT a b
-  thenCompareLT (I _)  U    = Refl
-  thenCompareLT (I a) (O b) = thenCompareGT a b
-  thenCompareLT (I a) (I b) = thenCompareLT a b
+-- TODO Idris2 doesn't have a proper `proof` keyword
+thenCompareLT : (a, b : Bip) -> thenCompare (bipCompare a b LT) o = bipCompare a b LT
+thenCompareLT a b with (@@ (bipCompare a b LT))
+  thenCompareLT a b | (LT**ablt) = rewrite ablt in Refl
+  thenCompareLT a b | (EQ**ablt) = absurd $ compLtNotEq a b ablt
+  thenCompareLT a b | (GT**ablt) = rewrite ablt in Refl
 
-  -- TODO Idris2 doesn't have the `proof` keyword!
-  --with (bipCompare a b LT) proof ablt
-  --  thenCompareLT a b | LT = Refl
-  --  thenCompareLT a b | EQ = absurd $ compLtNotEq a b $ sym ablt
-  --  thenCompareLT a b | GT = Refl
-
-  thenCompareGT : (a, b : Bip) -> thenCompare (bipCompare a b GT) o = bipCompare a b GT
-  thenCompareGT  U     U    = Refl
-  thenCompareGT  U    (O _) = Refl
-  thenCompareGT  U    (I _) = Refl
-  thenCompareGT (O _)  U    = Refl
-  thenCompareGT (O a) (O b) = thenCompareGT a b
-  thenCompareGT (O a) (I b) = thenCompareLT a b
-  thenCompareGT (I _)  U    = Refl
-  thenCompareGT (I a) (O b) = thenCompareGT a b
-  thenCompareGT (I a) (I b) = thenCompareGT a b
-
-  --with (bipCompare a b GT) proof abgt
-  --  thenCompareGT a b | LT = Refl
-  --  thenCompareGT a b | EQ = absurd $ compGtNotEq a b $ sym abgt
-  --  thenCompareGT a b | GT = Refl
+-- TODO Idris2 doesn't have a proper `proof` keyword
+thenCompareGT : (a, b : Bip) -> thenCompare (bipCompare a b GT) o = bipCompare a b GT
+thenCompareGT a b with (@@ (bipCompare a b GT))
+  thenCompareGT a b | (LT**abgt) = rewrite abgt in Refl
+  thenCompareGT a b | (EQ**abgt) = absurd $ compGtNotEq a b abgt
+  thenCompareGT a b | (GT**abgt) = rewrite abgt in Refl
 
 -- compare_cont_spec
 
@@ -485,13 +466,12 @@ ltIffAddTo : (p, q : Bip) -> p `Lt` q -> (r ** p + r = q)
 ltIffAddTo p q = rewrite compareSubMask p q in
                  aux
   where
+  -- TODO Idris2 doesn't have a proper `proof` keyword
   aux : mask2cmp (bimMinus p q) = LT -> (r : Bip ** bipPlus p r = q)
-  aux prf = ?wat
-
-  --with (bimMinus p q) proof pq
-  --  aux | BimO   = absurd prf
-  --  aux | BimP _ = absurd prf
-  --  aux | BimM   = subMaskNegTo p q (sym pq)
+  aux with (@@ (bimMinus p q))
+    aux | (BimO  **pq) = rewrite pq in absurd
+    aux | (BimP _**pq) = rewrite pq in absurd
+    aux | (BimM  **pq) = const $ subMaskNegTo p q pq
 
 ltIffAddFro : (p, q : Bip) -> (r ** p + r = q) -> p `Lt` q
 ltIffAddFro p q rprf =
@@ -506,12 +486,12 @@ gtIffAddTo : (p, q : Bip) -> p `Gt` q -> (r ** q + r = p)
 gtIffAddTo p q = rewrite compareSubMask p q in
                  aux
   where
+  -- TODO Idris2 doesn't have a proper `proof` keyword
   aux : mask2cmp (bimMinus p q) = GT -> (r : Bip ** q+r = p)
-  aux prf = ?wat2
-  --with (bimMinus p q) proof pq
-  --  | BimO   = absurd prf
-  --  | BimP r = (r ** subMaskAdd p q r (sym pq))
-  --  | BimM   = absurd prf
+  aux with (@@ (bimMinus p q))
+    aux | (BimO  **pq) = rewrite pq in absurd
+    aux | (BimP r**pq) = const (r ** subMaskAdd p q r pq)
+    aux | (BimM  **pq) = rewrite pq in absurd
 
 gtIffAddFro : (p, q : Bip) -> (r ** q + r = p) -> p `Gt` q
 gtIffAddFro p q (r**qrp) =
@@ -548,12 +528,12 @@ compareEqIffTo : (p, q : Bip) -> p `compare` q = EQ -> p = q
 compareEqIffTo p q = rewrite compareSubMask p q in
                      aux
   where
+-- TODO Idris2 doesn't have a proper `proof` keyword
   aux : mask2cmp (bimMinus p q) = EQ -> p = q
-  aux prf = ?wat3
-  --with (bimMinus p q) proof pq
-  --  | BimO   = subMaskNulTo p q (sym pq)
-  --  | BimP _ = absurd prf
-  --  | BimM   = absurd prf
+  aux with (@@ (bimMinus p q))
+    aux | (BimO  **pq) = const $ subMaskNulTo p q pq
+    aux | (BimP _**pq) = rewrite pq in absurd
+    aux | (BimM  **pq) = rewrite pq in absurd
 
 compareEqIffFro : (p, q : Bip) -> p = q -> p `compare` q = EQ
 compareEqIffFro p q prf =
@@ -678,7 +658,7 @@ ltSuccRFro p q pleq = aux pleq $ compareSuccR p q
   where
   aux : p `Le` q -> thenCompare (p `compare` (bipSucc q)) GT = thenCompare (p `compare` q) LT
      -> p `compare` (bipSucc q) = LT
-  aux pleq prf = ?wat1
+  aux pleq prf = ?wat0
 -- with (bipCompare p q EQ)
 --   aux pleq prf | LT with (bipCompare p (bipSucc q))
 --      aux pleq prf | LT | LT = Refl
@@ -710,12 +690,12 @@ compareSuccSucc (O a) (I b) =
   sym $ compareContSpec a b LT
 compareSuccSucc (I a)  U    = aux $ leGe U (bipSucc a) $ le1L (bipSucc a)
   where
+  -- TODO Idris2 doesn't have a proper `proof` keyword
   aux : Not ((bipSucc a) `compare` U = LT) -> (bipSucc a) `compare` U = GT
-  aux nsalt1 = ?wat4
-  --with ((bipSucc a) `compare` U) proof sau
-  --  | LT = absurd $ nsalt1 Refl
-  --  | EQ = absurd $ succNotU a $ compareEqIffTo (bipSucc a) U $ sym sau
-  --  | GT = Refl
+  aux with (@@ ((bipSucc a) `compare` U))
+    aux | (LT**sau) = rewrite sau in \ctra => absurd $ ctra Refl
+    aux | (EQ**sau) = absurd $ succNotU a $ compareEqIffTo (bipSucc a) U sau
+    aux | (GT**sau) = const sau
 compareSuccSucc (I a) (O b) =
   rewrite compareContSpec (bipSucc a) b LT in
   rewrite compareContSpec a b GT in
@@ -742,19 +722,17 @@ ltLeIncl p q pltq pgtq with (p `compare` q)
 ltNleTo : (p, q : Bip) -> p `Lt` q -> Not (q `Le` p)
 ltNleTo p q pltq qlep = qlep $ ltGt p q pltq
 
+-- TODO Idris2 doesn't have a proper `proof` keyword
 ltNleFro : (p, q : Bip) -> Not (q `Le` p) -> p `Lt` q
-ltNleFro p q nqlep = ?wat5
---with (p `compare` q) proof pq
---  | LT = Refl
---  | EQ =
---    let peqq = compareEqIffTo p q (sym pq)
---        qq = replace {p=\x=>Not (Not (q `Gt` x))}
---                     peqq nqlep
---        nn = replace {p=\x=>Not (Not (x = GT))}
---                     (compareContRefl q EQ) qq
---    in
---      absurd $ nn uninhabited
---  | GT = absurd $ nqlep $ ltLeIncl q p $ gtLt p q $ sym pq
+ltNleFro p q with (@@ (p `compare` q))
+  ltNleFro p q | (LT**pq) = const pq
+  ltNleFro p q | (EQ**pq) =
+    rewrite compareEqIffTo p q pq in
+    rewrite compareContRefl q EQ in
+    \ctra => absurd $ ctra uninhabited
+  ltNleFro p q | (GT**pq) =
+    let pleq = ltLeIncl q p $ gtLt p q pq in
+    \ctra => absurd $ ctra pleq
 
 -- lt_lt_succ
 
@@ -797,21 +775,20 @@ ltTrans p q r pltq qltr =
 -- TODO lt_strorder
 -- TODO lt_compat
 
-leLtOrEq : (x, y : Bip) -> x `Le` y -> Either (x `Lt` y) (x=y)
-leLtOrEq x y xley = ?wat6
---with (x `compare` y) proof xy
---  | LT = Left Refl
---  | EQ = Right $ compareEqIffTo x y (sym xy)
---  | GT = absurd $ xley Refl
+-- TODO Idris2 doesn't have a proper `proof` keyword
+leLtOrEq : (p, q : Bip) -> p `Le` q -> Either (p `Lt` q) (p=q)
+leLtOrEq p q with (@@ (p `compare` q))
+  leLtOrEq p q | (LT**pq) = const $ Left pq
+  leLtOrEq p q | (EQ**pq) = const $ Right $ compareEqIffTo p q pq
+  leLtOrEq p q | (GT**pq) = rewrite pq in \ctra => absurd $ ctra Refl
 
 -- lt_total
-
+-- TODO Idris2 doesn't have a proper `proof` keyword
 ltTotal : (p, q : Bip) -> Either (Either (p `Lt` q) (q `Lt` p)) (p = q)
-ltTotal p q = ?wat7
---with (p `compare` q) proof pq
---  | LT = Left $ Left Refl
---  | EQ = Right $ compareEqIffTo p q (sym pq)
---  | GT = Left $ Right $ gtLt p q (sym pq)
+ltTotal p q with (@@ (p `compare` q))
+  ltTotal p q | (LT**pq) = Left $ Left pq
+  ltTotal p q | (EQ**pq) = Right $ compareEqIffTo p q pq
+  ltTotal p q | (GT**pq) = Left $ Right $ gtLt p q pq
 
 -- le_refl
 
@@ -820,26 +797,23 @@ leRefl p = rewrite compareContRefl p EQ in
            uninhabited
 
 -- le_lt_trans
-
+-- TODO Idris2 doesn't have a proper `proof` keyword
 leLtTrans : (p, q, r : Bip) -> p `Le` q -> q `Lt` r -> p `Lt` r
-leLtTrans p q r pleq qltr = ?wat8
---with (p `compare` q) proof pq
---  | LT = ltTrans p q r (sym pq) qltr
---  | EQ = rewrite compareEqIffTo p q (sym pq) in
---         qltr
---  | GT = absurd $ pleq Refl
+leLtTrans p q r with (@@ (p `compare` q))
+  leLtTrans p q r | (LT**pq) = \_, qltr => ltTrans p q r pq qltr
+  leLtTrans p q r | (EQ**pq) = \_, qltr => rewrite compareEqIffTo p q pq in qltr
+  leLtTrans p q r | (GT**pq) = rewrite pq in \ctra => absurd $ ctra Refl
 
 -- le_trans
-
+-- TODO Idris2 doesn't have a proper `proof` keyword
 leTrans : (p, q, r : Bip) -> p `Le` q -> q `Le` r -> p `Le` r
-leTrans p q r pleq qler pgtr = ?wat9
---with (q `compare` r) proof qr
---  | LT = uninhabited $ the (GT=LT) $
---           rewrite sym pgtr in
---           leLtTrans p q r pleq (sym qr)
---  | EQ = pleq $ rewrite compareEqIffTo q r (sym qr) in
---                pgtr
---  | GT = absurd $ qler Refl
+leTrans p q r pleq with (@@ (q `compare` r))
+  leTrans p q r pleq | (LT**qr) = \_, pgtr => uninhabited $ the (GT=LT) $
+                                              rewrite sym pgtr in
+                                              leLtTrans p q r pleq qr
+  leTrans p q r pleq | (EQ**qr) = \_, pgtr => pleq $ rewrite compareEqIffTo q r qr in
+                                                     pgtr
+  leTrans p q r pleq | (GT**qr) = rewrite qr in \ctra => absurd $ ctra Refl
 
 -- le_succ_l
 -- TODO is split into `to` and `fro`
@@ -851,13 +825,12 @@ leSuccLFro : (p, q : Bip) -> p `Lt` q -> bipSucc p `Le` q
 leSuccLFro p q = ltSuccRTo (bipSucc p) q . succLtMonoTo p q
 
 -- le_antisym
-
+-- TODO Idris2 doesn't have a proper `proof` keyword
 leAntisym : (p, q : Bip) -> p `Le` q -> q `Le` p -> p = q
-leAntisym p q pleq qlep = ?wat10
---with (p `compare` q) proof pq
---  | LT = absurd $ qlep $ ltGt p q (sym pq)
---  | EQ = compareEqIffTo p q (sym pq)
---  | GT = absurd $ pleq Refl
+leAntisym p q with (@@ (p `compare` q))
+  leAntisym p q | (LT**pq) = \_, qlep => absurd $ qlep $ ltGt p q pq
+  leAntisym p q | (EQ**pq) = const $ const $ compareEqIffTo p q pq
+  leAntisym p q | (GT**pq) = rewrite pq in \ctra => absurd $ ctra Refl
 
 -- TODO le_preorder
 -- TODO le_partorder
@@ -964,21 +937,26 @@ mulLtMonoLTo (I a) q r qltr =
     addLtMono q r (O $ a*q) (O $ a*r) qltr ih
 
 -- mul_compare_mono_l
-
+-- TODO Idris2 doesn't have a proper `proof` keyword
 mulCompareMonoL : (p, q, r : Bip) -> (p*q) `compare` (p*r) = q `compare` r
 mulCompareMonoL  U    _ _ = Refl
 mulCompareMonoL (O a) q r = mulCompareMonoL a q r
-mulCompareMonoL (I a) q r = ?wat11
---with (q `compare` r) proof qr
---  | LT = let aqr = mulLtMonoLTo a q r (sym qr) in
---           addLtMono q r (O $ a*q) (O $ a*r) (sym qr) aqr
---  | EQ = rewrite compareEqIffTo q r (sym qr) in
---         compareContRefl (r+(O $ a*r)) EQ
---  | GT = let rltq = gtLt q r $ sym qr
---             arq = mulLtMonoLTo a r q rltq
---             mul = addLtMono r q (O $ a*r) (O $ a*q) rltq arq
---         in
---           ltGt (r+(O $ a*r)) (q+(O $ a*q)) mul
+mulCompareMonoL (I a) q r with (@@ (q `compare` r))
+  mulCompareMonoL (I a) q r | (LT**qr) =
+    rewrite qr in
+    let aqr = mulLtMonoLTo a q r qr in
+    addLtMono q r (O $ a*q) (O $ a*r) qr aqr
+  mulCompareMonoL (I a) q r | (EQ**qr) =
+    rewrite qr in
+    rewrite compareEqIffTo q r qr in
+    compareContRefl (r+(O $ a*r)) EQ
+  mulCompareMonoL (I a) q r | (GT**qr) =
+    rewrite qr in
+    let rltq = gtLt q r qr
+        arq = mulLtMonoLTo a r q rltq
+        mul = addLtMono r q (O $ a*r) (O $ a*q) rltq arq
+    in
+    ltGt (r+(O $ a*r)) (q+(O $ a*q)) mul
 
 -- mul_lt_mono_l
 -- TODO is split into `to` and `fro`, intermixed with mul_compare_mono_l
@@ -1157,14 +1135,17 @@ subLtMonoL p q r qltp pltr = addLtMonoRFro p (r-p) (r-q) $
      (addLtMonoLTo (r-q) q p qltp)
 
 -- sub_compare_mono_l
-
+-- TODO Idris2 doesn't have a proper `proof` keyword
 subCompareMonoL : (p, q, r : Bip) -> q `Lt` p -> r `Lt` p
                                  -> (p-q) `compare` (p-r) = r `compare` q
-subCompareMonoL p q r qltp rltp = ?wat12
---with (r `compare` q) proof rq
---  | LT = subLtMonoL q r p (sym rq) qltp
---  | EQ = rewrite compareEqIffTo r q (sym rq) in compareContRefl (p-q) EQ
---  | GT = ltGt (p-r) (p-q) $ subLtMonoL r q p (gtLt r q (sym rq)) rltp
+subCompareMonoL p q r qltp rltp with (@@ (r `compare` q))
+  subCompareMonoL p q r qltp rltp | (LT**rq) = rewrite rq in
+                                               subLtMonoL q r p rq qltp
+  subCompareMonoL p q r qltp rltp | (EQ**rq) = rewrite rq in
+                                               rewrite compareEqIffTo r q rq in
+                                               compareContRefl (p-q) EQ
+  subCompareMonoL p q r qltp rltp | (GT**rq) = rewrite rq in
+                                               ltGt (p-r) (p-q) $ subLtMonoL r q p (gtLt r q rq) rltp
 
 -- sub_compare_mono_r
 
@@ -1275,15 +1256,14 @@ subMaskNeg : (p, q : Bip) -> p `Lt` q -> bimMinus p q = BimM
 subMaskNeg p q = subMaskNegFro p q . ltIffAddTo p q
 
 -- sub_le
-
+-- TODO Idris2 doesn't have a proper `proof` keyword
 subLe : (p, q : Bip) -> p `Le` q -> p-q = U
-subLe p q pleq = ?wat13
---with (bimMinus p q) proof pq
---  subLe p q pleq | BimO   = Refl
---  subLe p q pleq | BimP a =
---    let qltp = ltGt q p $ ltIffAddFro q p (a**subMaskAdd p q a $ sym pq)
---    in absurd $ pleq qltp
---  subLe p q pleq | BimM   = Refl
+subLe p q pleq with (@@ (bimMinus p q))
+  subLe p q pleq | (BimO  **pq) = rewrite pq in Refl
+  subLe p q pleq | (BimP a**pq) =
+    let qltp = ltGt q p $ ltIffAddFro q p (a**subMaskAdd p q a pq)
+    in absurd $ pleq qltp
+  subLe p q pleq | (BimM  **pq) = rewrite pq in Refl
 
 -- sub_lt
 
@@ -1305,25 +1285,24 @@ sizeNatMonotone  U    (I _) _    = LTESucc LTEZero
 sizeNatMonotone (O a) (O b) pltq = LTESucc $ sizeNatMonotone a b pltq
 sizeNatMonotone (O a) (I b) pltq = LTESucc aux
   where
+-- TODO Idris2 doesn't have a proper `proof` keyword
   aux : bipDigitsNat a `LTE` bipDigitsNat b
-  aux = ?wat14
-  --with (a `compare` b) proof ab
-  --  | LT = sizeNatMonotone a b $ sym ab
-  --  | EQ = rewrite compareEqIffTo a b $ sym ab in
-  --         lteRefl
-  --  | GT = absurd $ compareContLtLtTo a b pltq $ sym ab
+  aux with (@@ (a `compare` b))
+    aux | (LT**ab) = sizeNatMonotone a b ab
+    aux | (EQ**ab) = rewrite compareEqIffTo a b ab in
+                     lteRefl
+    aux | (GT**ab) = absurd $ compareContLtLtTo a b pltq ab
 sizeNatMonotone (I a) (O b) pltq = LTESucc $ sizeNatMonotone a b $
                                              compareContGtLtTo a b pltq
 sizeNatMonotone (I a) (I b) pltq = LTESucc $ sizeNatMonotone a b pltq
 
 -- max_l
-
+-- TODO Idris2 doesn't have a proper `proof` keyword
 maxL : (p, q : Bip) -> q `Le` p -> max p q = p
-maxL p q qlep = ?wat15
---with (p `compare` q) proof pq
---  | LT = absurd $ qlep $ ltGt p q $ sym pq
---  | EQ = sym $ compareEqIffTo p q (sym pq)
---  | GT = Refl
+maxL p q qlep with (@@ (p `compare` q))
+  maxL p q qlep | (LT**pq) = rewrite pq in absurd $ qlep $ ltGt p q pq
+  maxL p q qlep | (EQ**pq) = rewrite pq in sym $ compareEqIffTo p q pq
+  maxL p q qlep | (GT**pq) = rewrite pq in Refl
 
 -- max_r
 
@@ -1342,13 +1321,12 @@ minL p q pleq with (p `compare` q)
   minL p q pleq | GT = absurd $ pleq Refl
 
 -- min_r
-
+-- TODO Idris2 doesn't have a proper `proof` keyword
 minR : (p, q : Bip) -> q `Le` p -> min p q = q
-minR p q qlep = ?wat16
---with (p `compare` q) proof pq
---  | LT = absurd $ qlep $ ltGt p q $ sym pq
---  | EQ = compareEqIffTo p q (sym pq)
---  | GT = Refl
+minR p q qlep with (@@ (p `compare` q))
+  minR p q qlep | (LT**pq) = rewrite pq in absurd $ qlep $ ltGt p q pq
+  minR p q qlep | (EQ**pq) = rewrite pq in compareEqIffTo p q pq
+  minR p q qlep | (GT**pq) = rewrite pq in Refl
 
 -- max_1_l
 
@@ -1379,47 +1357,55 @@ min1R (O _) = Refl
 min1R (I _) = Refl
 
 -- distributivity with monotone functions
-
+-- TODO Idris2 doesn't have a proper `proof` keyword
 maxMonotone : (f : Bip -> Bip) ->
               ((a, b : Bip) -> (a `Le` b) -> (f a `Le` f b)) ->
               (x, y : Bip) -> max (f x) (f y) = f (max x y)
-maxMonotone f fle x y = ?wat17
---with (x `compare` y) proof xy
---  | LT =
---    case leLtOrEq (f x) (f y) $ fle x y $ ltLeIncl x y $ sym xy of
---      Left fxlty => rewrite fxlty in Refl
---      Right fxeqy => rewrite fxeqy in
---                     rewrite compareContRefl (f y) EQ in
---                     Refl
---  | EQ =
---    rewrite compareEqIffTo x y (sym xy) in
---    rewrite compareContRefl (f y) EQ in
---    Refl
---  | GT =
---    case leLtOrEq (f y) (f x) $ fle y x $ ltLeIncl y x $ gtLt x y $ sym xy of
---      Left fyltx => rewrite ltGt (f y) (f x) fyltx in Refl
---      Right fxeqy => rewrite fxeqy in
---                     rewrite compareContRefl (f x) EQ in
---                     Refl
+maxMonotone f fle x y with (@@ (x `compare` y))
+  maxMonotone f fle x y | (LT**xy) =
+      rewrite xy in
+      case leLtOrEq (f x) (f y) $ fle x y $ ltLeIncl x y xy of
+      Left fxlty => rewrite fxlty in Refl
+      Right fxeqy => rewrite fxeqy in
+                     rewrite compareContRefl (f y) EQ in
+                     Refl
+  maxMonotone f fle x y | (EQ**xy) =
+    rewrite xy in
+    rewrite compareEqIffTo x y xy in
+    rewrite compareContRefl (f y) EQ in
+    Refl
+  maxMonotone f fle x y | (GT**xy) =
+    rewrite xy in
+    case leLtOrEq (f y) (f x) $ fle y x $ ltLeIncl y x $ gtLt x y xy of
+      Left fyltx => rewrite ltGt (f y) (f x) fyltx in Refl
+      Right fxeqy => rewrite fxeqy in
+                     rewrite compareContRefl (f x) EQ in
+                     Refl
 
+-- TODO Idris2 doesn't have a proper `proof` keyword
 minMonotone : (f : Bip -> Bip) ->
               ((a, b : Bip) -> (a `Le` b) -> (f a `Le` f b)) ->
               (x, y : Bip) -> min (f x) (f y) = f (min x y)
-minMonotone f fle x y = ?wat18
---with (x `compare` y) proof xy
---  | LT = case leLtOrEq (f x) (f y) $ fle x y (ltLeIncl x y $ sym xy) of
---           Left fxlty => rewrite fxlty in Refl
---           Right fxeqy => rewrite fxeqy in
---                         rewrite compareContRefl (f y) EQ in
---                         Refl
---  | EQ = rewrite compareEqIffTo x y $ sym xy in
---         rewrite compareContRefl (f y) EQ in
---         Refl
---  | GT = case leLtOrEq (f y) (f x) $ fle y x $ ltLeIncl y x $ gtLt x y $ sym xy of
---           Left fyltx => rewrite ltGt (f y) (f x) fyltx in Refl
---           Right fxeqy => rewrite fxeqy in
---                         rewrite compareContRefl (f x) EQ in
---                         Refl
+minMonotone f fle x y with (@@ (x `compare` y))
+  minMonotone f fle x y | (LT**xy) =
+    rewrite xy in
+    case leLtOrEq (f x) (f y) $ fle x y (ltLeIncl x y xy) of
+      Left fxlty => rewrite fxlty in Refl
+      Right fxeqy => rewrite fxeqy in
+                    rewrite compareContRefl (f y) EQ in
+                    Refl
+  minMonotone f fle x y | (EQ**xy) =
+    rewrite xy in
+    rewrite compareEqIffTo x y xy in
+    rewrite compareContRefl (f y) EQ in
+    Refl
+  minMonotone f fle x y | (GT**xy) =
+    rewrite xy in
+    case leLtOrEq (f y) (f x) $ fle y x $ ltLeIncl y x $ gtLt x y xy of
+      Left fyltx => rewrite ltGt (f y) (f x) fyltx in Refl
+      Right fxeqy => rewrite fxeqy in
+                    rewrite compareContRefl (f x) EQ in
+                    Refl
 
 -- succ_max_distr
 

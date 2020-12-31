@@ -46,47 +46,47 @@ mutual
   -- TODO: bipAdd?
   public export
   bipPlus : (a, b: Bip) -> Bip
-  bipPlus  U      U     = O U
-  bipPlus  U     (O b') = I b'
-  bipPlus  U     (I b') = O (bipSucc b')
-  bipPlus (O a')  U     = I a'
-  bipPlus (O a') (O b') = O (bipPlus a' b')
-  bipPlus (O a') (I b') = I (bipPlus a' b')
-  bipPlus (I a')  U     = O (bipSucc a')
-  bipPlus (I a') (O b') = I (bipPlus a' b')
-  bipPlus (I a') (I b') = O (bipCarry a' b')
+  bipPlus  U     U    = O U
+  bipPlus  U    (O b) = I b
+  bipPlus  U    (I b) = O $ bipSucc b
+  bipPlus (O a)  U    = I a
+  bipPlus (O a) (O b) = O $ bipPlus a b
+  bipPlus (O a) (I b) = I $ bipPlus a b
+  bipPlus (I a)  U    = O $ bipSucc a
+  bipPlus (I a) (O b) = I $ bipPlus a b
+  bipPlus (I a) (I b) = O $ bipCarry a b
 
   public export
   bipCarry : (a, b: Bip) -> Bip
-  bipCarry  U      U     = I U
-  bipCarry  U     (O b') = O (bipSucc b')
-  bipCarry  U     (I b') = I (bipSucc b')
-  bipCarry (O a')  U     = O (bipSucc a')
-  bipCarry (O a') (O b') = I (bipPlus a' b')
-  bipCarry (O a') (I b') = O (bipCarry a' b')
-  bipCarry (I a')  U     = I (bipSucc a')
-  bipCarry (I a') (O b') = O (bipCarry a' b')
-  bipCarry (I a') (I b') = I (bipCarry a' b')
+  bipCarry  U     U    = I U
+  bipCarry  U    (O b) = O $ bipSucc b
+  bipCarry  U    (I b) = I $ bipSucc b
+  bipCarry (O a)  U    = O $ bipSucc a
+  bipCarry (O a) (O b) = I $ bipPlus a b
+  bipCarry (O a) (I b) = O $ bipCarry a b
+  bipCarry (I a)  U    = I $ bipSucc a
+  bipCarry (I a) (O b) = O $ bipCarry a b
+  bipCarry (I a) (I b) = I $ bipCarry a b
 
 ||| Operation x -> 2*x-1
 public export
 bipDMO : (a: Bip) -> Bip
-bipDMO  U     = U
-bipDMO (O a') = I (bipDMO a')
-bipDMO (I a') = I (O a')
+bipDMO  U    = U
+bipDMO (O a) = I $ bipDMO a
+bipDMO (I a) = I $ O a
 
 ||| Predecessor
 bipPred : (a: Bip) -> Bip
-bipPred  U     = U
-bipPred (O a') = bipDMO a'
-bipPred (I a') = O a'
+bipPred  U    = U
+bipPred (O a) = bipDMO a
+bipPred (I a) = O a
 
 ||| Predecessor seen as Bin
 public export
 bipPredBin : (a: Bip) -> Bin
-bipPredBin  U     = BinO
-bipPredBin (O a') = BinP (bipDMO a')
-bipPredBin (I a') = BinP (O a')
+bipPredBin  U    = BinO
+bipPredBin (O a) = BinP $ bipDMO a
+bipPredBin (I a) = BinP $ O a
 
 ||| Auxiliary type for subtraction
 public export
@@ -125,21 +125,21 @@ BimPInj Refl = Refl
 
 ||| Operation x -> 2*x+1
 bimDPO : (a: Bim) -> Bim
-bimDPO  BimO     = BimP U
-bimDPO (BimP a') = BimP (I a')
-bimDPO  BimM     = BimM
+bimDPO  BimO    = BimP U
+bimDPO (BimP a) = BimP $ I a
+bimDPO  BimM    = BimM
 
 ||| Operation x -> 2*x
 bimD : (a: Bim) -> Bim
-bimD  BimO     = BimO
-bimD (BimP a') = BimP (O a')
-bimD  BimM     = BimM
+bimD  BimO    = BimO
+bimD (BimP a) = BimP $ O a
+bimD  BimM    = BimM
 
 ||| Operation x -> 2*x-2
 bimDMT : (a: Bip) -> Bim
-bimDMT  U     = BimO
-bimDMT (O a') = BimP (O (bipDMO a'))
-bimDMT (I a') = BimP (O (O a'))
+bimDMT  U    = BimO
+bimDMT (O a) = BimP $ O (bipDMO a)
+bimDMT (I a) = BimP $ O (O a)
 
 ||| Predecessor with mask
 bimPred : (p: Bim) -> Bim
@@ -152,24 +152,24 @@ mutual
   ||| Subtraction, result as a mask
   public export
   bimMinus : (a, b: Bip) -> Bim
-  bimMinus  U      U     = BimO
-  bimMinus  U      _     = BimM
-  bimMinus (O a')  U     = BimP (bipDMO a')
-  bimMinus (O a') (O b') = bimD (bimMinus a' b')
-  bimMinus (O a') (I b') = bimDPO (bimMinusCarry a' b')
-  bimMinus (I a')  U     = BimP (O a')
-  bimMinus (I a') (O b') = bimDPO (bimMinus a' b')
-  bimMinus (I a') (I b') = bimD (bimMinus a' b')
+  bimMinus  U     U    = BimO
+  bimMinus  U     _    = BimM
+  bimMinus (O a)  U    = BimP $ bipDMO a
+  bimMinus (O a) (O b) = bimD $ bimMinus a b
+  bimMinus (O a) (I b) = bimDPO $ bimMinusCarry a b
+  bimMinus (I a)  U    = BimP $ O a
+  bimMinus (I a) (O b) = bimDPO $ bimMinus a b
+  bimMinus (I a) (I b) = bimD $ bimMinus a b
 
   public export
   bimMinusCarry : (a, b: Bip) -> Bim
-  bimMinusCarry  U      _     = BimM
-  bimMinusCarry (O a')  U     = bimDMT a'
-  bimMinusCarry (O a') (O b') = bimDPO (bimMinusCarry a' b')
-  bimMinusCarry (O a') (I b') = bimD (bimMinusCarry a' b')
-  bimMinusCarry (I a')  U     = BimP (bipDMO a')
-  bimMinusCarry (I a') (O b') = bimD (bimMinus a' b')
-  bimMinusCarry (I a') (I b') = bimDPO (bimMinusCarry a' b')
+  bimMinusCarry  U     _    = BimM
+  bimMinusCarry (O a)  U    = bimDMT a
+  bimMinusCarry (O a) (O b) = bimDPO $ bimMinusCarry a b
+  bimMinusCarry (O a) (I b) = bimD $ bimMinusCarry a b
+  bimMinusCarry (I a)  U    = BimP $ bipDMO a
+  bimMinusCarry (I a) (O b) = bimD $ bimMinus a b
+  bimMinusCarry (I a) (I b) = bimDPO $ bimMinusCarry a b
 
 -- Helper for bipMinus, to work around #4001
 bipMinusHelp : Bim -> Bip
@@ -183,16 +183,16 @@ bipMinus a b = bipMinusHelp (bimMinus a b)
 ||| Multiplication
 public export
 bipMult : (a, b: Bip) -> Bip
-bipMult  U     b = b
-bipMult (O a') b = O (bipMult a' b)
-bipMult (I a') b = bipPlus b (O (bipMult a' b))
+bipMult  U    b = b
+bipMult (O a) b = O $ bipMult a b
+bipMult (I a) b = bipPlus b $ O (bipMult a b)
 
 ||| Iteration over a positive number
 public export
 bipIter : {0 ty: Type} -> (f: ty -> ty) -> (a: ty) -> (b: Bip) -> ty
-bipIter f a  U     = f a
-bipIter f a (O b') = bipIter f (bipIter f a b') b'
-bipIter f a (I b') = f (bipIter f (bipIter f a b') b')
+bipIter f a  U    = f a
+bipIter f a (O b) = bipIter f (bipIter f a b) b
+bipIter f a (I b) = f (bipIter f (bipIter f a b) b)
 
 ||| Power
 public export
@@ -207,72 +207,71 @@ bipPow2 (S k) = O (bipPow2 k)
 ||| Square
 public export
 bipSquare : (a: Bip) -> Bip
-bipSquare  U     = U
-bipSquare (O a') = O (O (bipSquare a'))
-bipSquare (I a') = I (O (bipPlus (bipSquare a') a'))
+bipSquare  U    = U
+bipSquare (O a) = O (O (bipSquare a))
+bipSquare (I a) = I (O (bipPlus (bipSquare a) a))
 
 ||| Division by 2 rounded below but for 1
 public export
 bipDivTwo : (a: Bip) -> Bip
-bipDivTwo  U     = U
-bipDivTwo (O a') = a'
-bipDivTwo (I a') = a'
+bipDivTwo  U    = U
+bipDivTwo (O a) = a
+bipDivTwo (I a) = a
 
 ||| Division by 2 rounded up
 public export
 bipDivTwoCeil : (a: Bip) -> Bip
-bipDivTwoCeil  U     = U
-bipDivTwoCeil (O a') = a'
-bipDivTwoCeil (I a') = bipSucc a'
+bipDivTwoCeil  U    = U
+bipDivTwoCeil (O a) = a
+bipDivTwoCeil (I a) = bipSucc a
 
 ||| Number of digits in Bip, into Nat
 public export
 bipDigitsNat : (a: Bip) -> Nat
-bipDigitsNat  U     = S Z
-bipDigitsNat (O a') = S (bipDigitsNat a')
-bipDigitsNat (I a') = S (bipDigitsNat a')
+bipDigitsNat  U    = S Z
+bipDigitsNat (O a) = S (bipDigitsNat a)
+bipDigitsNat (I a) = S (bipDigitsNat a)
 
 ||| Number of digits in a positive number
 public export
 bipDigits : (a: Bip) -> Bip
-bipDigits  U     = U
-bipDigits (O a') = bipSucc (bipDigits a')
-bipDigits (I a') = bipSucc (bipDigits a')
+bipDigits  U    = U
+bipDigits (O a) = bipSucc (bipDigits a)
+bipDigits (I a) = bipSucc (bipDigits a)
 
 ||| Comparison on binary positive numbers
 public export
 bipCompare : (a, b: Bip) -> (c: Ordering) -> Ordering
-bipCompare  U      U     c = c
-bipCompare  U     (O _)  _ = LT
-bipCompare  U     (I _)  _ = LT
-bipCompare (O _)   U     _ = GT
-bipCompare (O a') (O b') c = bipCompare a' b' c
-bipCompare (O a') (I b') _ = bipCompare a' b' LT
-bipCompare (I _)   U     _ = GT
-bipCompare (I a') (O b') _ = bipCompare a' b' GT
-bipCompare (I a') (I b') c = bipCompare a' b' c
-
--- Helper for bipMin and bipMax, to work around #4001
-bipMinMaxHelp : (a, b: Bip) -> Ordering -> Bip
-bipMinMaxHelp _ b GT = b
-bipMinMaxHelp a _ _  = a
+bipCompare  U     U    c = c
+bipCompare  U    (O _) _ = LT
+bipCompare  U    (I _) _ = LT
+bipCompare (O _)  U    _ = GT
+bipCompare (O a) (O b) c = bipCompare a b c
+bipCompare (O a) (I b) _ = bipCompare a b LT
+bipCompare (I _)  U    _ = GT
+bipCompare (I a) (O b) _ = bipCompare a b GT
+bipCompare (I a) (I b) c = bipCompare a b c
 
 ||| Min
 bipMin : (a, b: Bip) -> Bip
-bipMin a b = bipMinMaxHelp a b (bipCompare a b EQ)
+bipMin a b = case bipCompare a b EQ of
+               GT => b
+               _  => a
 
 ||| Max
 bipMax : (a, b: Bip) -> Bip
-bipMax a b = bipMinMaxHelp b a (bipCompare a b EQ)
+bipMax a b = case bipCompare a b EQ of
+               GT => a
+               _  => b
 
 -- Boolean equality and comparisons
 -- Defined in Ord below
 
 -- Helper for bipSqrtRemStep, to work around #4001
-bipSqrtRemStepHelp : (s, s', r': Bip) -> Ordering -> (Bip, Bim)
-bipSqrtRemStepHelp s s' r' LT = (I s, bimMinus r' s')
-bipSqrtRemStepHelp s s' r' EQ = (I s, bimMinus r' s')
-bipSqrtRemStepHelp s _  r' _  = (O s, BimP r')
+bipSqrtRemStepHelp : (s, p, r: Bip) -> Ordering -> (Bip, Bim)
+bipSqrtRemStepHelp s p r LT = (I s, bimMinus r p)
+bipSqrtRemStepHelp s p r EQ = (I s, bimMinus r p)
+bipSqrtRemStepHelp s _ r _  = (O s, BimP r)
 
 -- Square root helper function
 bipSqrtRemStep : (f, g: Bip -> Bip) -> (Bip, Bim) -> (Bip, Bim)
@@ -286,13 +285,13 @@ bipSqrtRemStep f g (s, _) = (O s, bimMinus (g (f U)) (O (O U)))
 ||| Square root with remainder
 public export
 bipSqrtRem : (a: Bip) -> (Bip, Bim)
-bipSqrtRem  U         = (U, BimO)
-bipSqrtRem (O  U)     = (U, BimP U)
-bipSqrtRem (I  U)     = (U, BimP (O U))
-bipSqrtRem (O (O a')) = bipSqrtRemStep O O (bipSqrtRem a')
-bipSqrtRem (I (O a')) = bipSqrtRemStep O I (bipSqrtRem a')
-bipSqrtRem (O (I a')) = bipSqrtRemStep I O (bipSqrtRem a')
-bipSqrtRem (I (I a')) = bipSqrtRemStep I I (bipSqrtRem a')
+bipSqrtRem  U        = (U, BimO)
+bipSqrtRem (O  U)    = (U, BimP U)
+bipSqrtRem (I  U)    = (U, BimP (O U))
+bipSqrtRem (O (O a)) = bipSqrtRemStep O O (bipSqrtRem a)
+bipSqrtRem (I (O a)) = bipSqrtRemStep O I (bipSqrtRem a)
+bipSqrtRem (O (I a)) = bipSqrtRemStep I O (bipSqrtRem a)
+bipSqrtRem (I (I a)) = bipSqrtRemStep I I (bipSqrtRem a)
 
 ||| Square root
 public export
@@ -311,13 +310,13 @@ mutual
 
   ||| GCD, with Nat of total combined digits
   bipGCDN : (n: Nat) -> (a, b: Bip) -> Bip
-  bipGCDN  Z      _      _     = U
-  bipGCDN (S _ )  U      _     = U
-  bipGCDN (S _ )  _      U     = U
-  bipGCDN (S n') (O a') (O b') = O (bipGCDN n' a' b')
-  bipGCDN (S n')  a     (O b') = bipGCDN n' a  b'
-  bipGCDN (S n') (O a')  b     = bipGCDN n' a' b
-  bipGCDN (S n') (I a') (I b') = bipGCDNHelp n' a' b' (bipCompare a' b' EQ)
+  bipGCDN  Z     _     _    = U
+  bipGCDN (S _)  U     _    = U
+  bipGCDN (S _)  _     U    = U
+  bipGCDN (S n) (O a) (O b) = O (bipGCDN n a b)
+  bipGCDN (S n)  a    (O b) = bipGCDN n a b
+  bipGCDN (S n) (O a)  b    = bipGCDN n a b
+  bipGCDN (S n) (I a) (I b) = bipGCDNHelp n a b (bipCompare a b EQ)
 
 ||| GCD, using the Stein binary algorithm
 public export
@@ -372,46 +371,46 @@ bipGGCD a b = bipGGCDN ((bipDigitsNat a) + (bipDigitsNat b)) a b
 ||| Logical OR
 public export
 bipOr : (a, b: Bip) -> Bip
-bipOr  U     (O b') = I b'
-bipOr  U      b     = b
-bipOr (O a')  U     = I a'
-bipOr  a      U     = a
-bipOr (O a') (O b') = O (bipOr a' b')
-bipOr (O a') (I b') = I (bipOr a' b')
-bipOr (I a') (O b') = I (bipOr a' b')
-bipOr (I a') (I b') = I (bipOr a' b')
+bipOr  U    (O b) = I b
+bipOr  U     b    = b
+bipOr (O a)  U    = I a
+bipOr  a     U    = a
+bipOr (O a) (O b) = O (bipOr a b)
+bipOr (O a) (I b) = I (bipOr a b)
+bipOr (I a) (O b) = I (bipOr a b)
+bipOr (I a) (I b) = I (bipOr a b)
 
 binDoubleSucc : (a: Bin) -> Bin
-binDoubleSucc  BinO     = BinP U
-binDoubleSucc (BinP a') = BinP (I a')
+binDoubleSucc  BinO    = BinP U
+binDoubleSucc (BinP a) = BinP (I a)
 
 binDouble : (a: Bin) -> Bin
-binDouble  BinO     = BinO
-binDouble (BinP a') = BinP (O a')
+binDouble  BinO    = BinO
+binDouble (BinP a) = BinP (O a)
 
 ||| Logical AND
 public export
 bipAnd : (a, b: Bip) -> Bin
-bipAnd  U     (O _)  = BinO
-bipAnd  U      _     = BinP U
-bipAnd (O _ )  U     = BinO
-bipAnd  _      U     = BinP U
-bipAnd (O a') (O b') = binDouble (bipAnd a' b')
-bipAnd (O a') (I b') = binDouble (bipAnd a' b')
-bipAnd (I a') (O b') = binDouble (bipAnd a' b')
-bipAnd (I a') (I b') = binDoubleSucc (bipAnd a' b')
+bipAnd  U    (O _) = BinO
+bipAnd  U     _    = BinP U
+bipAnd (O _)  U    = BinO
+bipAnd  _     U    = BinP U
+bipAnd (O a) (O b) = binDouble (bipAnd a b)
+bipAnd (O a) (I b) = binDouble (bipAnd a b)
+bipAnd (I a) (O b) = binDouble (bipAnd a b)
+bipAnd (I a) (I b) = binDoubleSucc (bipAnd a b)
 
 ||| Logical DIFF
 public export
 bipDiff : (a, b: Bip) -> Bin
-bipDiff  U     (O _)  = BinP U
-bipDiff  U      _     = BinO
-bipDiff (O a')  U     = BinP (O a')
-bipDiff (I a')  U     = BinP (O a')
-bipDiff (O a') (O b') = binDouble (bipDiff a' b')
-bipDiff (O a') (I b') = binDouble (bipDiff a' b')
-bipDiff (I a') (O b') = binDoubleSucc (bipDiff a' b')
-bipDiff (I a') (I b') = binDouble (bipDiff a' b')
+bipDiff  U    (O _) = BinP U
+bipDiff  U     _    = BinO
+bipDiff (O a)  U    = BinP (O a)
+bipDiff (I a)  U    = BinP (O a)
+bipDiff (O a) (O b) = binDouble (bipDiff a b)
+bipDiff (O a) (I b) = binDouble (bipDiff a b)
+bipDiff (I a) (O b) = binDoubleSucc (bipDiff a b)
+bipDiff (I a) (I b) = binDouble (bipDiff a b)
 
 ||| Logical XOR
 public export
